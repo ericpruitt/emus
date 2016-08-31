@@ -1,0 +1,20 @@
+Title: Smaller Clickable Tag-Bar Area
+Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+Makes clicks on the window title area register only if they happen in the top
+half. This patch was created to reduce the amount of accidental window closures
+caused by attempts to middle-mouse-click browser tabs.
+
+diff --git a/dwm.c b/dwm.c
+index 169adcb..8518f8c 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -434,6 +434,8 @@ buttonpress(XEvent *e) {
+ 			click = ClkLtSymbol;
+ 		else if(ev->x > selmon->ww - TEXTW(stext))
+ 			click = ClkStatusText;
++		else if (ev->y > bh / 2)
++			return;
+ 		else
+ 			click = ClkWinTitle;
+ 	}

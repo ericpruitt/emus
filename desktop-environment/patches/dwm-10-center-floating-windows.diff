@@ -1,0 +1,29 @@
+Title: Center Floating Windows
+Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+For whatever reason, some windows that should be centered are instead spawned
+in the top left corner at position (0, 0) relative to the dwm bar; this change
+centers these windows when they appear.
+
+This patch must be applied after "dwm-00-window-attachment-priority.diff".
+
+diff --git a/dwm.c b/dwm.c
+index c87ef1c..27d343a 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1116,6 +1116,15 @@ manage(Window w, XWindowAttributes *wa)
+ 		c->isfloating = c->oldstate = trans != None || c->isfixed;
+ 	if (c->isfloating)
+ 		XRaiseWindow(dpy, c->win);
++	if (c->isfloating && c->x == 0 && c->y == (c->mon->showbar ? bh : 0)) {
++		if (t) {
++			c->x = t->x + WIDTH(t) / 2 - WIDTH(c) / 2;
++			c->y = t->y + HEIGHT(t) / 2 - HEIGHT(c) / 2;
++		} else {
++			c->x = c->mon->mx + (c->mon->mw / 2 - WIDTH(c) / 2);
++			c->y = c->mon->my + (c->mon->mh / 2 - HEIGHT(c) / 2);
++		}
++	}
+ 	attachbypriority(c, 1);
+ 	attachstack(c);
+ 	XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,

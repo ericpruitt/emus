@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+# Attempt to cleanly exit all applications and stop the window manager.
+#
+function xsession-logout()
+{
+    printf "select -1 . . . close" > ~/.dwmfifo
+    sleep 1
+    sync
+    printf "quit" > ~/.dwmfifo
+}
+
+# Reboot the machine.
+#
+function reboot-host()
+{
+    xsession-logout
+    systemctl reboot
+}
+
+# Shutdown the machine.
+#
+function shutdown-host()
+{
+    xsession-logout
+    systemctl poweroff
+}
+
+# Suspend the machine.
+#
+function suspend-host()
+{
+    slock systemctl suspend
+}
+
+function main()
+{
+    set -e -u -o pipefail
+
+    local choice
+
+    case "${1:-}" in
+      logout)
+        xsession-logout
+      ;;
+
+      reboot)
+        reboot-host
+      ;;
+
+      shutdown)
+        shutdown-host
+      ;;
+
+      suspend)
+        suspend-host
+      ;;
+
+      menu)
+        choice="$(
+            printf "Sus[p]end\n[L]ogout\n[R]eboot\nShutdo[w]n\n" \
+            | dmenu -a -i -sb "#ffff00" -sf "#000000" -pf '#ffffff' \
+                -p "What would you like to do?"
+        )"
+        choice="${choice//\]/}"
+        choice="${choice//\[/}"
+        main "${choice,,}"
+      ;;
+
+      *)
+        if [[ -n "${1:-}" ]]; then
+            echo "Unrecognized command ($1)." >&2
+        else
+            echo "No command specified." >&2
+        fi
+        exit 1
+      ;;
+    esac
+}
+
+test "${BASH_SOURCE:-}" != "$0" || main "$@"

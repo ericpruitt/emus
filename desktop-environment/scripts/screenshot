@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+# Capture a screenshot spanning all displays.
+#
+function screenshot()
+{
+    scrot
+}
+
+# Capture a screenshot of the currently selected window.
+#
+function window-screenshot()
+{
+    scrot --focused
+}
+
+function main()
+{
+    set -e -u -o pipefail
+
+    mkdir -p ~/screenshots/
+    cd ~/screenshots/
+
+    case "${1:-}" in
+      window)
+        window-screenshot
+      ;;
+      "")
+        screenshot
+      ;;
+      *)
+        echo "Unrecognized screenshot type ($1)" >&2
+        return 1
+    esac
+}
+
+test "${BASH_SOURCE:-}" != "$0" || main "$@"

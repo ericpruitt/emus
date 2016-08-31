@@ -1,0 +1,72 @@
+Title: Custom Rules Hook
+Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+Let's users to define more complex constraints than what the "rules" array
+allows; the user defines a function as `void ruleshook(Client *c)` in the
+configuration header that is executed at the end of "applyrules" for every
+window dwm manages. Two new properties, "class" and "instance", are added to
+the `Client` _struct_, and a global variable named "scanning" is also added
+which can be used to differentiate between windows that already exist when dwm
+is started from those that were created afterward. The value of "scanning" is 1
+while dwm is initializing and 0 thereafter.
+
+In the following example, windows that are created on unselected tags after dwm
+is started are marked urgent:
+
+    void ruleshook(Client *c)
+    {
+        if (!ISVISIBLE(c) && !scanning) {
+            seturgent(c);
+        }
+    }
+
+diff --git a/dwm.c b/dwm.c
+index b2bc9bd..322b9aa 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -92,6 +92,8 @@ struct Client {
+ 	int oldx, oldy, oldw, oldh;
+ 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
+ 	int bw, oldbw;
++	char class[256];
++	char instance[256];
+ 	unsigned int tags;
+ 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
+ 	Client *next;
+@@ -262,6 +264,7 @@ static void (*handler[LASTEvent]) (XEvent *) = {
+ };
+ static Atom wmatom[WMLast], netatom[NetLast];
+ static int running = 1;
++static int scanning = 1;
+ static Cur *cursor[CurLast];
+ static Scm scheme[SchemeLast];
+ static Display *dpy;
+@@ -290,7 +293,11 @@ applyrules(Client *c)
+ 	c->tags = 0;
+ 	XGetClassHint(dpy, c->win, &ch);
+ 	class    = ch.res_class ? ch.res_class : broken;
++	strncpy(c->class, class,  sizeof(c->class));
++	c->class[sizeof(c->class) - 1] = '\0';
+ 	instance = ch.res_name  ? ch.res_name  : broken;
++	strncpy(c->instance, instance,  sizeof(c->instance));
++	c->instance[sizeof(c->instance) - 1] = '\0';
+ 
+ 	for (i = 0; i < LENGTH(rules); i++) {
+ 		r = &rules[i];
+@@ -310,6 +317,7 @@ applyrules(Client *c)
+ 	if (ch.res_name)
+ 		XFree(ch.res_name);
+ 	c->tags = c->tags & TAGMASK ? c->tags & TAGMASK : c->mon->tagset[c->mon->seltags];
++	ruleshook(c);
+ }
+ 
+ int
+@@ -1425,6 +1433,8 @@ scan(void)
+ 		if (wins)
+ 			XFree(wins);
+ 	}
++
++	scanning = 0;
+ }
+ 
+ void

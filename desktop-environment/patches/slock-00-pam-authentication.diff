@@ -1,0 +1,235 @@
+Title: P.A.M. Support
+Original Author: Jan Christoph Ebersbach <jceb@e-jc.de>
+Original Patch: http://tools.suckless.org/slock/patches/pam_auth
+Modified By: Eric Pruitt
+
+This patch adds support for PAM to slock. This version of the patch notably
+differs from the original in the following ways:
+
+- PAM is used as the fallback when the user does not appear to have a hash on
+  the local system. In the process of implementing this, CVE-2016-6866 was also
+  resolved.
+- The function used to converse with PAM will no longer kill the screen locker
+  if there is a memory allocation failure.
+- The "pam_service" variable is no longer used.
+- A new, intermediate color will be shown when slock is waiting on PAM. Its
+  index is `PAM_WAIT`.
+- C preprocessor guards have been added so slock can still be compiled when
+  this patch is applied regardless of whether or not the PAM development
+  libraries are available.
+- The patch should theoretically work on BSD systems that support PAM.
+- The build configuration has been modified to support a "USE_PAM" variable
+  that can be used to toggle build support for PAM; when it is empty or unset,
+  slock is compiled without PAM while any other value compiles slock with PAM.
+
+diff --git config.mk config.mk
+index 3afc061..a49b5f7 100644
+--- config.mk
++++ config.mk
+@@ -12,10 +12,10 @@ X11LIB = /usr/X11R6/lib
+ 
+ # includes and libs
+ INCS = -I. -I/usr/include -I${X11INC}
+-LIBS = -L/usr/lib -lc -lcrypt -L${X11LIB} -lX11 -lXext -lXrandr
++LIBS = -L/usr/lib -lc -lcrypt -L${X11LIB} -lX11 -lXext -lXrandr $(if $(USE_PAM),-lpam,)
+ 
+ # flags
+-CPPFLAGS = -DVERSION=\"${VERSION}\" -DHAVE_SHADOW_H
++CPPFLAGS = -DVERSION=\"${VERSION}\" -DHAVE_SHADOW_H $(if $(USE_PAM),-DHAVE_PAM_AUTH,)
+ CFLAGS = -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS}
+ LDFLAGS = -s ${LIBS}
+ COMPATSRC = explicit_bzero.c
+diff --git a/slock.c b/slock.c
+index a00fbb9..43fd8f2 100644
+--- a/slock.c
++++ b/slock.c
+@@ -18,6 +18,11 @@
+ #include <X11/Xlib.h>
+ #include <X11/Xutil.h>
+ 
++#ifdef HAVE_PAM_AUTH
++#include <security/pam_appl.h>
++#include <security/pam_misc.h>
++#endif
++
+ #if HAVE_BSD_AUTH
+ #include <login_cap.h>
+ #include <bsd_auth.h>
+@@ -29,6 +34,7 @@ enum {
+ 	INIT,
+ 	INPUT,
+ 	FAILED,
++	PAM_WAIT,
+ 	NUMCOLS
+ };
+ 
+@@ -41,6 +47,12 @@ typedef struct {
+ 	unsigned long colors[NUMCOLS];
+ } Lock;
+ 
++#ifdef HAVE_PAM_AUTH
++static int pam_conv(int num_msg, const struct pam_message **msg, struct pam_response **resp, void *appdata_ptr);
++struct pam_conv pamc = {pam_conv, NULL};
++#endif
++static void setcolor(Display *, int);
++char passwd[256];
+ static Lock **locks;
+ static int nscreens;
+ static Bool running = True;
+@@ -100,12 +112,19 @@ getpw(void)
+ #if HAVE_SHADOW_H
+ 	if (rval[0] == 'x' && rval[1] == '\0') {
+ 		struct spwd *sp;
+-		if (!(sp = getspnam(getenv("USER"))))
+-			die("cannot retrieve shadow entry (make sure to suid or sgid slock)\n");
++		if (!(sp = getspnam(pw->pw_name))) {
++			fprintf(stderr, "cannot retrieve shadow entry (make sure to suid or sgid slock)\n");
++			return NULL;
++		}
+ 		rval = sp->sp_pwdp;
+ 	}
+ #endif
+ 
++	if (rval && !crypt("x", rval)) {
++		perror("User's password hash was rejected by crypt(3)");
++		return NULL;
++	}
++
+ 	/* drop privileges */
+ 	if (geteuid() == 0 &&
+ 	    ((getegid() != pw->pw_gid && setgid(pw->pw_gid) < 0) || setuid(pw->pw_uid) < 0))
+@@ -114,6 +133,38 @@ getpw(void)
+ }
+ #endif
+ 
++#ifdef HAVE_PAM_AUTH
++static int
++pam_conv(int num_msg, const struct pam_message **msg,
++		struct pam_response **resp, void *appdata_ptr)
++{
++	struct pam_response *resp_msg;
++	char *password = NULL;
++	int retval = PAM_CONV_ERR;
++
++	for(int i = 0; i < num_msg; i++) {
++		if (msg[i]->msg_style == PAM_PROMPT_ECHO_OFF &&
++				strncmp(msg[i]->msg, "Password: ", 10) == 0) {
++			if ((resp_msg = malloc(sizeof(struct pam_response))) &&
++			    (password = malloc(strlen(passwd) + 1))) {
++				strcpy(password, passwd);
++				resp_msg->resp_retcode = 0;
++				resp_msg->resp = password;
++				resp[i] = resp_msg;
++				retval = PAM_SUCCESS;
++			} else {
++				perror("Unable to allocate memory");
++				free(resp_msg);
++				free(password);
++				retval = PAM_SYSTEM_ERR;
++				break;
++			}
++		}
++	}
++	return retval;
++}
++#endif
++
+ static void
+ #ifdef HAVE_BSD_AUTH
+ readpw(Display *dpy)
+@@ -121,13 +172,20 @@ readpw(Display *dpy)
+ readpw(Display *dpy, const char *pws)
+ #endif
+ {
+-	char buf[32], passwd[256];
++	char *hash;
++	char buf[32];
+ 	int num, screen;
+ 	unsigned int len, color;
+ 	KeySym ksym;
+ 	XEvent ev;
+ 	static int oldc = INIT;
+ 
++#ifdef HAVE_PAM_AUTH
++	struct passwd* pw;
++	int retval;
++	pam_handle_t *pamh;
++#endif
++
+ 	len = 0;
+ 	running = True;
+ 
+@@ -155,9 +213,30 @@ readpw(Display *dpy, const char *pws)
+ 			case XK_Return:
+ 				passwd[len] = 0;
+ #ifdef HAVE_BSD_AUTH
+-				running = !auth_userokay(getlogin(), NULL, "auth-xlock", passwd);
++				if (!(running = !auth_userokay(getlogin(), NULL, "auth-xlock", passwd))) {
++					// No-Op
++				}
+ #else
+-				running = !!strcmp(crypt(passwd, pws), pws);
++				if (pws && (hash = crypt(passwd, pws))) {
++					running = !!strcmp(hash, pws);
++				}
++#endif
++#ifdef HAVE_PAM_AUTH
++				else if ((pw = getpwuid(getuid()))) {
++					setcolor(dpy, PAM_WAIT);
++					XSync(dpy, False);
++					retval = pam_start("login", pw->pw_name, &pamc, &pamh);
++					if (retval == PAM_SUCCESS)
++						retval = pam_authenticate(pamh, 0);
++					if (retval == PAM_SUCCESS)
++						retval = pam_acct_mgmt(pamh, 0);
++
++					if (retval == PAM_SUCCESS)
++						running = False;
++					else
++						fprintf(stderr, "slock: %s\n", pam_strerror(pamh, retval));
++					pam_end(pamh, retval);
++				}
+ #endif
+ 				if (running) {
+ 					XBell(dpy, 100);
+@@ -183,10 +262,7 @@ readpw(Display *dpy, const char *pws)
+ 			}
+ 			color = len ? INPUT : (failure || failonclear ? FAILED : INIT);
+ 			if (running && oldc != color) {
+-				for (screen = 0; screen < nscreens; screen++) {
+-					XSetWindowBackground(dpy, locks[screen]->win, locks[screen]->colors[color]);
+-					XClearWindow(dpy, locks[screen]->win);
+-				}
++				setcolor(dpy, color);
+ 				oldc = color;
+ 			}
+ 		} else if (rr && ev.type == rrevbase + RRScreenChangeNotify) {
+@@ -203,6 +279,16 @@ readpw(Display *dpy, const char *pws)
+ }
+ 
+ static void
++setcolor(Display *dpy, int color)
++{
++	int screen;
++	for (screen = 0; screen < nscreens; screen++) {
++		XSetWindowBackground(dpy, locks[screen]->win, locks[screen]->colors[color]);
++		XClearWindow(dpy, locks[screen]->win);
++	}
++}
++
++static void
+ unlockscreen(Display *dpy, Lock *lock)
+ {
+ 	if(dpy == NULL || lock == NULL)
+@@ -308,6 +394,11 @@ main(int argc, char **argv) {
+ 
+ #ifndef HAVE_BSD_AUTH
+ 	pws = getpw();
++#ifndef HAVE_PAM_AUTH
++	if (!pws) {
++		return 1;
++	}
++#endif
+ #endif
+ 
+ 	if (!(dpy = XOpenDisplay(0)))

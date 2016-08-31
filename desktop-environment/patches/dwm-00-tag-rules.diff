@@ -1,0 +1,146 @@
+Title: Tag Rules
+Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+Adds a new set of rules that can be used to temporarily override the layout,
+nmaster and mfact values when certain tags are active. The new rule structs
+have six properties:
+
+- **triggertags:** This is a bitmask representing the tags that must be active
+  for the rule to be triggered.
+- **exact:** When when this is non-zero, only the tags listed in triggertags
+  can be active for this rule to fire. When this is zero, the rule will trigger
+  if the active tags are superset of the trigger tags.
+- **mnum:** The monitor the rule applies to. When this value is less than zero,
+  the rule will apply to tags on any monitor.
+- **minclients:** Minimum number of tiled windows required for a rule to fire.
+- **maxclients:** Maximum number of tiled windows allowed for a rule to fire.
+  When there is maximum, this should be set to 0.
+- **layoutnum:** Index of the layout in the "layouts" array to use when the
+  rule is triggered. When the layout is changed, the layout symbol is **not**
+  updated to reflect the ephemeral layout used by a tag rule fires. If this
+  number is less than zero, the layout will not be changed.
+- **mfact:** Value of mfact to be used when the rule is active. This can be set
+  to -1 to leave mfact unchanged.
+
+Here is an example definition of the new rules array:
+
+    static const TagRule tagrules[] = {
+        // Tag              Exact   Monitor     Mn,Mx   nmaster     Layout No.  mfact
+        // If tags 9 and 2 are active, switch to layout number 2.
+        { TAG(9) | TAG(2),  1,      -1,          0, 0,  -1,         2,          -1 },
+        // If tag 1 is active and there are at least two windows shown, switch
+        // to layout 1 and set mfact to 0.5.
+        { TAG(1),           0,      -1,          2, 0   -1,         1,          0.5 },
+    };
+
+Rules are evaluated from 0...N, and no further rules are evaluated once a match
+is encountered.
+
+**Note:** Although it would a little more efficient to integrate the code of
+"applyrules" into "arrangemon", this patch makes changes to "arrange" instead
+to reduce the likelihood of conflicting with other patches.
+
+diff --git a/dwm.c b/dwm.c
+index b2bc9bd..286f548 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -134,6 +134,17 @@ struct Monitor {
+ };
+ 
+ typedef struct {
++	unsigned int triggertags;
++	int exact;
++	int mnum;
++	int minclients;
++	int maxclients;
++	int nmaster;
++	int layoutnum;
++	float mfact;
++} TagRule;
++
++typedef struct {
+ 	const char *class;
+ 	const char *instance;
+ 	const char *title;
+@@ -145,6 +156,7 @@ typedef struct {
+ /* function declarations */
+ static void applyrules(Client *c);
+ static int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
++static void applytagrules(Monitor *m, int rollback);
+ static void arrange(Monitor *m);
+ static void arrangemon(Monitor *m);
+ static void attach(Client *c);
+@@ -379,6 +391,56 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
+ }
+ 
+ void
++applytagrules(Monitor *m, int rollback)
++{
++	int i;
++	int n;
++	Client *c;
++	static int can_rollback = 0;
++	static int old_nmaster = 1;
++	static const Layout *old_layout = &layouts[0];
++	static Layout new_layout;
++	static float old_mfact = mfact;
++	TagRule tr;
++
++	if (rollback) {
++		if (!can_rollback) {
++			return;
++		}
++		m->nmaster = old_nmaster;
++		m->mfact = old_mfact;
++		m->lt[m->sellt] = old_layout;
++		can_rollback = 0;
++	} else {
++		for (n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++);
++		for (i = 0; i < LENGTH(tagrules); i++) {
++			tr = tagrules[i];
++			if ((tr.mnum > 0 && m->num != tr.mnum) ||
++			    ((n < tr.minclients) || (n > tr.maxclients && tr.maxclients > 0))) {
++				continue;
++			}
++			if ((tr.exact && tr.triggertags == m->tagset[m->seltags]) ||
++			    (!tr.exact && (tr.triggertags & m->tagset[m->seltags]) == tr.triggertags)) {
++				can_rollback = 1;
++				old_nmaster = m->nmaster;
++				old_mfact = m->mfact;
++				old_layout = m->lt[m->sellt];
++
++				m->nmaster = tr.nmaster > -1 ? tr.nmaster : m->nmaster;
++				m->mfact = tr.mfact > -1 ? tr.mfact : m->mfact;
++
++				if (tr.layoutnum > -1) {
++					new_layout = layouts[tr.layoutnum];
++					new_layout.symbol = old_layout->symbol;
++					m->lt[m->sellt] = &new_layout;
++				}
++				return;
++			}
++		}
++	}
++}
++
++void
+ arrange(Monitor *m)
+ {
+ 	if (m)
+@@ -386,10 +448,15 @@ arrange(Monitor *m)
+ 	else for (m = mons; m; m = m->next)
+ 		showhide(m->stack);
+ 	if (m) {
++		applytagrules(m, 0);
+ 		arrangemon(m);
++		applytagrules(m, 1);
+ 		restack(m);
+-	} else for (m = mons; m; m = m->next)
++	} else for (m = mons; m; m = m->next) {
++		applytagrules(m, 0);
+ 		arrangemon(m);
++		applytagrules(m, 1);
++	}
+ }
+ 
+ void

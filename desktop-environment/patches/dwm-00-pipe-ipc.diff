@@ -1,0 +1,200 @@
+Title: Pipe IPC
+Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+This patch adds support for interprocess communication to dwm via a named pipe.
+The path of the pipe is defined with `static const char fifopath[]` in the
+configuration header. The user must also define `void fifohook(char *data)`, a
+function that accepts the null-terminated data sent over the pipe as its only
+argument. Three new macros are defined and can be seen in the following example
+hook:
+
+    void fifohook(char *data)
+    {
+        Arg arg;
+        Client *c;
+        Monitor *m;
+        char title[sizeof(((Client *)0)->name)];
+
+        PARSING_LOOP (data) {
+            // Close window with specified title
+            if (argmatch("close %s", title)) {
+                for (m = mons; m; m = m->next) {
+                    for (c = m->clients; c; c = c->next) {
+                        if (!strcmp(c->name, title)) {
+                            arg.v = (void *) c;
+                            killclient(&arg);
+                        }
+                    }
+                }
+            // Shut down dwm
+            } else if (wordmatch("quit")) {
+                running = 0;
+            // Parsing failure
+            } else {
+                break;
+            }
+        }
+    }
+
+The `PARSING_LOOP` macro defines the looping condition for parsing and
+instantiates variables used by the other macros. The `argmatch` macro is used
+to handle commands that expect arguments. It accepts a string literal that is a
+_scanf(3)_ format specifier followed by pointers to locations used to store the
+parsed values. The "wordmatch" macro is for commands that accept no arguments.
+Both the "argmatch" and "wordmatch" macros return non-zero values if they were
+able to match the specified pattern or string.
+
+**Note:** The "fifopath" variable supports using `~/` as a prefix to represent
+the user's home directory.
+
+diff --git a/dwm.c b/dwm.c
+index b2bc9bd..70bbd3e 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -21,6 +21,7 @@
+  * To understand everything else, start reading main().
+  */
+ #include <errno.h>
++#include <fcntl.h>
+ #include <locale.h>
+ #include <signal.h>
+ #include <stdarg.h>
+@@ -28,6 +29,7 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
++#include <sys/select.h>
+ #include <sys/types.h>
+ #include <sys/wait.h>
+ #include <X11/cursorfont.h>
+@@ -45,6 +47,9 @@
+ #include "util.h"
+ 
+ /* macros */
++#define argmatch(format, ...)   (sscanf(_p.t, " " format " %n", __VA_ARGS__, &_p.o) && (_p.t += _p.o))
++#define wordmatch(name)         (sscanf(_p.t, " %255s %n", _p.n, &_p.o) && (!strcmp(name, _p.n) && (_p.t += _p.o)))
++#define PARSING_LOOP(data)      for (struct {char *t; char n[256]; int o; } _p = {.t = data}; _p.t[0];)
+ #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
+ #define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
+ #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
+@@ -237,6 +242,7 @@ static void zoom(const Arg *arg);
+ 
+ /* variables */
+ static const char broken[] = "broken";
++static int fifofd;
+ static char stext[256];
+ static int screen;
+ static int sw, sh;           /* X display screen geometry width, height */
+@@ -489,6 +495,11 @@ cleanup(void)
+ 	XSync(dpy, False);
+ 	XSetInputFocus(dpy, PointerRoot, RevertToPointerRoot, CurrentTime);
+ 	XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
++	while (close(fifofd)) {
++		if (errno != EINTR) {
++			break;
++		}
++	}
+ }
+ 
+ void
+@@ -764,6 +775,12 @@ drawbars(void)
+ 		drawbar(m);
+ }
+ 
++Bool
++dummypredicate()
++{
++	return True;
++}
++
+ void
+ enternotify(XEvent *e)
+ {
+@@ -1393,11 +1410,41 @@ void
+ run(void)
+ {
+ 	XEvent ev;
++	int displayfd;
++	int maxfdcount;
++	ssize_t bytes;
++	fd_set events;
++	char buf[PIPE_BUF + 1];
++
+ 	/* main event loop */
+ 	XSync(dpy, False);
+-	while (running && !XNextEvent(dpy, &ev))
+-		if (handler[ev.type])
+-			handler[ev.type](&ev); /* call handler */
++	displayfd = ConnectionNumber(dpy);
++	maxfdcount = (displayfd > fifofd ? displayfd : fifofd) + 1;
++	while (running) {
++		FD_ZERO(&events);
++		FD_SET(fifofd, &events);
++		FD_SET(displayfd, &events);
++		if (select(maxfdcount, &events, NULL, NULL, NULL) < 1) {
++			continue;
++		}
++		if (FD_ISSET(fifofd, &events)) {
++			while ((bytes = read(fifofd, buf, sizeof(buf))) == -1) {
++				if (errno != EINTR) {
++					perror("Unable to read data from pipe");
++					break;
++				}
++			}
++			if (bytes > 0) {
++				buf[MIN(sizeof(buf) - 1, bytes)] = '\0';
++				fifohook(buf);
++			}
++		}
++		while (XCheckIfEvent(dpy, &ev, dummypredicate, NULL)) {
++			if (handler[ev.type]) {
++				handler[ev.type](&ev);
++			}
++		}
++	}
+ }
+ 
+ void
+@@ -1549,6 +1596,7 @@ setmfact(const Arg *arg)
+ void
+ setup(void)
+ {
++	char realfifopath[PATH_MAX];
+ 	XSetWindowAttributes wa;
+ 
+ 	/* clean up any zombies immediately */
+@@ -1600,6 +1648,26 @@ setup(void)
+ 	XSelectInput(dpy, root, wa.event_mask);
+ 	grabkeys();
+ 	focus(NULL);
++	if (fifopath[0] == '~' && fifopath[1] == '/') {
++		if (!getenv("HOME")) {
++			die("Could not determine home directory; HOME is unset.");
++		}
++		if (*(stpncpy(realfifopath, getenv("HOME"), sizeof(realfifopath)) - 1) != '/') {
++			strncat(realfifopath, "/", sizeof(realfifopath));
++		}
++		strncat(realfifopath, fifopath + 2, sizeof(realfifopath));
++	} else {
++		strncpy(realfifopath, fifopath, sizeof(realfifopath));
++	}
++	realfifopath[sizeof(realfifopath) - 1] = '\0';
++	if (access(realfifopath, R_OK) && errno == ENOENT) {
++		if (mkfifo(realfifopath, 0600)) {
++			die("Failed to create pipe at %s:", realfifopath);
++		}
++	}
++	if ((fifofd = open(realfifopath, O_RDWR | O_NONBLOCK)) < 0) {
++		die("Failed to open DWM fifo %s:", realfifopath);
++	}
+ }
+ 
+ void
+@@ -1634,6 +1702,7 @@ spawn(const Arg *arg)
+ 	if (arg->v == dmenucmd)
+ 		dmenumon[0] = '0' + selmon->num;
+ 	if (fork() == 0) {
++		close(fifofd);
+ 		if (dpy)
+ 			close(ConnectionNumber(dpy));
+ 		setsid();

@@ -1,0 +1,83 @@
+Title: Select Previous Window
+Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+Adds function that is used to select the most recently, previously focused
+window that is currently visible. To compile dwm with this patch, the command
+line option "-lrt" must be set and `_POSIX_C_SOURCE` must be greater than or
+equal to 199309 (`cc ... -D_POSIX_C_SOURCE=199309L ...`).
+
+diff --git a/dwm.c b/dwm.c
+index 0362114..b4200c6 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -30,6 +30,7 @@
+ #include <unistd.h>
+ #include <sys/types.h>
+ #include <sys/wait.h>
++#include <time.h>
+ #include <X11/cursorfont.h>
+ #include <X11/keysym.h>
+ #include <X11/Xatom.h>
+@@ -97,6 +98,7 @@ struct Client {
+ 	Client *snext;
+ 	Monitor *mon;
+ 	Window win;
++	double ft;
+ };
+ 
+ typedef struct {
+@@ -178,6 +180,7 @@ static void grabkeys(void);
+ static void incnmaster(const Arg *arg);
+ static void keypress(XEvent *e);
+ static void killclient(const Arg *arg);
++static void lastclient();
+ static void manage(Window w, XWindowAttributes *wa);
+ static void mappingnotify(XEvent *e);
+ static void maprequest(XEvent *e);
+@@ -1030,6 +1061,20 @@ killclient(const Arg *arg)
+ }
+ 
+ void
++lastclient() {
++	Client *c, *o;
++	for (o = selmon->sel, c = selmon->clients; c; c = c->next) {
++		if (ISVISIBLE(c) && c != selmon->sel && (o == selmon->sel || c->ft > o->ft)) {
++			o = c;
++		}
++	}
++
++	if (o != selmon->sel) {
++		focus(o);
++	}
++}
++
++void
+ manage(Window w, XWindowAttributes *wa)
+ {
+ 	Client *c, *t = NULL;
+@@ -1038,6 +1083,7 @@ manage(Window w, XWindowAttributes *wa)
+ 
+ 	c = ecalloc(1, sizeof(Client));
+ 	c->win = w;
++	c->ft = 0;
+	/* geometry */
+	c->x = c->oldx = wa->x;
+	c->y = c->oldy = wa->y;
+@@ -1477,11 +1523,17 @@ sendevent(Client *c, Atom proto)
+ void
+ setfocus(Client *c)
+ {
++	struct timespec now;
+ 	if (!c->neverfocus) {
+ 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
+ 		XChangeProperty(dpy, root, netatom[NetActiveWindow],
+ 		                XA_WINDOW, 32, PropModeReplace,
+ 		                (unsigned char *) &(c->win), 1);
++		if (clock_gettime(CLOCK_MONOTONIC, &now)) {
++			perror("clock_gettime");
++		} else {
++			c->ft = (double) now.tv_sec + now.tv_nsec * 0.000000001;
++		}
+ 	}
+ 	sendevent(c, wmatom[WMTakeFocus]);
+ }

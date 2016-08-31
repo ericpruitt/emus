@@ -1,0 +1,32 @@
+Title: Visibility Removes Urgency
+Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+Removes urgency hint from any window that is visible. This will not reset most
+applications' internal urgency states which means things like tray icons may
+remain active even though a window's urgency hint has been removed.
+
+diff --git a/dwm.c b/dwm.c
+index 0362114..e8f808e 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -1610,6 +1611,9 @@ showhide(Client *c)
+ 		return;
+ 	if (ISVISIBLE(c)) {
+ 		/* show clients top down */
++		if (c->isurgent) {
++			clearurgent(c);
++		}
+ 		XMoveWindow(dpy, c->win, c->x, c->y);
+ 		if ((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) && !c->isfullscreen)
+ 			resize(c, c->x, c->y, c->w, c->h, 0);
+@@ -2026,6 +2030,10 @@ updatewmhints(Client *c)
+ 			c->neverfocus = 0;
+ 		XFree(wmh);
+ 	}
++
++	if (c->isurgent && ISVISIBLE(c)) {
++		clearurgent(c);
++	}
+ }
+ 
+ void

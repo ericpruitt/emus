@@ -1,0 +1,39 @@
+Title: Urgent Tag Color
+Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+Allows customization of colors for tags containing urgent windows. A new color
+scheme should be defined in the "colors" array indexed with `SchemeUrg`:
+
+    static const char *colors[][3] = {
+        // Scheme           Foreground  Background  Border
+        // ...
+        [SchemeUrg]     = { white,      red,        red    },
+    };
+
+diff --git a/dwm.c b/dwm.c
+index b2bc9bd..77367c8 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -63,1 +63,1 @@
+-enum { SchemeNorm, SchemeSel, SchemeLast }; /* color schemes */
++enum { SchemeNorm, SchemeSel, SchemeUrg, SchemeLast }; /* color schemes */
+@@ -729,3 +729,9 @@ drawbar(Monitor *m)
+ 		w = TEXTW(tags[i]);
+-		drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
+-		drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
++		if (m->tagset[m->seltags] & 1 << i) {
++			drw_setscheme(drw, scheme[SchemeSel]);
++		} else if (urg & 1 << i) {
++			drw_setscheme(drw, scheme[SchemeUrg]);
++		} else {
++			drw_setscheme(drw, scheme[SchemeNorm]);
++		}
++		drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], 0);
+@@ -1583,6 +1589,7 @@ setup(void)
+ 	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
+ 	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
+ 	/* init appearance */
++	scheme[SchemeUrg] = drw_scm_create(drw, colors[SchemeUrg], 3);
+ 	scheme[SchemeNorm] = drw_scm_create(drw, colors[SchemeNorm], 3);
+ 	scheme[SchemeSel] = drw_scm_create(drw, colors[SchemeSel], 3);
+ 	/* init bars */

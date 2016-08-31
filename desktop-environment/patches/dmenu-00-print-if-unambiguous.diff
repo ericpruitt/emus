@@ -1,0 +1,47 @@
+Title: Print Selection If Unambiguous
+Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+This patch adds a new command line option ("-a") that will make dmenu print the
+current selection and exit if the user input only matches one item.
+
+diff --git a/dmenu.c b/dmenu.c
+index df51e76..326617b 100644
+--- a/dmenu.c
++++ b/dmenu.c
+@@ -43,7 +43,7 @@ static struct item *items = NULL;
+ static struct item *matches, *matchend;
+ static struct item *prev, *curr, *next, *sel;
+ static int mon = -1, screen;
+-
++static int printifunambiguous = 0;
+ static Atom clip, utf8;
+ static Display *dpy;
+ static Window root, win;
+@@ -339,6 +339,8 @@ keypress(XKeyEvent *ev)
+ 	default:
+ 		if (!iscntrl(*buf))
+ 			insert(buf, len);
++		if (printifunambiguous && matches && !matches->right)
++			goto print_selection;
+ 		break;
+ 	case XK_Delete:
+ 		if (text[cursor] == '\0')
+@@ -405,6 +407,7 @@ keypress(XKeyEvent *ev)
+ 		break;
+ 	case XK_Return:
+ 	case XK_KP_Enter:
++print_selection:
+ 		puts((sel && !(ev->state & ShiftMask)) ? sel->text : text);
+ 		if (!(ev->state & ControlMask)) {
+ 			cleanup();
+@@ -615,7 +618,9 @@ main(int argc, char *argv[])
+ 		if (!strcmp(argv[i], "-v")) {      /* prints version information */
+ 			puts("dmenu-"VERSION);
+ 			exit(0);
+-		} else if (!strcmp(argv[i], "-b")) /* appears at the bottom of the screen */
++		} else if (!strcmp(argv[i], "-a")) /* appears at the bottom of the screen */
++			printifunambiguous = 1;
++		else if (!strcmp(argv[i], "-b")) /* appears at the bottom of the screen */
+ 			topbar = 0;
+ 		else if (!strcmp(argv[i], "-f"))   /* grabs keyboard before reading stdin */
+ 			fast = 1;

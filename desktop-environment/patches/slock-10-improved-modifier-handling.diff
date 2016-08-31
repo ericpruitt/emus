@@ -1,0 +1,36 @@
+Title: Improved Modifier Handling
+Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+With this patch, modifier keys only cause the screen to display the failure
+color when they are released without pressing a complementary key.
+
+This patch depends on "slock-00-pam-authentication.diff".
+
+diff --git a/slock.c b/slock.c
+index af48ac2..aa98b15 100644
+--- a/slock.c
++++ b/slock.c
+@@ -179,6 +179,7 @@ readpw(Display *dpy, const char *pws)
+ 	KeySym ksym;
+ 	XEvent ev;
+ 	static int oldc = INIT;
++	int seenkeypress = 0;
+ 
+ #ifdef HAVE_PAM_AUTH
+ 	struct passwd* pw;
+@@ -194,9 +195,14 @@ readpw(Display *dpy, const char *pws)
+ 	 * utility. This way the user can easily set a customized DPMS
+ 	 * timeout. */
+ 	while (running && !XNextEvent(dpy, &ev)) {
+-		if (ev.type == KeyPress) {
++		if (ev.type == KeyPress || ev.type == KeyRelease) {
+ 			explicit_bzero(&buf, sizeof(buf));
+ 			num = XLookupString(&ev.xkey, buf, sizeof(buf), &ksym, 0);
++			seenkeypress |= ev.type == KeyPress;
++			if ((ev.type == KeyRelease && (num || !seenkeypress)) ||
++				(ev.type == KeyPress && !num)) {
++				continue;
++			}
+ 			if (IsKeypadKey(ksym)) {
+ 				if (ksym == XK_KP_Enter)
+ 					ksym = XK_Return;

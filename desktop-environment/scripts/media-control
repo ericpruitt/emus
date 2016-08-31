@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+
+# Increase system volume.
+#
+function volume-up()
+{
+    amixer set Master 5%+
+}
+
+# Decrease system volume.
+#
+function volume-down()
+{
+    amixer set Master 5%-
+}
+
+# Play the next track in the playlist.
+#
+function next-track()
+{
+    mocp -f
+}
+
+# Play the previous track in the playlist. If the back button is pressed after
+# the first 5 seconds of a track, the track will be replayed from the
+# beginning.
+#
+function previous-track()
+{
+    if [[ "$(mocp -i)" =~ CurrentTime:\ 00:0[0-5] ]]; then
+        mocp -r
+    else
+        mocp -k -99999
+    fi
+}
+
+# Stop cycling throug the playlist. This resets the playlist cursor, so the
+# next "play" command will start from the first track.
+#
+function stop-playlist()
+{
+    mocp -s
+}
+
+# If the playlist is stopped, this function will begin replay the list starting
+# from the first track. Otherwise, this function will toggle between the paused
+# and playing state of current track.
+#
+function pause-or-play()
+{
+    if [[ "$(mocp -i)" =~ State:\ STOP ]]; then
+        mocp -p
+    else
+        mocp -G
+    fi
+}
+
+# Toggle between muted and unmuted system audio.
+#
+function toggle-muted-audio()
+{
+    # Since not all sound devices support a mute toggle, the unmuted volume is
+    # stored in and loaded from a local file.
+    if ! [[ "$(amixer get Master)" =~ \
+      Mono:\ Playback\ [0-9]+\ .([0-9]+) ]]; then
+        echo "Could not parse amixer output." >&2
+        return 1
+    fi
+
+    current_volume=
+    if [[ "${BASH_REMATCH[1]}" -eq 0 ]]; then
+        if . ~/.media-control; then
+            amixer set Master "$unmuted_volume%"
+        else
+            amixer set Master "25%"
+        fi
+    else
+        echo "local unmuted_volume=${BASH_REMATCH[1]}" > ~/.media-control
+        amixer set Master "0%"
+    fi
+}
+
+# Switch between low and high bass.
+#
+function bass-toggle()
+{
+    if [[ "$(amixer get Bass)" = *25* ]]; then
+        amixer set Bass "75%"
+    else
+        amixer set Bass "25%"
+    fi
+}
+
+# Listen for and react to media-related ACPI events. This function should never
+# return.
+#
+function acpi-mode()
+{
+    local line
+
+    acpi_listen | while read line; do
+        case "$line" in
+          */volumeup*)      volume-up           ;;
+          */volumedown*)    volume-down         ;;
+          */play*)          pause-or-play       ;;
+          */prev*)          previous-track      ;;
+          */next*)          next-track          ;;
+          */stop*)          stop-playlist       ;;
+          */mute*)          toggle-muted-audio  ;;
+        esac
+    done
+}
+
+function main()
+{
+    set -e -u -o pipefail
+
+    if ! declare -f "${1:-}" >/dev/null; then
+        echo "Available commands:"
+        for entry in $(declare -F); do
+            if [[ "$entry" == "-f" ]] || [[ "$entry" == "declare" ]]; then
+                continue
+            fi
+            echo "- $entry"
+        done
+        exit 1
+    fi
+
+    "$1"
+}
+
+test "${BASH_SOURCE:-}" != "$0" || main "$@"

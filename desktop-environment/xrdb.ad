@@ -1,0 +1,46 @@
+Xft.antialias: true
+Xft.hinting: true
+Xft.hintstyle: hintslight
+
+XTerm*internalBorder: 0
+XTerm*eightBitInput: false
+XTerm*saveLines: 65536
+XTerm*termName: xterm-256color
+
+! Fix for the invisible underscore problem I encountered after upgrading to
+! Wheezy. Reduces terminal height by a few lines, but underscores are rather
+! important. More information about this issue can be found on these pages:
+!
+! - https://www.linuxquestions.org/questions/slackware-14/underline-_-in-xterm-invisible-4175434364/
+! - http://invisible-island.net/xterm/xterm.log.html#xterm_276
+XTerm*scaleHeight: 1.0000001
+
+XTerm.vt100.faceName: DejaVu Sans Mono:pixelsize=14
+XTerm.vt100.faceNameDoublesize: VL Gothic:pixelsize=14
+XTerm.vt100.utf8: 1
+
+! Create escape sequences for Ctrl+(Shift)+Tab to be used with GNU screen.
+! http://www.staldal.nu/tech/2009/01/10/how-to-use-ctrl-tab-in-gnu-screen/
+XTerm.vt100.translations: #override \
+    Ctrl ~Shift <Key>Tab: string(0x1b) string("[27;5;9~") \n \
+    Ctrl Shift <Key>Tab: string(0x1b) string("[27;6;9~")
+
+XTerm.vt100.background: black
+XTerm.vt100.foreground: gray90
+
+XTerm.vt100.color0: black
+XTerm.vt100.color1: red3
+XTerm.vt100.color2: green3
+XTerm.vt100.color3: yellow3
+XTerm.vt100.color4: navy
+XTerm.vt100.color5: magenta3
+XTerm.vt100.color6: cyan3
+XTerm.vt100.color7: gray90
+XTerm.vt100.color8: gray50
+XTerm.vt100.color9: red
+XTerm.vt100.color10: green
+XTerm.vt100.color11: yellow
+XTerm.vt100.color12: #1155cc
+XTerm.vt100.color13: magenta
+XTerm.vt100.color14: cyan
+XTerm.vt100.color15: white

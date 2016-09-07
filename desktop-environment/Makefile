@@ -105,10 +105,12 @@ packages:
 			compton \
 			fonts-vlgothic \
 			fonts-wqy-zenhei \
+			gtk2-engines \
 			libx11-dev \
 			libxft-dev \
 			libxinerama-dev \
 			libxrandr-dev \
+			pkg-config \
 			scrot \
 			$(if $(USE_PAM), libpam-dev,) \
 	; else \

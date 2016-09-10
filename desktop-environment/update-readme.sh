@@ -45,7 +45,7 @@ function main()
                         group="Patches for $name"
                     fi
                     echo "$group"
-                    sed "s/./-/g" <<< "$group"
+                    echo "${group//?/-}"
                     echo
                     program_title_displayed="x"
                 fi

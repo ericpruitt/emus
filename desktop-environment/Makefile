@@ -73,6 +73,9 @@ reset: $(addprefix reset-,$(subst -src, ,$(wildcard *-src)))
 %-src/.PATCHED: | %-src
 	@prefix=$(subst -src/.PATCHED, ,$@); \
 	for patch in patches/$$prefix-*.diff; do \
+		if ! [ -e $$patch ]; then \
+			continue; \
+		fi; \
 		echo "- $$patch"; \
 		if ! patch -d $$prefix-src -s < $$patch; then \
 			exit 1; \

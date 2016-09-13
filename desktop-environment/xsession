@@ -15,9 +15,10 @@ blackwalls
 . ~/.local.xsession
 
 compton -C &
-media-control acpi-mode &
 pgrep -x statusline || statusline -z US/Pacific &
 st &
+
+"$where/scripts/media-control" acpi-mode &
 
 until PATH="$where/scripts:$PATH" dwm; do :; sleep 1; done
 kill -SIGHUP -$$

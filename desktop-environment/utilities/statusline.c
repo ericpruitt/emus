@@ -429,7 +429,6 @@ int main(int argc, char **argv)
 {
     char altclock[64];
     const char *altzones[8];
-    Display *display;
     size_t k;
     char localclock[64];
     char message[2048];
@@ -445,6 +444,7 @@ int main(int argc, char **argv)
     size_t altzones_count = 0;
     const char *battery_data_path = "/sys/class/power_supply/BAT0/uevent";
     int battery_data_path_explicit = 0;
+    Display *display = NULL;
     int dry_run = isatty(STDOUT_FILENO);
     int first = 1;
     char indicators_from_file[1024] = "";
@@ -454,11 +454,6 @@ int main(int argc, char **argv)
 
     const char *eob = message + sizeof(message);
     char *eol = message;
-
-    if (!(display = XOpenDisplay(NULL))) {
-        fputs("Could not open X11 display.\n", stderr);
-        return 1;
-    }
 
     while ((option = getopt(argc, argv, "+1b:hfns:z:")) != -1) {
         switch (option) {
@@ -504,6 +499,11 @@ int main(int argc, char **argv)
           default:
             return 1;
         }
+    }
+
+    if (!dry_run && !(display = XOpenDisplay(NULL))) {
+        fputs("Could not open X11 display.\n", stderr);
+        return 1;
     }
 
     if (optind != argc) {

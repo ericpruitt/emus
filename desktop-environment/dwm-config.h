@@ -188,6 +188,7 @@ static Key keys[] = {
     { ControlMask|ShiftMask,        XK_l,                   spawn,           EXECL("slock") },
     { HyperKey|ShiftMask,           XK_l,                   spawn,           EXECL("slock") },
     { AltKey,                       XK_Print,               spawn,           EXECL("screenshot", "window") },
+    { HyperKey,                     XK_BackSpace,           spawn,           EXECL("xterm", "-e", "/bin/sh") },
 
     // Layouts
     { HyperKey,                     XK_f,                   setlayout,       {.v = &layouts[floating_layout]} },

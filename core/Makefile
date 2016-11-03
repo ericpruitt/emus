@@ -484,6 +484,7 @@ $(COREUTILS).tar.xz $(COREUTILS).tar.xz.sig:
 $(COREUTILS_FOLDER): $(COREUTILS).tar.xz $(COREUTILS).tar.xz.sig $(PUBRING)
 	$(GPG) --verify $(COREUTILS).tar.xz.sig; \
 	xzcat $(COREUTILS).tar.xz | tar -x -f -; \
+	(cat $(PATCHES) || echo) | (cd $(DIRNAME) && patch -p0); \
 	touch $(TARGET); \
 
 $(COREUTILS)/src/coreutils: $(COREUTILS_FOLDER) $(GMP_BUILT)

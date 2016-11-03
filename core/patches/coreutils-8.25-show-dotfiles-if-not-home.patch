@@ -1,0 +1,94 @@
+--- src/ls.c	2016-01-14 04:16:23.000000000 -0800
++++ src/ls.c	2016-11-03 16:35:12.787371263 -0700
+@@ -245,7 +245,7 @@
+                           size_t *width);
+ static char *make_link_name (char const *name, char const *linkname);
+ static int decode_switches (int argc, char **argv);
+-static bool file_ignored (char const *name);
++static bool file_ignored (bool is_home, char const *name);
+ static uintmax_t gobble_file (char const *name, enum filetype type,
+                               ino_t inode, bool command_line_arg,
+                               char const *dirname);
+@@ -349,6 +349,10 @@
+ 
+ static struct pending *pending_dirs;
+ 
++// This is used to store the stat information of the user's home directory
++// which will be used to determine when its contents are being listed.
++static struct stat homedir_stat;
++
+ /* Current time in seconds and nanoseconds since 1970, updated as
+    needed when deciding whether a file is recent.  */
+ 
+@@ -1436,6 +1440,9 @@
+   else if (n_files <= 1 && pending_dirs && pending_dirs->next == 0)
+     print_dir_name = false;
+ 
++  if (!getenv("HOME") || stat(getenv("HOME"), &homedir_stat) < 0)
++    homedir_stat.st_dev = homedir_stat.st_ino = 0;
++
+   while (pending_dirs)
+     {
+       thispend = pending_dirs;
+@@ -2580,22 +2587,24 @@
+       return;
+     }
+ 
+-  if (LOOP_DETECT)
+-    {
+-      struct stat dir_stat;
+-      int fd = dirfd (dirp);
++  struct stat dir_stat;
++  int fd = dirfd (dirp);
++  /* If dirfd failed, endure the overhead of using stat.  */
++  if ((0 <= fd
++       ? fstat (fd, &dir_stat)
++       : stat (name, &dir_stat)) < 0)
++    {
++      file_failure (command_line_arg,
++                    _("cannot determine device and inode of %s"), name);
++      closedir (dirp);
++      return;
++    }
+ 
+-      /* If dirfd failed, endure the overhead of using stat.  */
+-      if ((0 <= fd
+-           ? fstat (fd, &dir_stat)
+-           : stat (name, &dir_stat)) < 0)
+-        {
+-          file_failure (command_line_arg,
+-                        _("cannot determine device and inode of %s"), name);
+-          closedir (dirp);
+-          return;
+-        }
++  bool is_home = (dir_stat.st_ino == homedir_stat.st_ino &&
++                  dir_stat.st_dev == homedir_stat.st_dev);
+ 
++  if (LOOP_DETECT)
++    {
+       /* If we've already visited this dev/inode pair, warn that
+          we've found a loop, and do not process this directory.  */
+       if (visit_dir (dir_stat.st_dev, dir_stat.st_ino))
+@@ -2636,7 +2645,7 @@
+       next = readdir (dirp);
+       if (next)
+         {
+-          if (! file_ignored (next->d_name))
++          if (! file_ignored (is_home, next->d_name))
+             {
+               enum filetype type = unknown;
+ 
+@@ -2754,11 +2763,11 @@
+ /* Return true if FILE should be ignored.  */
+ 
+ static bool
+-file_ignored (char const *name)
++file_ignored (bool is_home, char const *name)
+ {
+   return ((ignore_mode != IGNORE_MINIMAL
+            && name[0] == '.'
+-           && (ignore_mode == IGNORE_DEFAULT || ! name[1 + (name[1] == '.')]))
++           && (ignore_mode == IGNORE_DEFAULT && is_home || ! name[1 + (name[1] == '.')]))
+           || (ignore_mode == IGNORE_DEFAULT
+               && patterns_match (hide_patterns, name))
+           || patterns_match (ignore_patterns, name));

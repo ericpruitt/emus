@@ -1,0 +1,12 @@
+diff --git src/ex_docmd.c src/ex_docmd.c
+index 6802b8b..ea85bf1 100644
+--- src/ex_docmd.c
++++ src/ex_docmd.c
+@@ -5660,6 +5660,7 @@ check_more(
+     int message,	    /* when FALSE check only, no messages */
+     int forceit)
+ {
++    return OK;
+     int	    n = ARGCOUNT - curwin->w_arg_idx - 1;
+ 
+     if (!forceit && only_one_window()

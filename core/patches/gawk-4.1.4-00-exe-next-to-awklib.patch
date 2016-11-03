@@ -1,0 +1,18 @@
+--- main.c	2016-08-24 12:31:55.000000000 -0700
++++ main.c	2016-10-30 20:03:03.759259233 -0700
+@@ -221,10 +221,15 @@
+ 	int have_srcfile = 0;
+ 	SRCFILE *s;
+ 	char *cp;
++	static char path[PATH_MAX + 8] = ".:"; // 8 == strlen(".:awklib")
+ #if defined(LOCALEDEBUG)
+ 	const char *initial_locale;
+ #endif
+ 
++	if ((readlink("/proc/self/exe", path + 2, PATH_MAX) != -1) ||
++	    (getenv("_") && realpath(getenv("_"), path + 2)))
++		defpath = deflibpath = path, strcpy(rindex(path, '/') + 1, "awklib");
++
+ 	/* do these checks early */
+ 	if (getenv("TIDYMEM") != NULL)
+ 		do_flags |= DO_TIDY_MEM;

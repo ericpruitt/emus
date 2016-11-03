@@ -1,0 +1,29 @@
+diff --git src/misc1.c src/misc1.c
+index 6bf7d75..9a5c13f 100644
+--- src/misc1.c
++++ src/misc1.c
+@@ -4180,6 +4180,7 @@ vim_getenv(char_u *name, int *mustfree)
+     char_u	*p;
+     char_u	*pend;
+     int		vimruntime;
++    char_u	path[PATH_MAX + 10]; // 10 == strlen("vimruntime")
+ 
+ #if defined(MSWIN)
+     /* use "C:/" when $HOME is not set */
+@@ -4216,6 +4217,16 @@ vim_getenv(char_u *name, int *mustfree)
+     if (!vimruntime && STRCMP(name, "VIM") != 0)
+ 	return NULL;
+ 
++	if (vimruntime && !p && (
++	       (readlink("/proc/self/exe", path, PATH_MAX) != -1) ||
++	       (getenv("_")) && realpath(getenv("_"), path))) {
++	*mustfree = TRUE;
++	STRCPY(rindex(path, '/') + 1, "vimruntime");
++	vim_setenv((char_u *) "VIMRUNTIME", path);
++	didset_vimruntime = 1;
++	return strdup(path);
++	}
++
+     /*
+      * When expanding $VIMRUNTIME fails, try using $VIM/vim<version> or $VIM.
+      * Don't do this when default_vimruntime_dir is non-empty.

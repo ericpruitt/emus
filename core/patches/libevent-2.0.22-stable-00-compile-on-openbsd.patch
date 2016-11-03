@@ -1,0 +1,34 @@
+Original patch: https://github.com/ricardoquesada/Spidermonkey/blob/b56b8606bd449add2ecff67aead6aa86d1b7e548/ipc/chromium/src/third_party/libevent/openbsd-no-arc4random_addrandom.patch
+--- include/event2/util.h	Mon Dec 15 17:10:20 2014
++++ include/event2/util.h	Mon Oct 17 19:26:17 2016
+@@ -690,6 +690,7 @@
+  */
+ int evutil_secure_rng_set_urandom_device_file(char *fname);
+ 
++#ifndef __OpenBSD__
+ /** Seed the random number generator with extra random bytes.
+ 
+     You should almost never need to call this function; it should be
+@@ -705,6 +706,7 @@
+     @param datlen the number of bytes to read from datlen
+  */
+ void evutil_secure_rng_add_bytes(const char *dat, size_t datlen);
++#endif
+ 
+ #ifdef __cplusplus
+ }
+--- evutil_rand.c	Fri Nov  1 18:18:57 2013
++++ evutil_rand.c	Mon Oct 17 19:26:40 2016
+@@ -171,10 +171,11 @@
+ 	ev_arc4random_buf(buf, n);
+ }
+ 
++#ifndef __OpenBSD__
+ void
+ evutil_secure_rng_add_bytes(const char *buf, size_t n)
+ {
+ 	arc4random_addrandom((unsigned char*)buf,
+ 	    n>(size_t)INT_MAX ? INT_MAX : (int)n);
+ }
+-
++#endif

@@ -131,11 +131,8 @@ from its source repository, `$PROGRAM_NAME-src`. This folder is referred to as
 
 Official, upstream patches for a given application will be stored in a folder
 named `$PROGRAM_FOLDER-patches`. Other customizations are stored in "patches/"
-with names like `$PROGRAM_FOLDER-$ORDER-$DESCRIPTION`. The `$ORDER` is a two
-digit, 0-padded number used to determine what order patches should be applied:
-patches with the lowest `$ORDER` are applied first. Patches intended to be
-applied against source trees may have a revision indicator after
-`$PROGRAM_FOLDER`.
+with names like `$PROGRAM_FOLDER-$DESCRIPTION`. Patches intended to be applied
+against source trees may have a revision indicator after `$PROGRAM_FOLDER`.
 
 ### PGP / GPG Keys ###
 

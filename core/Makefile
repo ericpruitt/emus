@@ -409,6 +409,7 @@ $(READLINE).tar.gz $(READLINE).tar.gz.sig:
 $(READLINE_FOLDER): $(READLINE).tar.gz $(READLINE).tar.gz.sig $(PUBRING)
 	$(GPG) --verify $(READLINE).tar.gz.sig; \
 	tar -x -z -f $(READLINE).tar.gz; \
+	(cat $(PATCHES) || echo) | (cd $(DIRNAME) && patch -p0); \
 	touch $(TARGET); \
 
 $(READLINE_BUILT): $(READLINE_FOLDER)

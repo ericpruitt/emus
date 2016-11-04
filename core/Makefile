@@ -463,6 +463,7 @@ $(BASH)/bash: $(BASH_FOLDER) $(READLINE_BUILT)
 			CFLAGS="$(CFLAGS)" \
 			LDFLAGS="$(LDFLAGS)" \
 			--disable-nls \
+			--with-installed-readline \
 			--without-bash-malloc \
 		; \
 	fi; \

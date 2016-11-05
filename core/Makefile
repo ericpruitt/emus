@@ -384,7 +384,7 @@ $(NCURSES_BUILT): $(NCURSES_FOLDER)
 			--disable-db-install \
 			--enable-static \
 			--prefix="$(COMMON_PREFIX)" \
-			--with-default-terminfo-dir=/usr/share/terminfo \
+			--with-default-terminfo-dir=/etc/terminfo:/lib/terminfo:/usr/share/terminfo \
 			--without-ada \
 			--without-cxx \
 			--without-cxx-binding \

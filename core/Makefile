@@ -205,7 +205,7 @@ install what:
 			echo "The BIN variable must be set." >&2; \
 			exit 1; \
 		fi; \
-		test -z "$(MAN)" || (cd "$(MAN)" && mkdir -p man1); \
+		test -z "$(MAN)" || mkdir -p "$(MAN1)"; \
 		echo "Installation options:"; \
 		echo BIN = "$(BIN)"; \
 		echo MAN = "$(MAN)"; \
@@ -518,7 +518,7 @@ $(BIN)/coreutils: $(COREUTILS)/src/coreutils
 		pages=$$(printf "$(COREUTILS)/man/%s.1\n" $$programs \
 		           | sed "s/ginstall/install/"); \
 		pages=$$(ls -- $$pages 2>/dev/null || true); \
-		cp -f -- $$pages "$(MAN)/man1"; \
+		cp -f -- $$pages "$(MAN1)"; \
 		test -n "$${pages##*test*}" || ln -s -f test.1 "$(MAN1)/[.1"; \
 		test -n "$${pages##*install*}" || \
 		  ln -s -f install.1 "$(MAN1)/ginstall.1"; \

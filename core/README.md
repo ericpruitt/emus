@@ -102,6 +102,15 @@ launched, is used as a fallback when "/proc/self/exe" cannot be read.
 
 - **GNU Awk**
   - The default value for "AWKPATH" and "AWKLIBPATH" is ".:$EXEDIR/awklib".
+  - The handling of implementation compatibility options has been changed. Most
+    notably, the "--lint" option no longer warns about non-POSIX features and
+    GNU extensions unless POSIX or traditional mode has been explicitly
+    enabled, and some non-standard features that were accepted when using one
+    of those modes will now produce fatal errors. No changes to code only
+    affecting "--lint-old" were made.
+  - These lint warnings have been disabled:
+    - "assignment used in conditional context"
+    - "regular expression on right of assignment"
 - **Vim**
   - When `$VIMRUNTIME` is unset, it will default to "$EXEDIR/vimruntime".
   - An older version of the internal Unicode character property table is used

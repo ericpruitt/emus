@@ -1,0 +1,236 @@
+--- awkgram.c	2016-08-24 20:16:31.000000000 -0700
++++ awkgram.c	2016-11-06 14:53:33.470714323 -0800
+@@ -3661,10 +3661,6 @@
+ 
+ 		if (do_traditional || do_posix)
+ 			yyerror("%s", msg);
+-		else if (do_lint && ! warned) {
+-			warned = true;
+-			lintwarn("%s", msg);
+-		}
+ 		
+ 		f = (yyvsp[0])->lasti;
+ 		f->opcode = Op_indirect_func_call;
+@@ -5571,9 +5567,7 @@
+ 		pushback();
+ 		if (c == '[') {
+ 			if (do_traditional)
+-				fatal(_("multidimensional arrays are a gawk extension"));
+-			if (do_lint)
+-				lintwarn(_("multidimensional arrays are a gawk extension"));
++				fatal(_("multidimensional arrays are not available in traditional mode"));
+ 			yylval = GET_INSTRUCTION(Op_sub_array);
+ 			lasttok = ']';
+ 		} else {
+@@ -5597,8 +5591,6 @@
+ 			if (nextc(true) == '=') {
+ 				if (! did_warn_assgn) {
+ 					did_warn_assgn = true;
+-					if (do_lint)
+-						lintwarn(_("POSIX does not allow operator `**='"));
+ 					if (do_lint_old)
+ 						warning(_("old awk does not support operator `**='"));
+ 				}
+@@ -5608,8 +5600,6 @@
+ 				pushback();
+ 				if (! did_warn_op) {
+ 					did_warn_op = true;
+-					if (do_lint)
+-						lintwarn(_("POSIX does not allow operator `**'"));
+ 					if (do_lint_old)
+ 						warning(_("old awk does not support operator `**'"));
+ 				}
+@@ -6035,18 +6025,6 @@
+ 				&& lasttok != '@')
+ 			goto out;
+ 
+-		if (do_lint) {
+-			if ((tokentab[mid].flags & GAWKX) != 0 && (warntab[mid] & GAWKX) == 0) {
+-				lintwarn(_("`%s' is a gawk extension"),
+-					tokentab[mid].operator);
+-				warntab[mid] |= GAWKX;
+-			}
+-			if ((tokentab[mid].flags & NOT_POSIX) != 0 && (warntab[mid] & NOT_POSIX) == 0) {
+-				lintwarn(_("POSIX does not allow `%s'"),
+-					tokentab[mid].operator);
+-				warntab[mid] |= NOT_POSIX;
+-			}
+-		}
+ 		if (do_lint_old && (tokentab[mid].flags & NOT_OLD) != 0
+ 				 && (warntab[mid] & NOT_OLD) == 0
+ 		) {
+@@ -6330,10 +6308,6 @@
+ 		(void) mk_rexp(arg);
+ 
+ 		if (nexp == 3) {	/* 3rd argument there */
+-			if (do_lint && ! warned) {
+-				warned = true;
+-				lintwarn(_("match: third argument is a gawk extension"));
+-			}
+ 			if (do_traditional) {
+ 				yyerror(_("match: third argument is a gawk extension"));
+ 				return NULL;
+@@ -6387,11 +6361,7 @@
+ 	} else if (r->builtin == do_close) {
+ 		static bool warned = false;
+ 		if (nexp == 2) {
+-			if (do_lint && ! warned) {
+-				warned = true;
+-				lintwarn(_("close: second argument is a gawk extension"));
+-			}
+-			if (do_traditional) {
++			if (no_gawk_extensions) {
+ 				yyerror(_("close: second argument is a gawk extension"));
+ 				return NULL;
+ 			}
+--- awk.h	2016-08-24 12:31:55.000000000 -0700
++++ awk.h	2016-11-06 14:37:12.621244019 -0800
+@@ -1117,6 +1117,7 @@
+ #define do_sandbox          (do_flags & DO_SANDBOX)
+ #define do_debug            (do_flags & DO_DEBUG)
+ #define do_mpfr             (do_flags & DO_MPFR)
++#define no_gawk_extensions  (do_posix | do_traditional)
+ 
+ extern bool do_optimize;
+ extern int use_lc_numeric;
+--- builtin.c	2016-08-24 12:31:55.000000000 -0700
++++ builtin.c	2016-11-06 15:07:50.451491497 -0800
+@@ -499,15 +499,13 @@
+ 
+ 	tmp = POP();
+ 	if (tmp->type == Node_var_array) {
+-		static bool warned = false;
+ 		unsigned long size;
+ 
+-		if (do_posix)
++		// XXX: In the original code, this was (do_posix), but "The Awk
++		// Programming Language" by Kernigan et al (1988) only uses the
++		// length function with strings.
++		if (do_posix || do_traditional)
+ 			fatal(_("length: received array argument"));
+-   		if (do_lint && ! warned) {
+-			warned = true;
+-			lintwarn(_("`length(array)' is a gawk extension"));
+-		}
+ 
+ 		/*
+ 		 * Support for deferred loading of array elements requires that
+--- eval.c	2016-08-24 12:31:55.000000000 -0700
++++ eval.c	2016-11-06 15:15:23.963186366 -0800
+@@ -702,7 +702,7 @@
+ 	static bool warned = false;
+ 	NODE *n = IGNORECASE_node->var_value;
+ 
+-	if ((do_lint || do_traditional) && ! warned) {
++	if (do_lint && no_gawk_extensions && ! warned) {
+ 		warned = true;
+ 		lintwarn(_("`IGNORECASE' is a gawk extension"));
+ 	}
+@@ -734,7 +734,7 @@
+ 	char *p;
+ 	NODE *v = BINMODE_node->var_value;
+ 
+-	if ((do_lint || do_traditional) && ! warned) {
++	if (do_lint && no_gawk_extensions && ! warned) {
+ 		warned = true;
+ 		lintwarn(_("`BINMODE' is a gawk extension"));
+ 	}
+--- field.c	2016-08-24 12:31:55.000000000 -0700
++++ field.c	2016-11-06 15:38:10.674227048 -0800
+@@ -960,10 +960,6 @@
+ 		sep_arr = POP_PARAM();
+ 		if (sep_arr->type != Node_var_array)
+ 			fatal(_("split: fourth argument is not an array"));
+-		if (do_lint && ! warned1) {
+-			warned1 = true;
+-			lintwarn(_("split: fourth argument is a gawk extension"));
+-		}
+ 		if (do_lint_old && ! warned2) {
+ 			warned2 = true;
+ 			warning(_("split: fourth argument is a gawk extension"));
+@@ -1010,13 +1006,10 @@
+ 		fs = sep->re_exp;
+ 
+ 		if (fs->stlen == 0) {
+-			static bool warned = false;
+-
+ 			parseit = null_parse_field;
+ 
+-			if (do_lint && ! warned) {
+-				warned = true;
+-				lintwarn(_("split: null string for third arg is a gawk extension"));
++			if (no_gawk_extensions) {
++				fatal(_("split: null string for third arg is a gawk extension"));
+ 			}
+ 		} else if (fs->stlen == 1 && (sep->re_flags & CONSTANT) == 0) {
+ 			if (fs->stptr[0] == ' ') {
+@@ -1115,11 +1108,11 @@
+ 	bool fatal_error = false;
+ 	NODE *tmp;
+ 
+-	if (do_lint && ! warned) {
++	if (do_lint && ! warned && no_gawk_extensions) {
+ 		warned = true;
+ 		lintwarn(_("`FIELDWIDTHS' is a gawk extension"));
+ 	}
+-	if (do_traditional)	/* quick and dirty, does the trick */
++	if (no_gawk_extensions)	/* quick and dirty, does the trick */
+ 		return;
+ 
+ 	/*
+@@ -1252,9 +1245,8 @@
+ 
+ 		parse_field = null_parse_field;
+ 
+-		if (do_lint && ! warned) {
+-			warned = true;
+-			lintwarn(_("null string for `FS' is a gawk extension"));
++		if (no_gawk_extensions) {
++			fatal(_("null string for `FS' is a gawk extension"));
+ 		}
+ 	} else if (fs->stlen > 1) {
+ 		if (do_lint_old)
+@@ -1383,7 +1375,7 @@
+ 		warned = true;
+ 		lintwarn(_("`FPAT' is a gawk extension"));
+ 	}
+-	if (do_traditional)	/* quick and dirty, does the trick */
++	if (no_gawk_extensions)	/* quick and dirty, does the trick */
+ 		return;
+ 
+ 	/*
+--- io.c	2016-08-24 12:31:55.000000000 -0700
++++ io.c	2016-11-06 14:37:12.625243910 -0800
+@@ -3672,6 +3672,9 @@
+ 	save_rs = dupnode(RS_node->var_value);
+ 	RS_is_null = false;
+ 	RS = force_string(RS_node->var_value);
++	if (RS->stlen > 1 && no_gawk_extensions) {
++		fatal(_("multicharacter value of `RS' is a gawk extension"));
++	}
+ 	/*
+ 	 * used to be if (RS_regexp != NULL) { refree(..); refree(..); ...; }.
+ 	 * Please do not remerge the if condition; hinders memory deallocation
+@@ -3692,11 +3695,6 @@
+ 		RS_regexp = (IGNORECASE ? RS_re_no_case : RS_re_yes_case);
+ 
+ 		matchrec = rsrescan;
+-
+-		if (do_lint && ! warned) {
+-			lintwarn(_("multicharacter value of `RS' is a gawk extension"));
+-			warned = true;
+-		}
+ 	} else
+ 		matchrec = rs1scan;
+ set_FS:
+--- node.c	2016-08-24 12:31:55.000000000 -0700
++++ node.c	2016-11-06 14:37:12.625243910 -0800
+@@ -556,7 +556,7 @@
+ 		}
+ 		return i;
+ 	case 'x':
+-		if (do_lint) {
++		if (do_lint && do_posix) {
+ 			static bool warned = false;
+ 
+ 			if (! warned) {

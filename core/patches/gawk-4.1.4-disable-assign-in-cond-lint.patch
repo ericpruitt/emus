@@ -1,0 +1,24 @@
+diff -u -r awkgram.c gawk-4.1.4/awkgram.c
+--- awkgram.c	2016-08-24 20:16:31.000000000 -0700
++++ awkgram.c	2016-11-06 16:05:21.090310547 -0800
+@@ -3160,9 +3160,6 @@
+   case 110:
+ #line 1261 "awkgram.y" /* yacc.c:1646  */
+     {
+-		if (do_lint && (yyvsp[0])->lasti->opcode == Op_match_rec)
+-			lintwarn_ln((yyvsp[-1])->source_line,
+-				_("regular expression on right of assignment"));
+ 		(yyval) = mk_assignment((yyvsp[-2]), (yyvsp[0]), (yyvsp[-1]));
+ 	  }
+ #line 3169 "awkgram.c" /* yacc.c:1646  */
+diff -u -r interpret.h gawk-4.1.4/interpret.h
+--- interpret.h	2016-08-24 12:31:55.000000000 -0700
++++ interpret.h	2016-11-06 16:06:21.132700275 -0800
+@@ -373,7 +373,6 @@
+ 			if (do_lint) {
+ 				switch (pc->lint_type) {
+ 				case LINT_assign_in_cond:
+-					lintwarn(_("assignment used in conditional context"));
+ 					break;
+ 
+ 				case LINT_no_effect:

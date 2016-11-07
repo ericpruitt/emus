@@ -580,7 +580,7 @@ $(GAWK)/gawk: $(GAWK_FOLDER) $(GMP_BUILT) $(MPFR_BUILT) $(NCURSES_BUILT) $(READL
 	LDFLAGS="$(LDFLAGS)"; \
 	if ! [ -e Makefile ]; then \
 		./configure \
-			CFLAGS="$(CFLAGS)" \
+			CFLAGS="$(CFLAGS) -DREALLYMEAN" \
 			LDFLAGS="$$LDFLAGS" \
 			--disable-dependency-tracking \
 			--disable-nls \

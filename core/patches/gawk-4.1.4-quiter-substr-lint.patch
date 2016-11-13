@@ -1,0 +1,11 @@
+--- builtin.c	2016-08-24 12:31:55.000000000 -0700
++++ builtin.c	2016-11-12 20:27:12.667961114 -0800
+@@ -1819,7 +1819,7 @@
+ 		src_len = t1->stlen;
+ 
+ 	if (indx >= src_len) {
+-		if (do_lint)
++		if (do_lint && (nargs == 3 || indx > src_len))
+ 			lintwarn(_("substr: start index %g is past end of string"),
+ 				d_index);
+ 		DEREF(t1);

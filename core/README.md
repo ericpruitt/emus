@@ -108,9 +108,12 @@ launched, is used as a fallback when "/proc/self/exe" cannot be read.
     enabled, and some non-standard features that were accepted when using one
     of those modes will now produce fatal errors. No changes to code only
     affecting "--lint-old" were made.
-  - These lint warnings have been disabled:
-    - "assignment used in conditional context"
-    - "regular expression on right of assignment"
+  - These lint warnings have been modified:
+    - Disabled: "assignment used in conditional context"
+    - Disabled: "regular expression on right of assignment"
+    - Refined: "substr: start index … is past end of string" will only be
+      displayed if the third argument is set or if the start index is more than
+      character beyond the end of a string.
 - **Vim**
   - When `$VIMRUNTIME` is unset, it will default to "$EXEDIR/vimruntime".
   - An older version of the internal Unicode character property table is used

@@ -1,0 +1,21 @@
+# Files:            Default foreground color
+NORMAL      0
+FILE        0
+
+# Directories:      Bold White
+DIR         1;37
+
+# Symlinks:         Bold Magenta
+LINK        1;35
+
+# Orphans:          Purple
+ORPHAN      0;35
+
+# Block Devices:    Bold Yellow
+BLK         1;33
+
+# Executables:      Bold Red
+EXEC        1;31
+
+# Sockets:          Bold Cyan
+SOCK        1;36

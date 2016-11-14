@@ -1,0 +1,250 @@
+#!/usr/bin/env bash
+# Metamux is a script that contains various functions to implement different
+# functionality not natively available in tmux. Originally, the script simply
+# re-implemented functionality that I missed from GNU screen but has since
+# grown beyond that. I sometimes compile a "nightly" tmux build, and this
+# script may make use of features not present in the most recent stable
+# release.
+
+# Show a message in a context-sensitive manner: if metamux is attached to a
+# terminal, the message will be printed to stderr. Otherwise, the message is
+# display using tmux's "display" command.
+#
+#   $1  Message text
+#
+function display()
+{
+    local message="$1"
+
+    if [[ -t 2 ]]; then
+        printf '%s\n' "$message" >&2
+    else
+        tmux display "$message"
+    fi
+}
+
+# Create a vertical or horizontal window split. When calling this function in a
+# session with panes in inactive windows, one of the existing panes will be
+# used to populate the area created by the split instead of creating a new
+# shell.
+#
+#   $1  Argument to pass to tmux's join-pane. Should be "-h" or "-v".
+#
+function join_hidden_pane()
+{
+    local tmux_arg="$1"
+
+    local src && src="$(get_next_hidden next)"
+
+    if [[ "$src" ]]; then
+        tmux join-pane -s "$src" "$tmux_arg"
+    else
+        tmux split-window "$tmux_arg"
+    fi
+
+    return
+}
+
+# Move all inactive panes in the active window into their own windows.
+#
+function pane_buster()
+{
+    local -a args
+    local pane
+
+    for pane in \
+      $(tmux list-panes -F '#{pane_id}-#{pane_active}-#{window_active}'); do
+        if ! [[ "$pane" = *-1-1 ]]; then
+            args+=(break-pane -d -s "${pane/-*/}" ";")
+        fi
+    done
+
+    test -z "${args:-}" || tmux "${args[@]}"
+}
+
+# Return the pane ID of the next or previous hidden pane. The order in which
+# panes are cycled is determined by their pane ID which means the rotation
+# order may not be the same as the visual order.
+#
+#   $1  Required parameter indicating which direction to cycle. Must be "next"
+#       or "prev."
+#
+function get_next_hidden()
+{
+    local pane
+    local stop_on_next_pane
+    local visible_and_active
+
+    local direction="${1:-}"
+
+    if ! [[ "$direction" =~ ^(next|prev)$ ]]; then
+        echo "Invalid direction '$direction'." >&2
+        return 1
+    fi
+
+    # Build a list consisting of all hidden panes and the active pane. The list
+    # will then be used to determine which windows come before or after the
+    # selected pane.
+    for entry in \
+      $(tmux list-panes -sF '#{window_active}-#{pane_active}-#{pane_id}'); do
+        set -- ${entry//-/ }
+        if [[ "$1" -eq 1 ]]; then
+            if [[ "$2" -ne 1 ]]; then
+                continue
+            fi
+            visible_and_active="${3/\%/}"
+        fi
+
+        # This logic produces an array of ordered pane numbers. The first part
+        # of the conditional is for ascending order and the second is for
+        # descending. This code assumes the user will never have created more
+        # than ~32K panes in a single tmux session.
+        if [[ "$direction" = "next" ]]; then
+            panes["${3/\%/}"]="${3/\%/}"
+        else
+            panes["$((32767 - ${3/\%/}))"]="${3/\%/}"
+        fi
+    done
+
+    # The duplicate array expansion is intentional and handles wrap-around.
+    for pane in ${panes[@]} ${panes[@]}; do
+        if [[ "${stop_on_next_pane:-}" ]]; then
+            if [[ "$pane" != "$visible_and_active" ]]; then
+                echo "%$pane"
+                return
+            fi
+        elif [[ "$pane" = "$visible_and_active" ]]; then
+            stop_on_next_pane=x
+        fi
+    done
+}
+
+# Open a new shell in the active pane of the active window.
+#
+#   $1  Value of #{window_panes} expanded by tmux.
+#
+function new_shell_in_pane()
+{
+    local window_panes="$1"
+
+    if [[ "$window_panes" -eq 1 ]]; then
+        tmux new-window
+    else
+        tmux swap-pane -s "$(tmux new-window -dP -F '#{pane_id}')"
+    fi
+}
+
+# Iteratively cycle through panes that are hidden.
+#
+#   $1  Direction to cycle. Must be "next" or "prev".
+#
+function rotate_pane()
+{
+    local direction="$1"
+
+    local hidden_pane && hidden_pane=$(get_next_hidden "$direction")
+
+    if [[ "$hidden_pane" ]]; then
+        tmux swap-pane -s "$hidden_pane"
+    else
+        test -z "${quiet:-}" && display "No obscured panes in this session."
+    fi
+}
+
+# Open the last URL visible in the currently selected pane in a browser.
+#
+function open_last_url_printed()
+{
+    local browser
+    local joined_regexes
+    local regex
+    local url
+    local url_regexes
+
+    url_regexes=(
+        # Traditional URLs
+        '(www[0-9]*\.|(https?|ftps?|file)://)\S+[^]?.!)>"'"'"' '$'\t'':;]'
+        # IP addresses with port
+        '\b([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+)\b'
+    )
+
+    for regex in "${url_regexes[@]}"; do
+        if [[ "${joined_regexes:=}" ]]; then
+            joined_regexes="$joined_regexes|$regex"
+        else
+            joined_regexes="$regex"
+        fi
+    done
+
+    if ! url=$(tmux capture-pane -p -E - -S - | tac \
+      | egrep -om1 "$joined_regexes"); then
+        test -z "${quiet:-}" && display "No URL found."
+        return
+    fi
+
+    if ! [[ "$url" = *://* ]]; then
+        url="http://$url"
+    fi
+
+    for browser in ${BROWSER//:/ } xdg-open; do
+        exec $browser "$url" &> /dev/null
+    done
+}
+
+# This function is used to ensure that when a shell inside of a pane exits, the
+# pane it occupied will be replaced by another shell instead of being removed.
+# If there are no other windows in the current session, this hook will look for
+# existing sessions to attach to preferring orphaned sessions where possible.
+# To configure this functionality in Bash, add the following trap to ~/.bashrc:
+#
+#   trap 'metamux shell-exit-hook "$PPID"' EXIT
+#
+#   $1  PID of the parent of the shell using this script.
+#
+function shell_exit_hook()
+{
+    local best_session
+    local pane_tty
+    local session_id
+    local tty
+    local window_active
+
+    local grandparent_pid="$1"
+
+    if [[ "$(<"/proc/$grandparent_pid/comm")" = tmux* ]]; then
+        if [[ "$(tmux list-panes -F x)" != "x" ]]; then
+            quiet=yes metamux rotate-pane prev
+        elif [[ "$(tmux list-sessions -F x)" != "x" ]]; then
+            tty="$(tty)" || return 0
+            while read window_active session_id pane_tty; do
+                if [[ "$pane_tty" = "$tty" ]]; then
+                    continue
+                elif ! ((window_active)); then
+                    best_session="$session_id"
+                    break
+                elif [[ -z "$best_session" ]]; then
+                    best_session="$session_id"
+                fi
+            done < <(tmux list-sessions -F \
+                "#{window_active} #{session_id} #{pane_tty}"
+            )
+            tmux switch-client -t "$best_session"
+        fi
+    fi
+}
+
+function main()
+{
+    set -e -u -o pipefail
+
+    local command="${1//-/_}" && shift
+
+    if [[ "$(type -t "$command")" != "function" ]]; then
+        echo "Unrecognized command: $command"
+        return 1
+    fi
+
+    "$command" "$@"
+}
+
+test "${BASH_SOURCE:-}" != "$0" || main "$@"

@@ -1,0 +1,600 @@
+#!/usr/bin/gawk -OE
+
+# Usage: paragrep [OPTIONS] PATTERN [FILE...]
+#        paragrep [OPTIONS] [-e PATTERN] [-f FILE] [FILE...]
+#
+# Paragraph GREP (paragrep) works mostly like egrep but returns the contents of
+# whole paragraphs when a match is found instead of individual lines.
+# Paragraphs are sets of lines delimited by empty lines or lines consisting
+# only of whitespace. GNU Awk (gawk), the scripting language in which paragrep
+# is implemented, does not use the same regular expression format as egrep.
+# Expressions are treated as egrep expressions and translated internally unless
+# "-k" is set. By default, "^" and "$" anchor to the ends of paragraphs, but
+# this can be changed by enabling multi-line mode with "-M".
+#
+# Options:
+#   --help      Display this text and exit.
+#
+#   -a          Disable dot-all mode so "." will no longer match newlines. This
+#               option cannot be used with multi-line mode, and it cannot be
+#               used with the gawk expressions ("-k") because it is implemented
+#               in the regular expression translator.
+#   -e PATTERN  Search for specified regular expression pattern. This option
+#               may be repeated to look for multiple patterns.
+#   -f FILE     Load one pattern per line from the specified file.
+#   -h          Suppress filenames even if multiple files are specified on the
+#               command line.
+#   -H          Print file name before each matching paragraph. When there are
+#               multiple files specified on the command line, this is the
+#               default behavior.
+#   -i          Ignore case of strings when searching for a pattern.
+#   -k          Disable egrep to gawk regular expression translation.
+#   -M          Enable multi-line mode so "^" and "$" anchor to the ends of
+#               lines instead of paragraphs.
+#   -n          Show file line numbers.
+#   -s          Suppress error messages about unreadable files.
+#   -t          Do not colorize the output even if standard output is a TTY.
+#   -T          Colorize the output. This is enabled by default if standard
+#               output is a TTY.
+#   -v          Invert selection; show non-matching paragraphs.
+#   -w          Select paragraphs only matching whole words.
+#
+#  Match Context:
+#   -A NUMBER   Print NUMBER of paragraphs after a match.
+#   -B NUMBER   Print NUMBER of paragraphs before a match.
+#   -C NUMBER   Print NUMBER of paragraphs before and after match.
+#
+# Environment Variables:
+#   GREP_COLORS
+#               Used almost the same way by paragrep as it is by GNU grep;
+#               refer to "Environment Variables" in grep(1) for a detailed
+#               explanation.
+#
+# Exit Statuses:
+#   0           One or more matching paragraphs found.
+#   1           No matching paragraphs were found.
+#   2           A fatal error occurred during initialization, or a
+#               file could not be read.
+#
+# Bugs:
+#   The internal conversion of egrep regular expressions gawk regular
+#   expressions is not perfect and may fail to translate valid expressions.
+#
+#   GNU Awk is generally much slower than GNU grep, and the extra processing
+#   done in this script only compounds this issue. For small files and
+#   uncomplicated expressions, the difference in speed is negligible but
+#   quickly becomes apparent for files that are tens of megabytes or more in
+#   size. Performance gets worse when enabling multi-line mode with the "-M"
+#   option. When working with ASCII-only files and regular expressions, setting
+#   the environment variable LC_ALL=C will generally double processing speed.
+#
+# Author: Eric Pruitt (https://www.codevat.com)
+# License: BSD 2-Clause (https://opensource.org/licenses/BSD-2-Clause)
+
+# Display script usage and documentation. This information is stored in
+# comments in the script because it is easier to maintain than a bunch of print
+# statements or multi-line strings.
+#
+function usage(    display, command_v, script)
+{
+    # Many of the most commonly used shells including Bash, Z shell, KornShell
+    # and fish set the environment variable "_" to the path of the command
+    # being executed. As a fallback, "command -v" is used to search $PATH.
+    if (!("_" in ENVIRON && (script = ENVIRON["_"]))) {
+        command_v = "command -v " SELF
+        command_v | getline script
+        close(command_v)
+    }
+
+    for (display = 0; script && (getline < script) > 0;) {
+        if ((display = display || /^# Usage:/)) {
+            if (!sub(/^#( |$)/, "")) {
+                close(script)
+                exit_status = 0
+                return
+            }
+            print
+        }
+    }
+
+    if (!script) {
+        error("could not determine path of script to extract help")
+    } else if (ERRNO) {
+        error("could not extract help from " script ": " ERRNO)
+    } else if (!display) {
+        close(script)
+        error(script ": no documentation found")
+    }
+
+    exit_status = 1
+}
+
+# GNU Awk and egrep have different ERE implementations. This code attempts to
+# smooth over the most frequently encountered differences by making the
+# following changes:
+#
+# - An input of \b (egrep word boundary) is converted to \y (gawk).
+# - If "\" is not followed by a meta-character outside of a [...] block, the
+#   "\" is removed.
+# - Inside of a [...] block, "\" is not treated specially.
+#
+# This function is far from perfect, but it typically does a good-enough job.
+#
+function translate(egrep,    bracket_depth, char, ii, output, previous)
+{
+    output = ""
+    previous = ""
+    bracket_depth = 0
+    for (ii = 1; ii <= length(egrep); ii++) {
+        char = substr(egrep, ii, 1)
+        if (char == "\\") {
+            if (bracket_depth) {
+                char = "\\\\"
+                previous = ""
+            } else {
+                char = ""
+                previous = "\\"
+            }
+        } else if (previous == "\\") {
+            previous = ""
+            if (bracket_depth) {
+                char = "\\\\" char
+            } else if (char == "b") {
+                char = "\\y"
+            } else if (index("[]\\sSBwW<>`'$().?^+{}|*", char)) {
+                char = "\\" char
+            }
+        } else if (bracket_depth) {
+            # Only increase the bracket depth when encountering collating
+            # symbols, equivalence classes and character classes because
+            # bracket expressions can contain multiple "[" without
+            # complementary closing "]" as long as they're not part of a
+            # special sequence.
+            if (char == "[" && index("=:.", substr(egrep, ii + 1, 1))) {
+                bracket_depth++
+            } else if (char == "]") {
+                bracket_depth--
+            }
+        } else if (!dot_all && char == ".") {
+            char = "[^\\n]"
+        } else if ((bracket_depth += (char == "["))) {
+            bracket_depth += (substr(egrep, ii + 1, 2) ~ /^\^?[]]/)
+        }
+        output = output char
+    }
+
+    return output
+}
+
+# Write a message to standard error with the name of the script prepended.
+#
+function error(text)
+{
+    print SELF ":", text >> STDERR
+    stderr_opened = 1
+    fflush(STDERR)
+}
+
+# Print the name of the file currently being displayed.
+#
+function filename(    name)
+{
+    if (!show_names) {
+        return
+    } else if (!ARGIND || FILENAME == "-") {
+        name = "(standard input)"
+    } else {
+        name = FILENAME
+    }
+
+    print color("fn", name) color("se", ":")
+}
+
+# Return text colored in a specific style defined in GREP_COLORS. If colorized
+# output is disabled, the text is returned unmodified. If an unrecognized style
+# is given, a warning will be printed to standard error, and the text will be
+# returned unchanged.
+#
+function color(style, text,    ic, escape, output, rlen, rstart, shift, start)
+{
+    if (!use_colors || !text) {
+        return text
+    }
+
+    ic = IGNORECASE
+    rlen = RLENGTH
+    rstart = RSTART
+    IGNORECASE = 0
+
+    if (invert && GREP_COLORS ~ /(^|:)rv(:|$)/) {
+        if (style == "cx") {
+            style = "sl"
+        } else if (style == "sl") {
+            style = "cx"
+        }
+    }
+
+    if (GREP_COLORS ~ /(^|:)mt=[^:]*(:|$)/ && style ~ /^m[cs]$/) {
+        style = "mt"
+    }
+
+    # GNU grep includes EL sequences when colorizing output, but this does not
+    # seem to be a requirement on the terminal emulators I've used to test this
+    # script, so I am not adding EL sequences here.
+    #
+    # Sequences are added around newlines to ensure that the style is
+    # explicitly set and cleared when there are multiple lines in the text.
+    if (match(GREP_COLORS, style "=([^:]*)") && RLENGTH > 3) {
+        escape = substr(GREP_COLORS, RSTART + 3, RLENGTH - 3)
+        start = "\033[" escape "m"
+        gsub(/\n/, "\033[0m\n" start, text)
+        text = start text "\033[0m"
+    } else if (!RSTART) {
+        error("unrecognized color style: " style)
+    }
+
+    IGNORECASE = ic
+    RLENGTH = rlen
+    RSTART = rstart
+
+    return text
+}
+
+# Print paragraphs formatted based on the global configuration options.
+#
+function paraprint(start, sep, text,    ii, lines, ln)
+{
+    if (show_line_numbers) {
+        split(text, lines, /\n/)
+        for (ii = 1; ii <= length(lines); ii++) {
+            ln = color("ln", sprintf("%6d", start + ii))
+            print ln color("se", sep) lines[ii]
+        }
+    } else {
+        print text
+    }
+}
+
+BEGIN {
+    SELF = "paragrep"
+    STDERR = "/dev/stderr"
+    stderr_opened = 0
+
+    # Details in grep(1) -> "Environment variables" -> GREP_COLORS. The
+    # concatenation allows the default colors to act as fallbacks for colors
+    # not explicitly specified by the user.
+    GREP_COLORS = "ms=01;31:mc=01;31:sl=:cx=:fn=35:ln=32:bn=32:se=36"
+
+    if ("GREP_COLORS" in ENVIRON) {
+        GREP_COLORS = ENVIRON["GREP_COLORS"] ":" GREP_COLORS
+    }
+
+    # As with GNU geopt, options and non-option arguments can be mixed.
+    OPTIONS = "aA:B:C:e:f:hHikMnstTvw"
+
+    after = 0                               # -A, -C
+    before = 0                              # -B, -C
+    dot_all = 1                             # -a
+    help_wanted = 0                         # --help
+    ignore_case = 0                         # -i
+    implicit_regex_index = 0                # !(-e | -f)
+    invert = 0                              # -v
+    multiline_mode = 0                      # -M
+    REGEX = ""                              # -e, -f
+    regex_set = 0                           # -e, -f
+    show_line_numbers = 0                   # -n
+    show_names = -1                         # -h, -H
+    silence_file_errors = 0                 # -s
+    translate_regex = 1                     # -k
+    use_colors = system("test ! -t 1")      # -t, -T
+    whole_words_only = 0                    # -w
+
+    for (optind = 1; optind < ARGC; optind++) {
+        if (ARGV[optind] == "--help") {
+            help_wanted = 1
+            usage()
+            exit
+        } else if (ARGV[optind] == "--") {
+            delete ARGV[optind++]
+            if (!implicit_regex_index) {
+                implicit_regex_index = optind
+            }
+            break
+        } else if (ARGV[optind] == "-") {
+            continue
+        } else if (substr((options = ARGV[optind]), 1, 1) == "-") {
+            while (length(options) > 1) {
+                options = substr(options, 2)
+                option = substr(options, 1, 1)
+                if (!index(OPTIONS, option)) {
+                    error("-" option ": unknown option; try '" SELF " --help'")
+                    exit_status = 2
+                    exit
+                } else if (index(OPTIONS, option ":")) {
+                    if (length(options) > 1) {
+                        optarg = substr(options, 2)
+                        options = ""
+                    } else if ((optind + 1) < ARGC) {
+                        delete ARGV[optind++]
+                        optarg = ARGV[optind]
+                    } else {
+                        error("-" option " requires an argument")
+                        exit_status = 2
+                        exit
+                    }
+                }
+
+                if (index("ABC", option)) {
+                    if (optarg !~ /^[0-9]+$/) {
+                        error("-" option " expects 0 or a positive integer")
+                        exit_status = 2
+                        exit
+                    }
+
+                    optarg = 0 + optarg
+                }
+
+                switch (option) {
+                  case "a":     dot_all = 0;             break
+                  case "A":     after = optarg;          break
+                  case "B":     before = optarg;         break
+                  case "C":     after = before = optarg; break
+                  case "h":     show_names = 0;          break
+                  case "H":     show_names = 1;          break
+                  case "i":     ignore_case = 1;         break
+                  case "k":     translate_regex = 0;     break
+                  case "M":     multiline_mode = 1;      break
+                  case "n":     show_line_numbers = 1;   break
+                  case "s":     silence_file_errors = 1; break
+                  case "t":     use_colors = 0;          break
+                  case "T":     use_colors = 1;          break
+                  case "v":     invert = 1;              break
+                  case "w":     whole_words_only = 1;    break
+
+                  case "e":
+                    if (!optarg) {
+                        optarg = "^"
+                    }
+                    REGEX = REGEX ? REGEX "|" optarg : optarg
+                    regex_set = 1
+                    break
+
+                  case "f":
+                    for (empty_file = 1; (getline pattern < optarg) > 0;) {
+                        if (!pattern) {
+                            pattern = "^"
+                        }
+                        if (REGEX) {
+                            REGEX = REGEX "|" pattern
+                        } else {
+                            REGEX = pattern
+                        }
+                        empty_file = 0
+                    }
+
+                    if (ERRNO) {
+                        error(optarg ": " ERRNO)
+                        exit_status = 2
+                        exit
+                    }
+
+                    close(optarg)
+                    regex_set = 1
+                    break
+
+                  default:
+                    error("-" option " not implemented")
+                    exit_status = 2
+                    exit
+                }
+            }
+
+            delete ARGV[optind]
+        } else if (!implicit_regex_index) {
+            implicit_regex_index = optind
+        }
+    }
+
+    if (!dot_all) {
+        if (multiline_mode) {
+            error("-a does not apply to multi-line mode")
+            exit_status = 2
+            exit
+        } else if (!translate_regex) {
+            error("-a cannot be used with GNU Awk expressions")
+            exit_status = 2
+            exit
+        }
+    }
+
+    if (!regex_set) {
+        if (!implicit_regex_index) {
+            error("no regular expressions specified")
+            exit_status = 2
+            exit
+        }
+
+        REGEX = ARGV[implicit_regex_index]
+        delete ARGV[implicit_regex_index]
+        regex_set = 1
+    }
+
+    if (translate_regex) {
+        REGEX = translate(REGEX)
+    }
+
+    if (whole_words_only) {
+        HEAD_ANCHORED = "(^)" REGEX
+        TAIL_ANCHORED = REGEX "($)"
+        REGEX = "(^|\\W)(" REGEX ")($|\\W)"
+    }
+
+    IGNORECASE = ignore_case
+    RS = "\n((\\s*\n)+|$)"
+    FS = "\n"
+    exit_status = 0
+    last_printed = 0
+    match_color = invert ? "mc" : "ms"
+    show_names = (show_names == -1) ? length(ARGV) > 2 : show_names
+
+    # This will produce a fatal error if the regex is invalid.
+    _ = "" ~ REGEX
+}
+
+BEGINFILE {
+    if (length(ERRNO)) {
+        if (!silence_file_errors) {
+            error(FILENAME ": " ERRNO)
+        }
+        exit_status = 2
+        last_printed = 0  # Disable padding around error messages.
+        nextfile
+    }
+
+    first_line_of_next_paragraph = 0
+    first_line_of_paragraph = 0
+    last_match = 0
+    ring_buffer_counter = 0
+
+    # When no paragraphs have ever been printed, this is 0. If a paragraph was
+    # printed while processing a earlier file, this will be a negative number.
+    # Whether or not a paragraph has ever been printed is used to determine if
+    # a blank line should be added above a paragraph that is about to be
+    # printed.
+    if (last_printed > 0) {
+        last_printed = -last_printed
+    }
+}
+
+{
+    first_line_of_paragraph = first_line_of_next_paragraph
+    paragraph = $0 RT
+    first_line_of_next_paragraph += gsub(/\n/, "", paragraph)
+
+    if (!REGEX) {
+        paragraph_matched = 0
+    } else if (multiline_mode) {
+        for (i = 1; i <= NF; i++) {
+            if ((paragraph_matched = $i ~ REGEX)) {
+                break
+            }
+        }
+    } else {
+        paragraph_matched = $0 ~ REGEX
+    }
+
+    if ((paragraph_matched = (invert != paragraph_matched))) {
+        last_match = NR
+    }
+}
+
+before && paragraph_matched {
+    if (last_printed < 1 || (limit = NR - last_printed) > before) {
+        limit = before
+    } else {
+        limit--
+    }
+
+    if (limit > ring_buffer_counter) {
+        limit = ring_buffer_counter
+    }
+
+    for (i = limit; i > 0; i--) {
+        item = ring_buffer_counter - i
+        if (last_printed) {
+            printf "\n"
+        }
+
+        filename()
+        cursor = item % before
+        offset = line_offsets[cursor]
+        paraprint(offset, "-", color("cx", ring_buffer[item % before]))
+        last_printed = 1
+    }
+}
+
+last_match && ((NR - last_match) <= after) {
+    if (last_printed) {
+        printf "\n"
+    }
+
+    last_printed = NR
+
+    if (paragraph_matched) {
+        filename()
+        base_style = "sl"
+        separator = ":"
+    } else {
+        base_style = "cx"
+        separator = "-"
+    }
+
+    if (!use_colors) {
+        paraprint(first_line_of_paragraph, separator, $0)
+        next
+    } else if (multiline_mode) {
+        first_line_of_paragraph--
+        first = 1
+        last = NF
+    } else {
+        first = 0
+        last = 0
+    }
+
+    for (i = first; i <= last; i++) {
+        for (block = ""; match($i, REGEX); $i = substr($i, RSTART + RLENGTH)) {
+            matched = substr($i, RSTART, RLENGTH)
+
+            # When the user's regex is modified to match whole words, the
+            # resulting expression may match characters that the author did not
+            # explicitly want, and this code adjusts the range of highlighted
+            # characters accordingly.
+            if (whole_words_only) {
+                changed = 0
+                if (i < 2 && matched ~ /^\W/ && matched !~ HEAD_ANCHORED) {
+                    changed = 1
+                    RSTART++
+                    RLENGTH--
+                }
+                if (i == last && matched ~ /\W$/ && matched !~ TAIL_ANCHORED) {
+                    changed = 1
+                    RLENGTH--
+                }
+                if (changed) {
+                    matched = substr($i, RSTART, RLENGTH)
+                }
+            }
+
+            if (!RLENGTH) {
+                break
+            } else if (RSTART > 1) {
+                block = block color(base_style, substr($i, 1, RSTART - 1))
+            }
+
+            block = block color(match_color, matched)
+        }
+
+        block = block color(base_style, $i)
+        paraprint(first_line_of_paragraph + i, separator, block)
+    }
+
+    next
+}
+
+before {
+    cursor = ring_buffer_counter++ % before
+    line_offsets[cursor] = first_line_of_paragraph
+    ring_buffer[cursor] = $0
+}
+
+END {
+    if (stderr_opened) {
+        close(STDERR)
+    }
+
+    if (!help_wanted && !exit_status && !last_printed) {
+        exit_status = 1
+    }
+
+    exit exit_status
+}

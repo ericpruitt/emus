@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# This tool is used to run Bash with a custom configuration on a remote server.
+# Because of the way the configuration is pushed to the remote server, it may
+# be possible for arbitrary users to view its contents on the client and / or
+# remote host: **DO NOT USE THIS SCRIPT WITH A BASH CONFIGURATION FILE OR
+# ENVIRONMENT VARIABLES THAT CONTAIN SENSITIVE DATA!**
+#
+# By default, this script will use "$HOME/.bashrc" to configure Bash on the
+# remote host, but this can be overridden by setting the environment variable
+# "CLONED_BASHRC_FILE". Similarly, environment variables including "EDITOR",
+# "LESS", "LS_COLORS", "VISUAL" and some others will be copied from the local
+# environment by default, but this can be overridden by setting
+# "CLONED_ENVIRONMENT_VARIABLES" to a white-space separated list of variables
+# that should be copied.
+
+# Points to the path of the Bash RC file to be used on the remote host.
+declare -r BASHRC="${CLONED_BASHRC_FILE:-$HOME/.bashrc}"
+
+# White-space separated list containing environment variables that should be
+# copied from the local host to the remote host.
+declare -r CLONED_ENVIRONMENT_VARIABLES="${CLONED_ENVIRONMENT_VARIABLES:-
+    EDITOR EXINIT FCEDIT LESS LS_COLORS MORE VISUAL TZ PS_FORMAT}"
+
+function brcssh()
+{
+    local env
+    local name
+    local path
+    local rcscript
+
+    local ssh=""
+
+    if [[ "$#" -lt 1 ]]; then
+        echo "Usage: ${0##*/} SSH_ARGUMENT..." >&2
+        return 1
+    fi
+
+    for path in $(which -a ssh); do
+        if ! [[ "$path" -ef "$0" ]]; then
+            ssh="$path"
+            break
+        fi
+    done
+
+    if [[ -z "$ssh" ]]; then
+        echo "Unable to find canonical ssh command" >&2
+        return 1
+    elif ! [[ -t 0 ]] || ! [[ -t 1 ]]; then
+        exec $ssh "$@"
+    fi
+
+    # Export any variables listed in CLONED_ENVIRONMENT_VARIABLES that are
+    # defined. Bash rejects some environment variable names that are valid per
+    # the POSIX spec, but this is rarely a problem in practice. env(1) could be
+    # use to circumvent Bash's restrictions.
+    for name in $CLONED_ENVIRONMENT_VARIABLES; do
+        test "${!name+x}" && env="${env:-} $(printf "%q" "$name=${!name}")"
+    done
+
+    rcscript="$(<"$BASHRC")"
+    $ssh -t "$@" -- "${env:-} bash \
+        --rcfile <(echo 'umask 0077; '$(printf "%q" "$rcscript"))"
+}
+
+function main()
+{
+    set -e -u -o pipefail
+
+    brcssh "$@"
+}
+
+test "${BASH_SOURCE:-}" != "$0" || main "$@"

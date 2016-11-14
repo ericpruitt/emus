@@ -1,0 +1,3 @@
+#!/bin/sh
+pgrep -f 'vim?\b.*\.[ch]\b' >/dev/null || export MANSECT="1:$MANSECT"
+command -p man "$@"

@@ -1,0 +1,29 @@
+[user]
+	name = Eric Pruitt
+	email = eric.pruitt@gmail.com
+	signingkey = F8601B5D2511B4C3535232488DDDE2E6053692AB
+
+[core]
+	excludesfile = ~/.gitignore
+
+[alias]
+	wdiff = diff --color-words
+
+[color]
+	diff = true
+
+[push]
+	default = upstream
+
+[grep]
+	patternType = perl
+
+[diff]
+	noprefix = true
+	algorithm = patience
+
+[include]
+	path = ~/.local.gitconfig
+
+[commit]
+	verbose = true

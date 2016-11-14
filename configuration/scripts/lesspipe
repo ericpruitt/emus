@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# This script can be used to modify the way the contents of a file are
+# displayed in Less. What this means is that Less can automatically open up
+# things like tar files, uncompress gzipped files, man pages and HTML
+# documents. To use this script, add the following (or the equivalent for
+# non-POSIX shells) to the shell's initialization file:
+#
+#   eval "$(lessfile)"
+#
+# The following files are supported:
+#
+# - HTML (`/\.s?html?/`)
+# - _man(1)_ pages (`/\.([1-9n]|[1-9]x|man|[0-9]p)(\.(bz2|[gx]z|lzma))*`)
+# - Various compressed archive formats
+# - JSON (`/\.json$/`)
+# - Scene [NFO files](https://en.wikipedia.org/wiki/.nfo) (`/\.nfo$/`)
+# - PGP / GPG keys (`/\.asc$/`)
+# - PGP / GPG encrypted files (`/\.(pgp|gpg)/`)
+#
+# This description was adapted from Thomas Schoepf's _lessopen(1)_.
+shopt -s execfail extglob
+
+function main()
+{
+    set -e -u -o pipefail
+
+    local path="${1:-}"
+
+    if [[ "$#" -eq 0 ]]; then
+        printf "export LESSOPEN=%q\n" "|$(command -v -- "$0") %s"
+        return
+    fi
+
+    test ! -d "$path" || exit 1
+
+    case "$path" in
+      # This pattern matches various man page formats.
+      *.@([1-9n]|[1-9]x|man|[0-9]p|nro|3am)*(.@(bz2|[gx]z|lzma)))
+        case "$path" in
+          *.@(xz|bz2|lzma)) tar xfO -- "$path" | groff -Tascii -mandoc -  ;;
+          *.gz)             gzip -dc -- "$path" | groff -Tascii -mandoc - ;;
+          *)                groff -Tascii -mandoc -- "$path"              ;;
+        esac
+      ;;
+
+      # HTML files
+      *.?(s)htm?(l))
+        exec elinks -force-html -dump "$path" ||
+        exec links -force-html -dump "$path" ||
+        exec w3m -dump -T text/html "$path" ||
+        exec lynx -dump -force_html "$path"
+      ;;
+
+      # Various compressed archive formats.
+      *.tar)
+        tar tvvf "$path"
+      ;;
+      *.tgz|*.tar.gz|*.tar.[zZ])
+        tar tzvvf "$path"
+      ;;
+      *.tar.xz)
+        tar Jtvvf "$path"
+      ;;
+      *.xz|*.lzma)
+        xz -dc -- "$path"
+      ;;
+      *.tar.bz2|*.tbz2)
+        bzip2 -dc -- "$path" | tar tvvf -
+      ;;
+      *.[zZ]|*.gz)
+        gzip -dc -- "$path"
+      ;;
+      *.bz2)
+        bzip2 -dc -- "$path"
+      ;;
+      *.zip|*.jar|*.nbm)
+        zipinfo -- "$path"
+      ;;
+
+      # Pretty-print JSON files
+      *.json)
+        python -m json.tool "$path"
+      ;;
+
+      # Usually README-esque files from "scene" publishers that often include
+      # text art.
+      *.nfo)
+        iconv -f cp437 -- "$path"
+      ;;
+
+      # PGP keys and encrypted files
+      *.asc|*.pub|*.sig)
+        gpg --with-fingerprint -- "$path" 2>&1
+        echo
+        cat -- "$path"
+      ;;
+      *.gpg|*.pgp)
+        gpg --decrypt -- "$path"
+      ;;
+
+      # Unrecognized file type
+      *)
+        exit 1
+      ;;
+    esac
+}
+
+test "${BASH_SOURCE:-}" != "$0" || main "$@"

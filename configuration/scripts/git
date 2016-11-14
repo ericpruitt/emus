@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+# This script wraps Git to implement some new commands and manipulate the
+# default behavior of built-ins.
+shopt -s extglob
+
+# Path of canonical Git binary.
+declare -g GIT_PATH="${GIT_PATH:-}"
+
+# Pull from the default remote branch overwriting any local changes.
+#
+#   $1  This must be "-f" or "--force" to make this command overwrite unsaved
+#       changes.
+#
+function git-force-pull()
+{
+    local flag="${1:-}"
+
+    if [[ "$#" -gt 1 ]] || [[ "$#" -eq 1 && "$1" != +(-f|--force) ]]; then
+        echo "Usage: git force-pull [-f|--force]"
+        return 1
+    elif [[ "${1:-}" != *f* ]] && ! git diff --quiet; then
+        echo "There are unsaved changes, and --force was not specified."
+        return 1
+    fi
+
+    git fetch --all
+    git reset --hard "$(git remote)/$(git branch | awk '/\*/ {print $2}')"
+}
+
+# Easily create and merge checkpoint commits. The checkpoints have no message
+# associated with them and are intended to be squashed with a more descriptive
+# commit message before being pushed upstream. When no arguments are specified,
+# a checkpoint commit is created.
+#
+#   $1  Command: this can be "commit," "reset," "pick" or omitted. When this
+#       is "commit," a soft-reset is done on all checkpoint commits, and then
+#       git-commit is executed. When the command is "reset," all checkpoint
+#       commits are reset without executing git-commit. When the command is
+#       "pick," only files explicitly added wit git-add are included in the
+#       checkpoint; normally, the checkpoint is created with `git commit -a`.
+#   $@  When the command is "commit," these arguments are passed to git-commit.
+#
+function git-checkpoint()
+{
+    local commit
+    local flags
+
+    local command="${1:-}"
+
+    case "$command" in
+      commit|reset)
+        shift
+        if ! git log --format="%H%s" | egrep -q '^[a-f0-9]{40}$' &&
+          [[ "${PIPESTATUS[1]}" -ne 0 ]]; then
+            echo "No checkpoints found." >&2
+            exit 1
+        fi
+
+        commit="$(git log --format="%H%s" | egrep -vm1 '^[a-f0-9]{40}$')" || :
+        git reset --soft "${commit:0:40}"
+        test "$command" != "commit" || git commit --untracked-files=no -v "$@"
+      ;;
+      *)
+        if [[ "$#" -gt 1 ]] || [[ "$command" && "$command" != "pick" ]]; then
+            echo "Usage: git checkpoint [commit|reset|pick]"
+            exit 1
+        fi
+
+        test "$command" == "explicit" || flags="-a"
+        git commit --allow-empty-message -m "" ${flags:-}
+        echo "Checkpoint created."
+      ;;
+    esac
+}
+
+# List files like _ls(1)_, but only files tracked by Git will be shown.
+#
+#   $@  Paths and / or options understood by _ls(1)_.
+#
+function git-ls()
+{
+    local arg
+    local -a ls_flags
+    local original_arg
+    local -a paths
+
+    local no_more_flags=""
+
+    for original_arg in "$@"; do
+        # Strip any trailing slashes, and only add one back if the argument is
+        # a physical (vs. symlink) directory.
+        arg="${original_arg%%+(/)}"
+        if [[ -d "$arg" ]] && ! [[ -L "$arg" ]]; then
+            arg="$arg/"
+        fi
+
+        if [[ "$no_more_flags" ]]; then
+            paths+=("$arg")
+        elif [[ "$arg" = "--" ]]; then
+            no_more_flags="x"
+        elif [[ "$arg" = -* ]] || ! [[ -e "$arg" ]]; then
+            ls_flags+=("$original_arg")
+        else
+            paths+=("$arg")
+        fi
+    done
+
+    git ls-tree -z --name-only HEAD -- ${paths[@]+"${paths[@]}"} \
+      | xargs -0 ls --color=auto -d ${ls_flags[@]+"${ls_flags[@]}"} --
+}
+
+# Stand-in function that calls the canonical Git binary to eliminate infinite
+# loops.
+#
+#   $@  Arguments for _git(1)_
+#
+function git()
+{
+    "$GIT_PATH" "$@"
+}
+
+function main()
+{
+    local command="${1:-}"
+
+    local path
+    local git
+
+    set -e -u -o pipefail
+
+    for git in $(which -a git); do
+        if ! [[ "$git" -ef "$0" ]]; then
+            GIT_PATH="$git"
+            break
+        fi
+    done
+
+    if [[ -z "$GIT_PATH" ]]; then
+        echo "Could not find canonical Git binary." >&2
+        exit 1
+    elif [[ "$command" == "commit" ]]; then
+        shift
+        git commit --untracked-files=no -v "$@"
+    elif [[ "$(type -t "git-$command")" == "function" ]]; then
+        shift
+        git-"$command" "$@"
+    elif [[ "$(type -t "$0")" == "function" ]]; then
+        shift
+        "$0" "$@"
+    else
+        git "$@"
+    fi
+}
+
+test "${BASH_SOURCE:-}" != "$0" || main "$@"

@@ -1,0 +1,40 @@
+set bell-style none
+set colored-stats on
+set input-meta on
+set mark-symlinked-directories on
+set output-meta on
+
+"\C-xe": rlwrap-call-editor
+
+# Use prefix-matching when navigating the history with the arrow keys. Ctrl+P
+# and Ctrl+N can be used to navigate without prefix matching.
+"\e[A": history-search-backward     # Up
+"\e[B": history-search-forward      # Down
+
+$if mode=emacs
+"\e[1;3D": backward-word            # Alt+Left
+"\e[1;3C": forward-word             # Alt+Right
+"\e[1;5D": backward-word            # Ctrl+Left
+"\e[1;5C": forward-word             # Ctrl+Right
+"\e[P": delete-char                 # Delete
+"\e[4~": end-of-line                # End
+"\e[1~": beginning-of-line          # Home
+
+$if Bash
+"\ed": "\ef\C-w"                    # Alt+D (~delete unix-word forward)
+"\ef": shell-forward-word           # Alt+F
+"\e[1;3D": shell-backward-word      # Alt+Left
+"\e[1;3C": shell-forward-word       # Alt+Right
+
+# Allows Ctrl+Z to be used to bring programs back into the foreground. The
+# cursor is moved to the beginning of the line before typing so a specific job
+# can be resumed by typing its identifier (e.g. a number) then hitting Ctrl+Z.
+# This depends on Ctrl+Z being a literal sequence i.e. "stty susp undef".
+"\C-z": "\C-afg \C-m"               # Ctrl+Z
+
+$if term=tmux
+# Ctrl+Q to close a Bash shell without keeping the parent tmux pane in tact.
+"\C-q": "\C-a\C-ksilent history -a && trap EXIT && exit\C-m"
+$endif
+$endif
+$endif

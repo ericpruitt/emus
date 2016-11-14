@@ -3,6 +3,8 @@
 COMMON_PREFIX = $(PWD)/common
 CFLAGS = -I$(COMMON_PREFIX)/include -O3 -s
 LDFLAGS = -L$(COMMON_PREFIX)/lib -static
+DIST_BIN = ~/.local/bin
+DIST_MAN = ~/.local/share/man
 
 BASH_VERSION = 4.4
 COREUTILS_VERSION = 8.25
@@ -230,6 +232,47 @@ install what:
 		echo "No binaries have been compiled." >&2; \
 		exit 1; \
 	fi; \
+
+dist.tar.xz:
+	@trap "rm -rf dist/" EXIT; \
+	mkdir -p dist/bin dist/man; \
+	{ \
+		echo "# Build host: $$(uname -s -r)"; \
+		echo "# https://github.com/ericpruitt/static-unix-userland"; \
+		echo "# https://www.codevat.com/"; \
+		echo; \
+		echo 'BIN = $(DIST_BIN)'; \
+		echo 'MAN = $(DIST_MAN)'; \
+		echo ".POSIX:"; \
+		echo ".SILENT: install"; \
+		echo "install:"; \
+		printf "\t%s\n" \
+			"echo 'Build host: $$(hostname) $$(uname -s -r)'" \
+			'echo "BIN = $$(BIN)"' \
+			'echo "MAN = $$(MAN)"' \
+			'if ! [ -e bin ]; then \
+				echo "Nothing to install" >&2; \
+				exit 1; \
+			fi' \
+			'mkdir -p $$(MAN)' \
+			'for d in man/*/; do test ! -d "$$$$d" || \
+			   rm -rf $$(MAN)/"$$$${d#*/}"; done' \
+			'mkdir -p $$(BIN)' \
+			'for d in bin/*/; do test ! -d "$$$$d" || \
+			   rm -rf $$(BIN)/"$$$${d#*/}"; done' \
+			'mv -f bin/* $$(BIN)' \
+			'mv -f man/* $$(MAN)' \
+			'rmdir bin man' \
+			'@echo "Installation complete."' \
+		; \
+	} > dist/Makefile; \
+	$(MAKE) -s install BIN=dist/bin MAN=dist/man; \
+	echo; \
+	echo "Compressing..."; \
+	tar -c -f - dist | xz -9e -c - > "$@"; \
+	ls -lh "$@"; \
+
+dist: dist.tar.xz
 
 clean:
 	@PATHS="$(PATHS)"; \

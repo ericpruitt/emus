@@ -83,6 +83,12 @@ executed.
 - **what:** Display a list of binaries that can be compiled and their status. A
   "+" indicates that a binary has been compiled, and a "~" indicates that the
   source code has been downloaded and unpacked.
+- **dist:** Create a distributable archive named "dist.tar.xz" that includes
+  all compiled programs, documentation and a Makefile for quick installation.
+  The variables "DIST_BIN" and "DIST_MAN" control the default values of "BIN"
+  and "MAN" used by the distributable's Makefile. The default value of
+  "DIST_BIN" is "~/.local/bin", and the default value of "DIST_MAN" is
+  "~/.local/share/man".
 - **clean:** Iterate over folders in this directory and, if a folder is a Git
   repository, restore it to a pristine state. Any other folders that are not
   "patches/", "public-keys/" or "musl-\*" are deleted. Specific folders can be

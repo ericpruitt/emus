@@ -50,7 +50,6 @@ function define-aliases()
     alias ldd='paginate ldd --'
     alias ls='COLUMNS="$COLUMNS" paginate ls -C -A -F -h'
     alias make='gmake'
-    alias man='man --no-hyphenation'
     alias mtr='mtr -t'
     alias otr='HISTFILE=/dev/null bash'
     alias paragrep='LC_ALL=C paginate paragrep -T -B1 -n'
@@ -76,19 +75,44 @@ function define-aliases()
     # it to the shell history by prefixing it with "silent".
     alias silent=''
 
-    case "$OSTYPE" in
-      *linux*)
-        alias ps='paginate ps --cols=$COLUMNS --sort=uid,pid -N \
-                      --ppid 2 -p 2'
-      ;&
-      *cygwin*|*msys*|*gnu*)
+    case "${TOOL_FEATURES:-}" in
+      *coreutils*)
         alias cp='cp -a -v'
         alias grep='paginate grep --color=always'
         alias ls='paginate ls "-C -w $COLUMNS --color=always" -b -h \
-                      -I lost+found -I __pycache__'
+                      -I lost+found -I __pycache__ -A'
         alias rm='rm -v'
-      ;;
+      ;;&
+
+      # My modified version of ls (which is typically under my home directory)
+      # has been patched to make "-A" implicit for any directory other than
+      # "$HOME," so there's no need for the flag to be in the alias.
+      *home-ls*)
+        BASH_ALIASES[ls]="${BASH_ALIASES[ls]% -A}"
+      ;;&
+
+      *--no-hyphenation*)
+        alias man='man --no-hyphenation'
+      ;;&
+
+      *procps-ng*)
+        alias ps='paginate ps --cols=$COLUMNS --sort=uid,pid -N --ppid 2 -p 2'
+      ;;&
     esac
+}
+
+# Execute various commands and filter output for certain strings which can be
+# used as a means of feature detection to tailor aliases to the system being
+# accessed.
+#
+function features()
+{
+    local -x LC_ALL="C"
+
+    ls --help               2>&1 | grep -F "GNU coreutils"
+    which ls                2>&1 | grep -F -q "$HOME" && echo "home-ls"
+    man -h                  2>&1 | grep -F "no-hyphenation"
+    ps -V                   2>&1 | grep -F "procps"
 }
 
 # Disable aliases for commands that are not present on this system, and compact
@@ -275,8 +299,11 @@ function setup()
 
     # Automatically start tmux if the shell is not being run within a
     # multiplexer or console.
-    elif [[ ! "${TERM:-}" =~ ^(tmux|screen|linux$|vt[0-9]+) ]]; then
-        hash tmux 2>&- && SHLVL_OFFSET= tmux new -A -s 0 && exit
+    elif [[ ! "${TERM:-}" =~ ^(tmux|screen|linux$|vt[0-9]+) ]] &&
+      hash tmux 2>&-; then
+        SHLVL_OFFSET= TOOL_FEATURES="$(features)" tmux new -A -s 0 && exit
+    elif [[ -z "${TOOL_FEATURES+is_defined}" ]]; then
+        export TOOL_FEATURES="$(features)"
     fi
 
     # If running inside of tmux, make sudo default to using TERM=screen, and if

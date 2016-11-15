@@ -19,20 +19,23 @@ TARGETS = \
 	$(HOME)/bin \
 
 BACKUP_FOLDER = $(HOME)/config-backups
-PRECOMPILED = https://www.codevat.com/downloads/static-unix-userland-$$(uname | tr A-Z a-z)-$$(uname -m).tar.xz.gpg
+
+PLATFORM = $$(uname -s -m | tr "A-Z " "a-z-" | sed "s/x86_64/amd64/g")
+USERLAND = https://www.codevat.com/downloads/static-unix-userland-$(PLATFORM)
 
 all: $(TARGETS)
 
-precompiled:
+userland:
 	@trap 'cd / && rm -rf "$$tempdir"' EXIT; \
 	tempdir="$$(mktemp -d)"; \
 	mkdir "$$tempdir/.gpg"; \
 	export GNUPGHOME="$$tempdir/.gpg"; \
+	gpg --import "public-keys/eric-pruitt.asc"; \
 	cd "$$tempdir"; \
-	gpg --import "$$OLDPWD/public-keys/eric-pruitt.asc"; \
-	wget --max-redirect=0 -O dist.tar.xz.gpg -c $(PRECOMPILED); \
-	gpg --decrypt -o dist.tar.xz dist.tar.xz.gpg; \
-	unxz < dist.tar.xz | tar -x; \
+	wget --max-redirect=0 $(USERLAND); \
+	gpg --use-embedded-filename *; \
+	test ! -e *.xz || unxz *.xz; \
+	tar -x -f *.tar; \
 	(cd */ && make); \
 
 clean:

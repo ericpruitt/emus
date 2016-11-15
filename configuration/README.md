@@ -24,8 +24,8 @@ The Makefile supports the following targets:
   target.
 - **clean:** Delete any symlinks for known configuration files and copy any
   other existing files into "~/config-backups".
-- **precompiled:** Fetch, cryptographically verify and install precompiled
-  binaries for the current operating system and processor architecture.
+- **userland:** Fetch, cryptographically verify and install precompiled
+  userland binaries for the current operating system and processor architecture.
 
 After running `make` for the first time, it is best to log out of the current
 shell and, when running these commands in a graphical environment, X11 session.

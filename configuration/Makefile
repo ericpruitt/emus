@@ -72,7 +72,7 @@ $(HOME)/.elinks/elinks.conf: elinks.conf
 	@echo "- $@"
 	@mkdir -p $(@D)
 	@test ! -h $@ || rm $@
-	@ln -s $(PWD)/$? $@
+	@ln -s "$$PWD/$?" $@
 
 $(HOME)/.terminfo/t/tmux: terminfo/tmux.info
 	@echo "- $@"

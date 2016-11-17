@@ -130,10 +130,8 @@ launched, is used as a fallback when "/proc/self/exe" cannot be read.
   - When closing Vim with ":x" after opening multiple files but only editing
     some of them, E173 is no longer raised, and Vim will quit immediately.
 - **GNU Core Utilities**
-  - When using _ls(1)_ to list the contents of a directory, files starting with
-    "." (excluding "." and "..") are shown by default for all folders except
-    `$HOME`. The "-a" and "-A" options can be used to override the special
-    handling of the home directory.
+  - When using _ls(1)_ to list the contents of a directory, "-A" is implicit
+    for every directory except `$HOME`.
 
 Repository Layout
 -----------------

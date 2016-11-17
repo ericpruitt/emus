@@ -68,7 +68,7 @@ function define-aliases()
     alias tr='paginate tr --'
     alias tree='paginate tree -C -a -I ".git|__pycache__|lost+found"'
     alias vi='vim'
-    alias xargs='paginate xargs --'
+    alias xargs='paginate xargs -- --verbose'
     alias xxd='paginate xxd --'
 
     # This alias is used to allow the user to execute a command without adding

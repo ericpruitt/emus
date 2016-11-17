@@ -123,17 +123,23 @@ function prune-aliases()
     local alias_key
     local alias_value
     local argv
+    local i
 
     for alias_key in "${!BASH_ALIASES[@]}"; do
-        alias_value="${BASH_ALIASES[$alias_key]//\\$'\n'+(\ )/}"
+        alias_value="${BASH_ALIASES[$alias_key]}"
         argv=($alias_value)
         # Ignore environment variables and the paginate function.
-        while [[ "${argv[0]}" =~ ^([a-zA-Z_]+[a-zA-Z0-9_]*=|paginate$) ]]; do
-            argv=(${argv[@]:1})
+        i=0
+        while [[ "${argv[i]}" = @(paginate|[A-Z_]*([A-Z0-9_])=*) ]]; do
+            let i++
         done
-        test "${#argv[@]}" -gt 0 || continue
-        ! hash -- "${argv[0]}" 2>&- && unalias "$alias_key" && continue
-        BASH_ALIASES[$alias_key]="${alias_value}"
+        if ! hash "${argv[i]}" 2>&-; then
+            # Disable aliases for unrecognized commands
+            test -z "$alias_value" || unalias "$alias_key"
+        elif [[ "$alias_value" = *$'\n'* ]]; then
+            # Compact multi-line aliases
+            BASH_ALIASES[$alias_key]="${alias_value//\\$'\n'+(\ )/}"
+        fi
     done
 }
 

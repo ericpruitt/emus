@@ -91,7 +91,7 @@ function define-aliases()
         BASH_ALIASES[ls]="${BASH_ALIASES[ls]% -A}"
       ;;&
 
-      *--no-hyphenation*)
+      *no-hyphenation*)
         alias man='man --no-hyphenation'
       ;;&
 
@@ -109,8 +109,9 @@ function features()
 {
     local -x LC_ALL="C"
 
-    ls --help               2>&1 | grep -F "GNU coreutils"
-    which ls                2>&1 | grep -F -q "$HOME" && echo "home-ls"
+    ls --help               2>&1 | grep -F "GNU coreutils" &&
+    which ls                2>&1 | grep -F -q "$HOME/" && echo "home-ls"
+
     man -h                  2>&1 | grep -F "no-hyphenation"
     ps -V                   2>&1 | grep -F "procps"
 }

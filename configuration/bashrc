@@ -28,48 +28,48 @@ declare -r BASH_MAJOR_MINOR="$((BASH_VERSINFO[0] * 1000 + BASH_VERSINFO[1]))"
 
 # Define various command aliases.
 #
-function define-aliases()
+function -define-aliases()
 {
-    alias awk='paginate awk --'
+    alias awk='-paginate awk --'
     alias back='test -z "${OLDPWD:-}" || cd "$OLDPWD"'
-    alias cat='paginate cat --'
+    alias cat='-paginate cat --'
     alias cp='cp -p -R'
-    alias df='paginate df -- -h'
-    alias diff='paginate diff -- -u'
-    alias dpkg-query='paginate dpkg-query --'
-    alias du='paginate du -- -h'
+    alias df='-paginate df -- -h'
+    alias diff='-paginate diff -- -u'
+    alias dpkg-query='-paginate dpkg-query --'
+    alias du='-paginate du -- -h'
     alias egrep='grep -E'
     alias fgrep='grep -F'
-    alias find='paginate find --'
-    alias gawk='paginate gawk --'
-    alias grep='paginate grep --'
+    alias find='-paginate find --'
+    alias gawk='-paginate gawk --'
+    alias grep='-paginate grep --'
     alias head='head -n "$((LINES - 1))"'
-    alias help='paginate help --'
-    alias history='paginate history --'
+    alias help='-paginate help --'
+    alias history='-paginate history --'
     alias info='info --vi-keys'
-    alias ldd='paginate ldd --'
-    alias ls='COLUMNS="$COLUMNS" paginate ls -C -A -F -h'
+    alias ldd='-paginate ldd --'
+    alias ls='COLUMNS="$COLUMNS" -paginate ls -C -A -F -h'
     alias make='gmake'
     alias mtr='mtr -t'
     alias otr='HISTFILE=/dev/null bash'
-    alias paragrep='LC_ALL=C paginate paragrep -T -B1 -n'
-    alias ps='paginate ps --'
-    alias pstree='paginate pstree -- -a -p -s -U'
-    alias readelf='paginate readelf --'
+    alias paragrep='LC_ALL=C -paginate paragrep -T -B1 -n'
+    alias ps='-paginate ps --'
+    alias pstree='-paginate pstree -- -a -p -s -U'
+    alias readelf='-paginate readelf --'
     alias reset='tput reset'
     alias screen='SHLVL_OFFSET= screen'
-    alias sed='paginate sed --'
+    alias sed='-paginate sed --'
     alias shred='shred -n 0 -v -u -z'
-    alias sort='paginate sort --'
-    alias strings='paginate strings --'
-    alias tac='paginate tac --'
+    alias sort='-paginate sort --'
+    alias strings='-paginate strings --'
+    alias tac='-paginate tac --'
     alias tail='tail -n "$((LINES - 1))"'
     alias tmux='SHLVL_OFFSET= tmux'
-    alias tr='paginate tr --'
-    alias tree='paginate tree -C -a -I ".git|__pycache__|lost+found"'
+    alias tr='-paginate tr --'
+    alias tree='-paginate tree -C -a -I ".git|__pycache__|lost+found"'
     alias vi='vim'
-    alias xargs='paginate xargs -- --verbose'
-    alias xxd='paginate xxd --'
+    alias xargs='-paginate xargs -- --verbose'
+    alias xxd='-paginate xxd --'
 
     # This alias is used to allow the user to execute a command without adding
     # it to the shell history by prefixing it with "silent".
@@ -78,8 +78,8 @@ function define-aliases()
     case "${TOOL_FEATURES:-}" in
       *coreutils*)
         alias cp='cp -a -v'
-        alias grep='paginate grep --color=always'
-        alias ls='paginate ls "-C -w $COLUMNS --color=always" -b -h \
+        alias grep='-paginate grep --color=always'
+        alias ls='-paginate ls "-C -w $COLUMNS --color=always" -b -h \
                       -I lost+found -I __pycache__ -A'
         alias rm='rm -v'
       ;;&
@@ -96,7 +96,7 @@ function define-aliases()
       ;;&
 
       *procps*)
-        alias ps='paginate ps --cols=$COLUMNS --sort=uid,pid -N --ppid 2 -p 2'
+        alias ps='-paginate ps --cols=$COLUMNS --sort=uid,pid -N --ppid 2 -p 2'
       ;;&
     esac
 }
@@ -105,7 +105,7 @@ function define-aliases()
 # used as a means of feature detection to tailor aliases to the system being
 # accessed.
 #
-function features()
+function -features()
 {
     local -x LC_ALL="C"
 
@@ -119,7 +119,7 @@ function features()
 # Disable aliases for commands that are not present on this system, and compact
 # multi-line aliases into a single line.
 #
-function prune-aliases()
+function -prune-aliases()
 {
     local alias_key
     local alias_value
@@ -131,7 +131,7 @@ function prune-aliases()
         argv=($alias_value)
         # Ignore environment variables and the paginate function.
         i=0
-        while [[ "${argv[i]}" = @(paginate|[A-Z_]*([A-Z0-9_])=*) ]]; do
+        while [[ "${argv[i]}" = @(-paginate|[A-Z_]*([A-Z0-9_])=*) ]]; do
             let i++
         done
         if ! hash "${argv[i]}" 2>&-; then
@@ -155,7 +155,7 @@ function prune-aliases()
 #       "--".
 #   $@  Arguments to pass to command.
 #
-function paginate()
+function -paginate()
 {
     local errfd=1
 
@@ -287,9 +287,9 @@ function -debug-hook()
 # Bootstrap function to configure various settings and launch tmux when it
 # appears that Bash is not already running inside of another multiplexer.
 #
-function setup()
+function -setup()
 {
-    unset setup
+    unset -f -- -setup
 
     complete -r
     complete -d cd
@@ -308,9 +308,9 @@ function setup()
     # multiplexer or console.
     elif [[ ! "${TERM:-}" =~ ^(tmux|screen|linux$|vt[0-9]+) ]] &&
       hash tmux 2>&-; then
-        SHLVL_OFFSET= TOOL_FEATURES="$(features)" tmux new -A -s 0 && exit
+        SHLVL_OFFSET= TOOL_FEATURES="$(-features)" tmux new -A -s 0 && exit
     elif [[ -z "${TOOL_FEATURES+is_defined}" ]]; then
-        export TOOL_FEATURES="$(features)"
+        export TOOL_FEATURES="$(-features)"
     fi
 
     # If running inside of tmux, make sudo default to using TERM=screen, and if
@@ -330,7 +330,7 @@ function setup()
     HISTTIMEFORMAT=""
     PROMPT_COMMAND="-prompt-command"
 
-    define-aliases && prune-aliases
+    -define-aliases && -prune-aliases
 
     # Disable output flow control; makes ^Q and ^S usable.
     stty -ixon -ixoff
@@ -343,4 +343,4 @@ function setup()
     test "$(trap -p DEBUG)" || trap '\-debug-hook "$BASH_COMMAND"' DEBUG
 }
 
-setup
+-setup

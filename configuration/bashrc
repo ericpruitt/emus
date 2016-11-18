@@ -95,7 +95,7 @@ function define-aliases()
         alias man='man --no-hyphenation'
       ;;&
 
-      *procps-ng*)
+      *procps*)
         alias ps='paginate ps --cols=$COLUMNS --sort=uid,pid -N --ppid 2 -p 2'
       ;;&
     esac

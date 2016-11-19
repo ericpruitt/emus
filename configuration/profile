@@ -55,5 +55,9 @@ export SHELL="$(which bash || echo "$SHELL")"
 eval "$(dircolors -b "$HOME/.dir_colors")"
 eval "$(lesspipe)"
 
+# If Bash is available and this file was loaded interactively by another shell
+# launched without command line arguments, continue execution as Bash.
+test -z "${SHELL##*/bash}" -a -z "$BASH" -a -z "$*" -a "$PS1" && exec "$SHELL"
+
 # Load ~/.bashrc for interactive Bash sessions.
 test -z "$BASH" -o -z "$PS1" || . "$HOME/.bashrc"

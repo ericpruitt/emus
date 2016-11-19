@@ -6,6 +6,8 @@
 # script may make use of features not present in the most recent stable
 # release.
 
+shopt -s execfail
+
 # Show a message in a context-sensitive manner: if metamux is attached to a
 # terminal, the message will be printed to stderr. Otherwise, the message is
 # display using tmux's "display" command.
@@ -187,7 +189,7 @@ function open_last_url_printed()
     fi
 
     for browser in ${BROWSER//:/ } xdg-open; do
-        exec $browser "$url" &> /dev/null
+        exec $browser "$url" &> /dev/null || continue
     done
 }
 

@@ -30,6 +30,11 @@ declare -r BASH_MAJOR_MINOR="$((BASH_VERSINFO[0] * 1000 + BASH_VERSINFO[1]))"
 # not be launched automatically.
 declare -r NO_AUTO_TMUX='^(tmux|screen|linux|vt[0-9]+|dumb)([+-].+)?$'
 
+# If the "TERM" environment variable matches this regular expression, the
+# terminal title is set using the "\033]2;...\033\\" sequence when a command is
+# executed.
+declare -r XTERM_TITLE_SUPPORT='^(tmux|xterm|screen|st)([+-].+)?$'
+
 # Define various command aliases. Unless the variable "DISABLE_PRUNING" is set
 # to a non-empty string, the -prune-aliases function is called at the end of
 # this function.
@@ -273,7 +278,7 @@ function -debug-hook()
     test "$BASH_MAJOR_MINOR" -ge 4004 || set -u
     test "$command" != "$PROMPT_COMMAND" || return 0
 
-    if [[ "${TERM:-}" =~ ^(tmux|xterm|screen|rxvt|st(-*)?$) ]]; then
+    if [[ "${TERM:-}" =~ $XTERM_TITLE_SUPPORT ]]; then
         # Iterate over all aliases and figure out which ones were likely used
         # to create the command. The looping handles recursive aliases.
         while [[ "${search_again:-}" ]]; do

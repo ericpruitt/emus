@@ -50,7 +50,7 @@ test -e "$HOME/.local.profile" && . "$HOME/.local.profile"
 export GIT_EDITOR="$(which "$EDITOR")"
 export MAKEFLAGS="-j$(nproc 2>/dev/null || echo 4)"
 export MANPATH="$(manpath 2>/dev/null)"
-export SHELL="$(which bash)"
+export SHELL="$(which bash || echo "$SHELL")"
 
 eval "$(dircolors -b "$HOME/.dir_colors")"
 eval "$(lesspipe)"

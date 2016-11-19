@@ -47,10 +47,10 @@ test -e "$HOME/.local.profile" && . "$HOME/.local.profile"
 
 # Most variables and settings that depend on other programs are processed after
 # the local profile since it may modify PATH.
-export GIT_EDITOR="$(which "$EDITOR")"
+export GIT_EDITOR="$(command -v "$EDITOR")"
 export MAKEFLAGS="-j$(nproc 2>/dev/null || echo 4)"
 export MANPATH="$(manpath 2>/dev/null)"
-export SHELL="$(which bash || echo "$SHELL")"
+export SHELL="$(command -v bash || echo "$SHELL")"
 
 eval "$(dircolors -b "$HOME/.dir_colors")"
 eval "$(lesspipe)"

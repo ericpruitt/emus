@@ -52,8 +52,8 @@ export MAKEFLAGS="-j$(nproc 2>/dev/null || echo 4)"
 export MANPATH="$(manpath 2>/dev/null)"
 export SHELL="$(command -v bash || echo "$SHELL")"
 
-eval "$(dircolors -b "$HOME/.dir_colors")"
-eval "$(lesspipe)"
+eval "$(dircolors -b "$HOME/.dir_colors" 2>/dev/null)"
+eval "$(lesspipe 2>/dev/null)"
 
 # If Bash is available and this file was loaded interactively by another shell
 # launched without command line arguments, continue execution as Bash.

@@ -43,7 +43,7 @@ PATH="$HOME/bin:$sysconfigs/scripts:$HOME/.local/bin:$PATH"
 unset sysconfigs
 
 # Secondary profile for machine-specific settings.
-. "$HOME/.local.profile" 2>/dev/null
+test -e "$HOME/.local.profile" && . "$HOME/.local.profile"
 
 # Most variables and settings that depend on other programs are processed after
 # the local profile since it may modify PATH.

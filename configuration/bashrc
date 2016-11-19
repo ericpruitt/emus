@@ -26,7 +26,13 @@ test "$PS1" || return 0
 #   <https://lists.gnu.org/archive/html/bug-bash/2016-04/msg00090.html>
 declare -r BASH_MAJOR_MINOR="$((BASH_VERSINFO[0] * 1000 + BASH_VERSINFO[1]))"
 
-# Define various command aliases.
+# If the "TERM" environment variable matches this regular expression, tmux will
+# not be launched automatically.
+declare -r NO_AUTO_TMUX='^(tmux|screen|linux|vt[0-9]+|dumb)([+-].+)?$'
+
+# Define various command aliases. Unless the variable "DISABLE_PRUNING" is set
+# to a non-empty string, the -prune-aliases function is called at the end of
+# this function.
 #
 function -define-aliases()
 {
@@ -62,6 +68,7 @@ function -define-aliases()
     alias shred='shred -n 0 -v -u -z'
     alias sort='-paginate sort --'
     alias strings='-paginate strings --'
+    alias sudo='TERM="${TERM#tmux*/screen}" sudo'
     alias tac='-paginate tac --'
     alias tail='tail -n "$((LINES - 1))"'
     alias tmux='SHLVL_OFFSET= tmux'
@@ -99,6 +106,8 @@ function -define-aliases()
         alias ps='-paginate ps --cols=$COLUMNS --sort=uid,pid -N --ppid 2 -p 2'
       ;;&
     esac
+
+    test -n "${DISABLE_PRUNING:-}" || -prune-aliases
 }
 
 # Execute various commands and filter output for certain strings which can be
@@ -297,40 +306,28 @@ function -setup()
     shopt -s cdspell
     shopt -s cmdhist
     shopt -s dirspell
+    shopt -s execfail
     shopt -s extglob
     shopt -s histappend
 
-    # Setup exit hook to preserve splits when exiting a shell in a pane.
+    test "${TOOL_FEATURES+is_defined}" || export TOOL_FEATURES="$(-features)"
+
     if [[ "${TMUX:-}" ]]; then
-        hash metamux 2>&- && trap 'metamux shell-exit-hook "$PPID"' EXIT
-
-    # Automatically start tmux if the shell is not being run within a
-    # multiplexer or console.
-    elif [[ ! "${TERM:-}" =~ ^(tmux|screen|linux$|vt[0-9]+) ]] &&
-      hash tmux 2>&-; then
-        SHLVL_OFFSET= TOOL_FEATURES="$(-features)" tmux new -A -s 0 && exit
-    elif [[ -z "${TOOL_FEATURES+is_defined}" ]]; then
-        export TOOL_FEATURES="$(-features)"
-    fi
-
-    # If running inside of tmux, make sudo default to using TERM=screen, and if
-    # the host does not have a terminfo entry for tmux, fall back to using
-    # TERM=screen for everything.
-    if [[ "${TERM:-}" =~ ^tmux ]]; then
-        if tput -T "$TERM" longname &> /dev/null; then
-            alias sudo='TERM="screen" sudo'
-        else
-            export TERM="screen"
-        fi
+        trap 'metamux shell-exit-hook "$PPID" 2>&-' EXIT
+    elif [[ "${TERM:-}" = tmux* ]]; then
+        # If a terminfo definition for tmux is not available, use screen's.
+        tput -S 2>&- < /dev/null || export TERM="screen"
+    elif [[ "${TERM:-}" ]] && ! [[ "$TERM" =~ $NO_AUTO_TMUX ]]; then
+        exec tmux new -A -s 0
     fi
 
     HISTFILESIZE="2147483647"
-    HISTIGNORE="history?( -[acdnrw]*):@(help|history)?( ):@(fg|silent|otr) *"
+    HISTIGNORE="history?( -[acdnrw]*):@(fg|help|history)?( ):@(silent|fg) *"
     HISTSIZE="2147483647"
     HISTTIMEFORMAT=""
     PROMPT_COMMAND="-prompt-command"
 
-    -define-aliases && -prune-aliases
+    -define-aliases
 
     # Disable output flow control; makes ^Q and ^S usable.
     stty -ixon -ixoff

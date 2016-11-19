@@ -36,7 +36,8 @@ userland:
 	gpg --use-embedded-filename *; \
 	test ! -e *.xz || unxz *.xz; \
 	tar -x -f *.tar; \
-	(cd */ && make); \
+	cd */; \
+	$(MAKE); \
 
 clean:
 	@mkdir -p "$(BACKUP_FOLDER)"

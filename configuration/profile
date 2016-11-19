@@ -56,4 +56,4 @@ eval "$(dircolors -b "$HOME/.dir_colors")"
 eval "$(lesspipe)"
 
 # Load ~/.bashrc for interactive Bash sessions.
-test -z "$BASH_VERSION" -o -z "$PS1" || . "$HOME/.bashrc"
+test -z "$BASH" -o -z "$PS1" || . "$HOME/.bashrc"

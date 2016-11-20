@@ -132,6 +132,10 @@ launched, is used as a fallback when "/proc/self/exe" cannot be read.
 - **GNU Core Utilities**
   - When using _ls(1)_ to list the contents of a directory, "-A" is implicit
     for every directory except `$HOME`.
+- **Bash**
+  - When running commands interactively, the terminal attributes are modified
+    so the suspend character is interpreted as literal sequence at the prompt
+    but produces a SIGTSTP signal during command execution.
 
 Repository Layout
 -----------------

@@ -1,0 +1,59 @@
+--- eval.c	2016-06-02 15:49:27.000000000 -0700
++++ eval.c	2016-11-20 15:02:23.681680378 -0800
+@@ -31,6 +31,7 @@
+ #include <stdio.h>
+ 
+ #include <signal.h>
++#include <termios.h>
+ 
+ #include "bashintl.h"
+ 
+@@ -69,6 +70,8 @@
+ int
+ reader_loop ()
+ {
++  struct termios ttyattr;
++  cc_t vsusp = 0;
+   int our_indirection_level;
+   COMMAND * volatile current_command;
+ 
+@@ -82,6 +85,13 @@
+     {
+       int code;
+ 
++      if (!vsusp && indirection_level == 1 && interactive &&
++       !tcgetattr(STDERR_FILENO, &ttyattr)) {
++        vsusp = ttyattr.c_cc[VSUSP];
++        ttyattr.c_cc[VSUSP] = 0;
++        tcsetattr(STDERR_FILENO, TCSADRAIN, &ttyattr);
++      }
++
+       code = setjmp_nosigs (top_level);
+ 
+ #if defined (PROCESS_SUBSTITUTION)
+@@ -177,6 +187,13 @@
+ 		  free (ps0_string);
+ 		}
+ 
++	      if (vsusp) {
++	        ttyattr.c_cc[VSUSP] = vsusp;
++	        if (!tcsetattr(STDERR_FILENO, TCSADRAIN, &ttyattr)) {
++	          vsusp = 0;
++	        }
++	      }
++
+ 	      execute_command (current_command);
+ 
+ 	    exec_done:
+@@ -199,6 +216,11 @@
+ 	EOF_Reached = EOF;
+     }
+   indirection_level--;
++
++  if (vsusp) {
++    ttyattr.c_cc[VSUSP] = vsusp;
++    tcsetattr(STDERR_FILENO, TCSADRAIN, &ttyattr);
++  }
+   return (last_command_exit_value);
+ }
+ 

@@ -494,7 +494,7 @@ $(BASH_FOLDER): $(BASH).tar.gz $(BASH).tar.gz.sig $(BASH_PATCHES_FOLDER) $(PUBRI
 	$(GPG) --verify $(BASH).tar.gz.sig; \
 	tar -x -z -f $(BASH).tar.gz; \
 	cd $(DIRNAME); \
-	for patch in $(PWD)/$(BASH_PATCHES)/*[0-9]; do \
+	for patch in $(PWD)/$(BASH_PATCHES)/*[0-9] $(PATCHES); do \
 		test ! -e "$$patch" || patch -p0 < "$$patch"; \
 	done; \
 	touch $(TARGET); \

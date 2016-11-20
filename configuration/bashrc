@@ -215,15 +215,12 @@ function spawn()
 # - If there are background jobs, show the quantity in brackets.
 # - Terminate the prompt with "#" when running as root and "$" otherwise.
 #
-# Any variables that are all lower case (`/^[a-z][a-z0-9_]*$/`) are unset if
-# they are not exported.
+# Any variables that do not match the regular expression `/^[A-Z_][A-Z0-9_]*$/`
+# are automatically unset.
 #
 function -prompt-command()
 {
     local exit_status="${debug_hook_ran:+$?}"
-
-    local _saved_vars
-    local var
 
     local depth="$((SHLVL - SHLVL_OFFSET + 1))"
     local jobs="$(jobs)"
@@ -233,14 +230,7 @@ function -prompt-command()
 
     PS1="${depth:+$depth: }${SSH_TTY:+\\u@\\h:}\\W${jobs:+ [\\j]}\\$ "
 
-    _saved_vars="$(compgen -e)"
-    _saved_vars="^(${_saved_vars//$'\n'/|}|[^a-z].*|.*[^a-z0-9_].*)\$"
-
-    for var in $(compgen -v); do
-        if ! [[ "$var" =~ $_saved_vars ]]; then
-            unset "$var"
-        fi
-    done
+    unset $(compgen -v -X '[A-Z_]*([A-Z0-9_])')
 
     # Send SIGWINCH to the shell to refresh COLUMNS and LINES in case a signal
     # from the terminal emulator was intercepted by a foreground process.

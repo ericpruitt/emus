@@ -30,6 +30,10 @@ declare -r BASH_MAJOR_MINOR="$((BASH_VERSINFO[0] * 1000 + BASH_VERSINFO[1]))"
 # not be launched automatically.
 declare -r NO_AUTO_TMUX='^(tmux|screen|linux|vt[0-9]+|dumb)([+-].+)?$'
 
+# If the current Bash interpreter is in the user's home directory, this string
+# will be non-empty.
+declare -r NOT_HOMEDIR_BASH="${BASH##$HOME/*}"
+
 # If the "TERM" environment variable matches this regular expression, the
 # terminal title is set using the "\033]2;...\033\\" sequence when a command is
 # executed.
@@ -239,9 +243,10 @@ function -prompt-command()
     # Prevent Ctrl-Z from sending SIGTSTP when entering commands so it can be
     # remapped with readline. When Bash uses job control in debug hooks, it can
     # produce in some racy, quirky behavior, so stty is run inside of a command
-    # substitution which avoids the parent shell's job control.
-    $(stty susp undef)
-    _susp_undef="x"
+    # substitution which avoids the parent shell's job control. Since my
+    # personal copy of Bash is patched to do this internally, stty is only run
+    # if the Bash interpreter is not under $HOME.
+    test "$NOT_HOMEDIR_BASH" && $(stty susp undef) && _susp_undef="x"
 
     test "$BASH_MAJOR_MINOR" -ge 4004 || set +u
 }

@@ -106,8 +106,10 @@ packages:
 	@if [ -e /etc/debian_version ]; then \
 		sudo apt-get install \
 			compton \
+			fonts-dejavu \
 			fonts-vlgothic \
 			fonts-wqy-zenhei \
+			gsfonts \
 			gtk2-engines \
 			libx11-dev \
 			libxft-dev \

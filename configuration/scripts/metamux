@@ -158,35 +158,27 @@ function rotate_pane()
 function open_last_url_printed()
 {
     local browser
-    local joined_regexes
     local regex
-    local url
     local url_regexes
+    local urls
 
     url_regexes=(
         # Traditional URLs
-        '(www[0-9]*\.|(https?|ftps?|file)://)\S+[^]?.!)>"'"'"' '$'\t'':;]'
+        "(www[0-9]*\\.|(https?|ftps?|file)://)[^/ ]+[^] \"\'?.!>):;]+"
         # IP addresses with port
         '\b([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+)\b'
     )
 
-    for regex in "${url_regexes[@]}"; do
-        if [[ "${joined_regexes:=}" ]]; then
-            joined_regexes="$joined_regexes|$regex"
-        else
-            joined_regexes="$regex"
-        fi
-    done
+    regex="$(IFS='|' && echo "${url_regexes[*]}")"
+    urls=($(tmux capture-pane -p -S -2500 -E - | grep -E -o -e "$regex"))
 
-    if ! url=$(tmux capture-pane -p -E - -S - | tac \
-      | egrep -om1 "$joined_regexes"); then
-        test -z "${quiet:-}" && display "No URL found."
-        return
+    if [[ -z "${urls:-}" ]]; then
+        display "No URL found."
+        return 0
     fi
 
-    if ! [[ "$url" = *://* ]]; then
-        url="http://$url"
-    fi
+    url="${urls[-1]}"
+    test -z "${url##*://*}" || url="http://$url"
 
     for browser in ${BROWSER//:/ } xdg-open; do
         exec $browser "$url" &> /dev/null || continue

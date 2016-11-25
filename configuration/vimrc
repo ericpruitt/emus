@@ -54,8 +54,11 @@ vnoremap / <Esc>/\%V
 vnoremap ? <Esc>?\%V
 vnoremap i I
 
-autocmd BufEnter * if exists("b:winview") | call winrestview(b:winview) | endif
-autocmd BufLeave * let b:winview = winsaveview()
+if !&diff
+    autocmd BufEnter * if exists("b:view") | call winrestview(b:view) | endif
+    autocmd BufLeave * let b:view = winsaveview()
+endif
+
 autocmd FileType gitcommit setlocal textwidth=72 spell
 autocmd FileType make,gitconfg,go,gitconfig setlocal noexpandtab
 autocmd InsertEnter * set nohlsearch

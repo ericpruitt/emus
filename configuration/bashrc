@@ -63,24 +63,24 @@ function -define-aliases()
     alias history='-paginate history --'
     alias info='info --vi-keys'
     alias ldd='-paginate ldd --'
-    alias ls='COLUMNS="$COLUMNS" -paginate ls -C -A -F -h'
+    alias ls='-paginate ls -C -A -F -h'
     alias make='gmake'
     alias mtr='mtr -t'
-    alias otr='HISTFILE=/dev/null bash'
-    alias paragrep='LC_ALL=C -paginate paragrep -T -B1 -n'
+    alias otr='env HISTFILE=/dev/null bash'
+    alias paragrep='-paginate paragrep -T -B1 -n'
     alias ps='-paginate ps --'
     alias pstree='-paginate pstree -- -a -p -s -U'
     alias readelf='-paginate readelf --'
     alias reset='tput reset'
-    alias screen='SHLVL_OFFSET= screen'
+    alias screen='env SHLVL_OFFSET= screen'
     alias sed='-paginate sed --'
     alias shred='shred -n 0 -v -u -z'
     alias sort='-paginate sort --'
     alias strings='-paginate strings --'
-    alias sudo='TERM="${TERM#tmux*/screen}" sudo'
+    alias sudo='env TERM="${TERM/#tmux*/screen}" sudo'
     alias tac='-paginate tac --'
     alias tail='tail -n "$((LINES - 1))"'
-    alias tmux='SHLVL_OFFSET= tmux'
+    alias tmux='env SHLVL_OFFSET= tmux'
     alias tr='-paginate tr --'
     alias tree='-paginate tree -C -a -I ".git|__pycache__|lost+found"'
     alias vi='vim'
@@ -149,7 +149,7 @@ function -prune-aliases()
         argv=($alias_value)
         # Ignore environment variables and the paginate function.
         i=0
-        while [[ "${argv[i]}" = @(-paginate|[A-Z_]*([A-Z0-9_])=*) ]]; do
+        while [[ "${argv[i]}" = @(env|-paginate|[A-Z_]*([A-Z0-9_])=*) ]]; do
             let i++
         done
         if ! hash "${argv[i]}" 2>&-; then
@@ -236,10 +236,6 @@ function -prompt-command()
 
     unset $(compgen -v -X '[A-Z_]*([A-Z0-9_])')
 
-    # Send SIGWINCH to the shell to refresh COLUMNS and LINES in case a signal
-    # from the terminal emulator was intercepted by a foreground process.
-    kill -SIGWINCH $$
-
     # Prevent Ctrl-Z from sending SIGTSTP when entering commands so it can be
     # remapped with readline. When Bash uses job control in debug hooks, it can
     # produce in some racy, quirky behavior, so stty is run inside of a command
@@ -263,6 +259,8 @@ function -debug-hook()
     local guess
 
     local command="$1"
+    local env=""
+    local envregex="^([A-Z_][A-Z0-9_]*=(\"[^\"]+\"|'[^']+'|[^ ]+)? )+"
     local search_again="x"
     local shortest_guess="$command"
 
@@ -272,6 +270,13 @@ function -debug-hook()
 
     test "$BASH_MAJOR_MINOR" -ge 4004 || set -u
     test "$command" != "$PROMPT_COMMAND" || return 0
+
+    # None of my aliases start with environment variables, so they are
+    # temporarily stripped before looking for substitutions.
+    if [[ "$command" =~ $envregex ]]; then
+        env="${BASH_REMATCH[0]}"
+        command="${command#$env}"
+    fi
 
     if [[ "${TERM:-}" =~ $XTERM_TITLE_SUPPORT ]]; then
         # Iterate over all aliases and figure out which ones were likely used
@@ -287,6 +292,7 @@ function -debug-hook()
             command="$shortest_guess"
         done
 
+        test -z "$env" || command="$env $command"
         printf "\033]2;%s\033\\" "${SSH_TTY:+$LOGNAME@$HOSTNAME: }$command"
     fi
 
@@ -304,6 +310,7 @@ function -setup()
     complete -d cd
     shopt -s autocd
     shopt -s cdspell
+    shopt -s checkwinsize
     shopt -s cmdhist
     shopt -s dirspell
     shopt -s execfail
@@ -335,6 +342,7 @@ function -setup()
     # Secondary bashrc for machine-specific settings.
     source "$HOME/.local.bashrc" 2>&-
 
+    export COLUMNS
     test "$BASH_MAJOR_MINOR" -lt 4004 || set -u
     test "${SHLVL_OFFSET:-}" || export SHLVL_OFFSET="$SHLVL"
     test "$(trap -p DEBUG)" || trap '\-debug-hook "$BASH_COMMAND"' DEBUG

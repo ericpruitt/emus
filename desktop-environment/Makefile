@@ -9,7 +9,7 @@ SLOCK_REPOSITORY = http://git.suckless.org/slock
 SLOCK_REVISION = a7afade1701a809f6a33b53525d59dd29b38d381
 
 ST_REPOSITORY = http://git.suckless.org/st
-ST_REVISION = 023225ef40b23d888353e34d95790ddf1cc79458
+ST_REVISION = e44832408bb3147826c346872b49de105a4d0e0b
 
 PREFIX = $(HOME)
 BINARIES = blackwalls del dmenu dwm st statusline

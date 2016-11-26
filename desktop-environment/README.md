@@ -385,24 +385,29 @@ Patches for _slock_
 
 **File:** slock-00-pam-authentication.diff
 
-This patch adds support for PAM to slock. This version of the patch notably
-differs from the original in the following ways:
+This patch adds support for PAM to slock. Although it was originally based on a
+[patch written by Jan Christoph Ebersbach][jce-pam-auth], it has since been
+refactored. This patch notably differs from Jan's in the following ways:
 
-- PAM is used as the fallback when the user does not appear to have a hash on
-  the local system. In the process of implementing this, CVE-2016-6866 was also
-  resolved.
-- The function used to converse with PAM will no longer kill the screen locker
-  if there is a memory allocation failure.
-- The "pam_service" variable is no longer used.
-- A new, intermediate color will be shown when slock is waiting on PAM. Its
-  index is `PAM_WAIT`.
+- PAM is automatically used as the fallback when the user does not appear to
+  have a hash on the local system.
+- The function used to converse with PAM does not kill the screen locker if
+  there is a memory allocation failure.
 - C preprocessor guards have been added so slock can still be compiled when
   this patch is applied regardless of whether or not the PAM development
   libraries are available.
-- The patch should theoretically work on BSD systems that support PAM.
 - The build configuration has been modified to support a "USE_PAM" variable
   that can be used to toggle build support for PAM; when it is empty or unset,
   slock is compiled without PAM while any other value compiles slock with PAM.
+
+Other changes include:
+
+- A new, intermediate color will be shown when slock is waiting on PAM. Its
+  index is `PAM_WAIT`.
+- With this patch, slock drops privileges using the return values of
+  _getuid(2)_ and _getgid(2)_ instead of constants in "config.h".
+
+  [jce-pam-auth]: http://tools.suckless.org/slock/patches/pam_auth
 
 ### Improved Modifier Handling ###
 

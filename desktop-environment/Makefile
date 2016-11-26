@@ -6,7 +6,7 @@ DWM_REPOSITORY = http://git.suckless.org/dwm
 DWM_REVISION = ab9571bbc5f6fb04fd583238a665a7e830fc1397
 
 SLOCK_REPOSITORY = http://git.suckless.org/slock
-SLOCK_REVISION = a7afade1701a809f6a33b53525d59dd29b38d381
+SLOCK_REVISION = 2d2a21a90ad1b53594b1b90b97486189ec54afce
 
 ST_REPOSITORY = http://git.suckless.org/st
 ST_REVISION = e44832408bb3147826c346872b49de105a4d0e0b

@@ -6,19 +6,17 @@ color when they are released without pressing a complementary key.
 
 This patch depends on "slock-00-pam-authentication.diff".
 
-diff --git a/slock.c b/slock.c
-index af48ac2..aa98b15 100644
 --- a/slock.c
 +++ b/slock.c
-@@ -179,6 +179,7 @@ readpw(Display *dpy, const char *pws)
+@@ -226,6 +226,7 @@ readpw(struct xrandr *rr, int nscreens, const char *hash)
+ 	unsigned int len, color;
  	KeySym ksym;
  	XEvent ev;
- 	static int oldc = INIT;
 +	int seenkeypress = 0;
  
- #ifdef HAVE_PAM_AUTH
- 	struct passwd* pw;
-@@ -194,9 +195,14 @@ readpw(Display *dpy, const char *pws)
+ 	len = 0;
+ 	running = 1;
+@@ -233,9 +234,14 @@ readpw(struct xrandr *rr, int nscreens, const char *hash)
  	 * utility. This way the user can easily set a customized DPMS
  	 * timeout. */
  	while (running && !XNextEvent(dpy, &ev)) {

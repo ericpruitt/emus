@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 DMENU_REPOSITORY = http://git.suckless.org/dmenu
-DMENU_REVISION = 026827fd65c1163a92a984c4eae3882a6d69f8df
+DMENU_REVISION = e90b88e12a88d6214c00d5ee58ceb69446aa5ac4
 
 DWM_REPOSITORY = http://git.suckless.org/dwm
 DWM_REVISION = ab9571bbc5f6fb04fd583238a665a7e830fc1397

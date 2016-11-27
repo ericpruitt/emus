@@ -419,7 +419,22 @@ static void usage(const char *self)
         "           time. This flag can be specified several times to\n"
         "           display multiple clocks. Supplementary clocks are\n"
         "           displayed in the order they appear on the command line\n"
-        "           with the local time always being displayed last.\n"
+        "           with the local time always being displayed last. If this\n"
+        "           option is only specified once and its value is \"XXX\",\n"
+        "           only the clock for the host's default time zone is\n"
+        "           shown, but some internal changes are made to work around\n"
+        "           a bug documented below.\n"
+        "\n"
+        "Bugs:\n"
+        "  On Linux with glibc, changes to the system's default time zone\n"
+        "  are reflected in calls to tzset(3) immediately, but this is not\n"
+        "  the case for OpenBSD: its implementation is somewhat lazy and\n"
+        "  will not do any further processing if the TZ environment variable\n"
+        "  has the same value it did when tzset(3) was previously called.\n"
+        "  Using \"-z\" internally changes TZ and calls tzset(3), but if the\n"
+        "  user only wants to display one clock, the reserved value \"XXX\"\n"
+        "  can be used as documented above to work around this issue on\n"
+        "  OpenBSD and any other platforms that behave similarly.\n"
         ,
         self
     );
@@ -521,15 +536,6 @@ int main(int argc, char **argv)
     }
 
     while ((eol = message)) {
-        // XXX: On Linux with glibc, changes to the system's default time zone
-        // are reflected in calls to tzset(3) immediately, but this is not the
-        // case for OpenBSD: its implementation is somewhat lazy and will not
-        // do any further processing if doesn't appear that the TZ environment
-        // variable has changed since the last call. Since tzstrftime modifies
-        // TZ and calls tzset(3), the "-z" flag can be used with an arbitrary
-        // time zone to ensure the time zone used by the application stays
-        // synchronized with system's default time zone on OpenBSD and any
-        // other systems that behave similarly.
         tzset();
 
         // File I/O is handled after displaying the current time to reduce the
@@ -592,6 +598,10 @@ int main(int argc, char **argv)
         }
 
         for (multiple_clocks = 0, k = 0; k < altzones_count; k++) {
+            if (altzones_count == 1 && !strcmp("XXX", altzones[k])) {
+                tzstrftime(OUTPUTBUF(altclock), "", now, altzones[k]);
+                break;
+            }
             if (tzstrftime(OUTPUTBUF(altclock), "%T %Z", now, altzones[k]) &&
                 strcmp(altclock, localclock)) {
 

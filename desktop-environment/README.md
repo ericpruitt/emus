@@ -31,11 +31,8 @@ process.
 
 The "utilities" folder contains miscellaneous C applications typically
 consisting of a single source file. The compilation information is extracted
-from these files by searching for a line containing "Build:" in the first
-paragraph (a contiguous set of non-empty lines) of the file and executing the
-following text in a POSIX shell. In addition to the normal environment, two
-additional variables "$INPUT" and "$OUTPUT" are set to the recipe's input and
-output files.
+from these files by searching for a comment starting with "Make:" in the C file
+and executing the following text as a Makefile recipe.
 
 The "presentation" folder contains configuration files that affect the
 appearance of the graphical environment as a whole like themes and font

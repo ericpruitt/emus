@@ -1,109 +1,56 @@
-#!/usr/bin/make -f
-DMENU_REPOSITORY = http://git.suckless.org/dmenu
-DMENU_REVISION = e90b88e12a88d6214c00d5ee58ceb69446aa5ac4
-
-DWM_REPOSITORY = http://git.suckless.org/dwm
-DWM_REVISION = ab9571bbc5f6fb04fd583238a665a7e830fc1397
-
-SLOCK_REPOSITORY = http://git.suckless.org/slock
-SLOCK_REVISION = 2d2a21a90ad1b53594b1b90b97486189ec54afce
-
-ST_REPOSITORY = http://git.suckless.org/st
-ST_REVISION = e44832408bb3147826c346872b49de105a4d0e0b
-
+PASSWD_ENTRY = $$(awk -F: '$$1 == ENVIRON["LOGNAME"]' /etc/passwd)
 PREFIX = $(HOME)
-BINARIES = blackwalls del dmenu dwm st statusline
 SUPERUSER_PREFIX = /usr/local
-SUPERUSER_BINARIES = slock
 
-# If the current user's name does not appear in /etc/passwd, it is presumed
-# that the system relies on PAM for authentication.
-USE_PAM = $(shell awk -F: '$$1 == "$(USER)" {exit 1}' /etc/passwd && echo 1)
+DMENU_URL = http://git.suckless.org/dmenu
+DMENU_COMMIT = e90b88e12a88d6214c00d5ee58ceb69446aa5ac4
 
-INSTALL_TARGETS = \
-	$(addprefix $(PREFIX)/bin/, $(BINARIES)) \
-	$(addprefix $(SUPERUSER_PREFIX)/bin/, $(SUPERUSER_BINARIES)) \
+DWM_URL = http://git.suckless.org/dwm
+DWM_COMMIT = 839c7f6939368fe5784058975ee95062cc88d4c3
+
+SLOCK_URL = http://git.suckless.org/slock
+SLOCK_COMMIT = 2d2a21a90ad1b53594b1b90b97486189ec54afce
+
+ST_URL = http://git.suckless.org/st
+ST_COMMIT = e44832408bb3147826c346872b49de105a4d0e0b
+
+CONFIG_TARGETS = \
 	$(HOME)/.config/Trolltech.conf \
-	$(HOME)/.del \
 	$(HOME)/.fonts.conf \
 	$(HOME)/.gtkrc-2.0 \
 	$(HOME)/.xsession \
 
-all: $(BINARIES) $(SUPERUSER_BINARIES)
+UTILITIES = \
+	bin/blackwalls \
+	bin/del \
+	bin/statusline \
 
-# Dependency function for suckless projects. This accepts the project's name as
-# its only argument e.g. $(call suckless, app) would generate a dependency list
-# for the suckless project "app".
-sucklessdeps = \
-	$(1)-src/config.h \
-	$(wildcard $(1)-src/*.[ch] $(1)-src/*.mk $(1)-*.[ch] patches/$(1)-*.diff) \
-	$(if $(wildcard $(1)-src), , $(1)-src) \
-	$(if $(wildcard patches/$(1)-*.diff), $(1)-src/.PATCHED,) \
-	$(if $(wildcard $(1)-src/.PATCHED), , $(wildcard patches/$(1)-*.diff)) \
+BASENAME = $(@F)
 
-# Generic target for fetching upstream Git repositories: given the target
-# "app-src", this recipe will clone the URL specified by $(APP_REPOSITORY) into
-# the folder "app-src" and attempt to reset the repository to the revision
-# specified by $(APP_REVISION) if it is non-empty string.
-%-src:
-	@echo "bin" "*-src" | tr ' ' '\n' > .git/info/exclude
-	git clone $($(shell echo $(subst -src, ,$@) | tr a-z A-Z)_REPOSITORY) $@
-	@revision=$($(shell echo $(subst -src, ,$@) | tr a-z A-Z)_REVISION); \
-	if [ -n "$$revision" ]; then \
-		cd $@ && git reset --hard $$revision; \
-	fi
+.POSIX:
+.SILENT: all deps clean cleaner install
 
-# Generic target for resetting for a repository: given the target "reset-app",
-# this recipe will run "git --reset --hard $(APP_REVISION)" inside "app-src"
-# followed by "make clean".
-reset-%:
-	@set -e; \
-	cd $(subst reset-, ,$@)-src; \
-	rm -f .PATCHED config.h; \
-	git reset -q --hard \
-		$($(shell echo $(subst reset-, ,$@) | tr a-z A-Z)_REVISION); \
-	$(MAKE) -s clean > /dev/null
+all:
+	touch .MARK
+	$(MAKE) -s dmenu dwm slock st $(UTILITIES)
+	find . -name .git -prune -o -newer .MARK -type f -print \
+	  | grep -q ^ || echo "make: all targets up to date"
+	rm -f .MARK
 
-# Any folder ending in *-src will have a reset target.
-reset: $(addprefix reset-,$(subst -src, ,$(wildcard *-src)))
-
-# Generic target for applying patches to a repository: given the target
-# "patched-app", the target apply all patches matching the shell glob
-# "patches/app-*.diff" to the contents of the folder "app-src".
-%-src/.PATCHED: | %-src
-	@prefix=$(subst -src/.PATCHED, ,$@); \
-	for patch in patches/$$prefix-*.diff; do \
-		if ! [ -e $$patch ]; then \
-			continue; \
-		fi; \
-		echo "- $$patch"; \
-		if ! patch -d $$prefix-src -s < $$patch; then \
-			exit 1; \
-		fi; \
+install: all
+	echo "PREFIX = $(PREFIX)"
+	echo "SUPERUSER_PREFIX = $(SUPERUSER_PREFIX)"
+	echo "- slock" && $(MAKE) -s $(SUPERUSER_PREFIX)/bin/slock
+	test -e $(PREFIX)/bin || mkdir $(PREFIX)/bin
+	for binary in "$$PWD/bin/"*; do \
+		echo "- $${binary##*/}"; \
+		test ! -h "$(PREFIX)/bin/$${binary##*/}" || continue; \
+		ln -s "$$binary" $(PREFIX)/bin; \
 	done
-	touch $@
+	$(MAKE) -s $(CONFIG_TARGETS)
 
-# Generic target for suckless config.h files: given the target
-# "app-src/config.h", this recipe will symlink "app-config.h" into the folder
-# "app-src".
-%-src/config.h: %-config.h | %-src
-	test -e $@ || ln -s ../$< $@
-
-bin:
-	mkdir $@
-
-# Generic target for utility binaries. The build command is extracted from the
-# source code of the file.
-bin/%: utilities/%.c | bin
-	@command=$$(sed -n -e 's/.*\bBuild:\s\+\(.*\)/\1/p' $<); \
-	if [ -z "$$command" ]; then \
-		echo "Could not extract build command from \"$<\"." >&2; \
-		exit 1; \
-	fi; \
-	sh -c "INPUT=$<; OUTPUT=$@; echo $$command && exec $$command"
-
-packages:
-	@if [ -e /etc/debian_version ]; then \
+deps:
+	if [ -e /etc/debian_version ]; then \
 		sudo apt-get install \
 			compton \
 			fonts-dejavu \
@@ -117,84 +64,154 @@ packages:
 			libxrandr-dev \
 			pkg-config \
 			scrot \
-			$(if $(USE_PAM), libpam-dev,) \
-	; else \
+			$$(test -n "$(PASSWD_ENTRY)" || echo "libpam-dev") \
+		; \
+	else \
 		echo "Unsupported operating system." >&2; \
-	fi
+		exit 1; \
+	fi; \
 
-blackwalls: bin/blackwalls
+clean:
+	for folder in *-src/.git; do \
+		test -e "$$folder" || contiue; \
+		echo "- $${folder%/.git}"; \
+		$(MAKE) -s git-reset-"$${folder%/.git}"; \
+	done
+	rm -f .MARK bin/* slock-src/slock
+	echo "Done cleaning."
 
-bin/dmenu: $(call sucklessdeps, dmenu) dx-config.mk | bin
-	@ln -s -f ../dx-config.mk dmenu-src/config.mk
-	@cd dmenu-src && $(MAKE) -s dmenu
-	@mv dmenu-src/dmenu $@
-
-dmenu: bin/dmenu
-
-del: bin/del
-
-$(HOME)/.del: $(PREFIX)/bin/del
-	echo st >> ~/.del
-	echo virtualbox >> ~/.del
-	del -r
-
-bin/dwm: $(call sucklessdeps, dwm) dx-config.mk | bin
-	@ln -s -f ../dx-config.mk dwm-src/config.mk
-	@rm -f dwm-src/*.o
-	@cd dwm-src && $(MAKE) -s
-	@mv dwm-src/dwm $@
-
-dwm: bin/dwm
-
-slock-src/slock: $(call sucklessdeps, slock)
-	@cd slock-src || exit 1; \
-	$(MAKE) -s clean > /dev/null; \
-	$(MAKE) USE_PAM=$(USE_PAM) -s
-
-slock: slock-src/slock
-
-bin/st: $(call sucklessdeps, st) | bin
-	@cd st-src && $(MAKE) -s
-	@mv st-src/st $@
-
-$(TERMINFO)/s/st: | st-src
-	tic st-src/st.info
-
-st: bin/st $(TERMINFO)/s/st
-
-statusline: bin/statusline
-
-$(HOME)/.xsession: xsession
-	@test ! -h $@ || rm $@
-	ln -s $(PWD)/$^ $@
-
-$(SUPERUSER_PREFIX)/bin/slock: slock-src/slock
-	sudo install -m 4755 -g root -o root $^ $(SUPERUSER_PREFIX)/bin
-
-$(PREFIX)/bin/%: bin/%
-	@test ! -h $@ || rm $@
-	ln -s $(PWD)/$^ $@
+cleaner:
+	rm -rf .MARK *-src bin
+	echo "All external source trees and compiled binaries deleted."
 
 $(HOME)/.config/Trolltech.conf: presentation/qt.conf
 	cp $^ $@
 
 $(HOME)/.fonts.conf: presentation/fonts.conf
-	@test ! -h $@ || rm $@
+	test ! -h $@ || rm $@
 	ln -s $(PWD)/$^ $@
 
 $(HOME)/.gtkrc-2.0: presentation/gtk-2.0.gtkrc
-	@test ! -h $@ || rm $@
+	test ! -h $@ || rm $@
 	ln -s $(PWD)/$^ $@
 
-install: $(INSTALL_TARGETS)
+$(HOME)/.xsession: xsession
+	test ! -h $@ || rm $@
+	ln -s $(PWD)/$^ $@
 
-clean: reset
-	@rm -f bin/* slock-src/slock
-	@echo "Done cleaning."
+.ALWAYS_RUN:
 
-cleaner:
-	@rm -rf *-src bin
-	@echo "All external repos and compiled binaries have been deleted."
+.DEFAULT:
+	@target="$@"; \
+	case "$$target" in \
+	  dmenu-src) \
+		git="$(DMENU_URL)"; \
+		commit="$(DMENU_COMMIT)"; \
+	  ;; \
+	  dwm-src) \
+		git="$(DWM_URL)"; \
+		commit="$(DWM_COMMIT)"; \
+	  ;; \
+	  slock-src) \
+		git="$(SLOCK_URL)"; \
+		commit="$(SLOCK_COMMIT)"; \
+	  ;; \
+	  st-src) \
+		git="$(ST_URL)"; \
+		commit="$(ST_COMMIT)"; \
+	  ;; \
+	  patch-*) \
+		patch_prefix="$${target#patch-}"; \
+	  ;; \
+	  git-reset-*) \
+		git_reset_folder="$${target#git-reset-}"; \
+	  ;; \
+	  *) \
+		echo "make: $@: target not recognized" >&2; \
+		exit 1; \
+	  ;; \
+	esac; \
+	if [ -n "$$git" ]; then \
+		git clone "$$git" "$(BASENAME).tmp"; \
+		if [ -n "$$commit" ]; then \
+			(cd "$(BASENAME).tmp" && git reset --hard "$$commit"); \
+		fi; \
+		mv "$(BASENAME).tmp" "$(BASENAME)"; \
+		exit 0; \
+	fi; \
+	if [ -n "$$patch_prefix" ]; then \
+		cd "$$patch_prefix"-src/; \
+		if git diff --quiet \
+		  $$(find . -name .git -prune -o -type f); then \
+			for patch in ../patches/"$$patch_prefix"-*.diff; do \
+				test -e "$$patch" || exit 0; \
+				echo "- $${patch##*/}"; \
+				patch < "$$patch"; \
+			done; \
+		fi; \
+		exit 0; \
+	fi; \
+	if [ -n "$$git_reset_folder" ]; then \
+		cd "$$git_reset_folder"; \
+		git stash save --quiet "make $@"; \
+		git clean -d -f -q -x; \
+		exit 0; \
+	fi; \
 
-.PHONY: all clean cleaner install packages preinstall reset
-.PRECIOUS: %-src %-src/.PATCHED
+# The combination of the "+" command prefix and "-n" is used to force make to
+# display the command being executed even if "-s" is inherited from the
+# invoking make.
+$(UTILITIES): .ALWAYS_RUN
+	mkdir -p bin
+	source="utilities/$(@F).c"; \
+	command=$$(sed -n -e "/^ \* Make: /{s///p;q}" "$$source"); \
+	if [ -z "$$command" ]; then \
+		echo "$$source: could not extract make recipe" >&2; \
+		exit 1; \
+	fi; \
+	echo "$@: $$source; +$$command" | $(MAKE) -n -f -
+
+dmenu-src/dmenu: dmenu-src .ALWAYS_RUN
+	ln -s -f ../dx-config.mk dmenu-src/config.mk
+	ln -s -f ../dmenu-config.h dmenu-src/config.h
+	$(MAKE) -s patch-dmenu
+	(cd dmenu-src && $(MAKE) -s dmenu)
+
+bin/dmenu: dmenu-src/dmenu
+	mkdir -p bin
+	cp $? $@
+
+dmenu: bin/dmenu
+
+dwm-src/dwm: dwm-src .ALWAYS_RUN
+	ln -s -f ../dx-config.mk dwm-src/config.mk
+	ln -s -f ../dwm-config.h dwm-src/config.h
+	$(MAKE) -s patch-dwm
+	(cd dwm-src && $(MAKE) -s dwm)
+
+bin/dwm: dwm-src/dwm
+	mkdir -p bin
+	cp $? $@
+
+dwm: bin/dwm
+
+st-src/st: st-src .ALWAYS_RUN
+	ln -s -f ../st-config.h st-src/config.h
+	$(MAKE) -s patch-st
+	(cd st-src && $(MAKE) -s st)
+
+bin/st: st-src/st
+	mkdir -p bin
+	cp $? $@
+
+st: bin/st
+
+slock-src/slock: slock-src .ALWAYS_RUN
+	ln -s -f ../slock-config.h slock-src/config.h
+	$(MAKE) -s patch-slock
+	(cd slock-src && $(MAKE) -s slock)
+
+slock: slock-src/slock
+
+$(SUPERUSER_PREFIX)/bin/slock: slock-src/slock
+	sudo install -m 4755 -g 0 -o 0 $? $@

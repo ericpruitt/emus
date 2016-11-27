@@ -5,7 +5,7 @@
  * commands and uses dmenu as a front-end so the user can select a command to
  * execute. Refer to the "usage" function for more information.
  *
- * Build: c99 -o $OUTPUT $INPUT
+ * Make: c99 -o $@ $?
  * Copyright: Eric Pruitt (https://www.codevat.com/)
  * License: BSD 2-Clause License (https://opensource.org/licenses/BSD-2-Clause)
  */

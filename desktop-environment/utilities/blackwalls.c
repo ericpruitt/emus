@@ -6,7 +6,7 @@
  * ESETROOT_PMAP_ID atoms so it works with compositors like xcompmgr and
  * compton.
  *
- * Build: c99 -o $OUTPUT $INPUT -lX11
+ * Make: c99 -o $@ $? -lX11
  * Copyright: Eric Pruitt (https://www.codevat.com/)
  * License: BSD 2-Clause License (https://opensource.org/licenses/BSD-2-Clause)
  */

@@ -1,4 +1,4 @@
-PASSWD_ENTRY = $$(awk -F: '$$1 == ENVIRON["LOGNAME"]' /etc/passwd)
+FORCE_PAM = false
 PREFIX = $(HOME)
 SUPERUSER_PREFIX = /usr/local
 
@@ -58,13 +58,13 @@ deps:
 			fonts-wqy-zenhei \
 			gsfonts \
 			gtk2-engines \
+			libpam-dev \
 			libx11-dev \
 			libxft-dev \
 			libxinerama-dev \
 			libxrandr-dev \
 			pkg-config \
 			scrot \
-			$$(test -n "$(PASSWD_ENTRY)" || echo "libpam-dev") \
 		; \
 	else \
 		echo "Unsupported operating system." >&2; \
@@ -209,7 +209,8 @@ st: bin/st
 slock-src/slock: slock-src .ALWAYS_RUN
 	ln -s -f ../slock-config.h slock-src/config.h
 	$(MAKE) -s patch-slock
-	(cd slock-src && $(MAKE) -s slock)
+	(cd slock-src && \
+	 $(MAKE) -s $$($(FORCE_PAM) && echo "IN_PASSWD=false") slock)
 
 slock: slock-src/slock
 

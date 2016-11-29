@@ -43,7 +43,7 @@ index 74429ae..54d86ac 100644
  LDFLAGS = -s ${LIBS}
  COMPATSRC = explicit_bzero.c
 diff --git slock.c slock.c
-index d55eb3d..597e4ff 100644
+index d55eb3d..f44366d 100644
 --- slock.c
 +++ slock.c
 @@ -28,6 +28,7 @@ enum {
@@ -262,7 +262,7 @@ index d55eb3d..597e4ff 100644
  
  	ARGBEGIN {
  	case 'v':
-@@ -323,25 +406,15 @@ main(int argc, char **argv) {
+@@ -323,26 +406,17 @@ main(int argc, char **argv) {
  		usage();
  	} ARGEND
  
@@ -285,13 +285,16 @@ index d55eb3d..597e4ff 100644
  	hash = gethash();
  	errno = 0;
 -	if (!crypt("", hash))
+-		die("slock: crypt: %s\n", strerror(errno));
 +	if (!hash && !pam_supported)
 +		die("slock: no hash found, and PAM support not enabled\n");
-+	if (hash && !crypt("", hash))
- 		die("slock: crypt: %s\n", strerror(errno));
++	if (hash && !crypt("", hash) && !pam_supported)
++		die("slock: PAM support not enabled, and crypt rejected hash: %s\n",
++		    strerror(errno));
  
  	if (!(dpy = XOpenDisplay(NULL)))
-@@ -350,9 +423,9 @@ main(int argc, char **argv) {
+ 		die("slock: cannot open display\n");
+@@ -350,9 +424,9 @@ main(int argc, char **argv) {
  	/* drop privileges */
  	if (setgroups(0, NULL) < 0)
  		die("slock: setgroups: %s\n", strerror(errno));
@@ -303,7 +306,7 @@ index d55eb3d..597e4ff 100644
  		die("slock: setuid: %s\n", strerror(errno));
  
  	/* check for Xrandr support */
-@@ -363,7 +436,7 @@ main(int argc, char **argv) {
+@@ -363,7 +437,7 @@ main(int argc, char **argv) {
  	if (!(locks = calloc(nscreens, sizeof(struct lock *))))
  		die("slock: out of memory\n");
  	for (nlocks = 0, s = 0; s < nscreens; s++) {
@@ -312,7 +315,7 @@ index d55eb3d..597e4ff 100644
  			nlocks++;
  		else
  			break;
-@@ -389,7 +462,7 @@ main(int argc, char **argv) {
+@@ -389,7 +463,7 @@ main(int argc, char **argv) {
  	}
  
  	/* everything is now blank. Wait for the correct password */

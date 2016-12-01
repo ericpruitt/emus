@@ -32,6 +32,7 @@
 char *battery_indicator(const char *);
 void delete_range(char *, const size_t, const size_t);
 size_t dow_with_ordinal_dom(char *, const size_t, struct tm *);
+void gmt_to_utc(char *);
 int main(int, char **);
 double mtime(const char *);
 size_t load_indicators_from_file(char *, size_t, const char *, const char *);
@@ -110,8 +111,12 @@ size_t tzstrftime(char *dest, const size_t sizeofdest, const char *format,
     timespec = localtime(&when);
     saved_errno = errno;
 
-    if (timespec && !(rval = strftime(dest, sizeofdest, format, timespec))) {
-        saved_errno = errno;
+    if (timespec) {
+        if ((rval = strftime(dest, sizeofdest, format, timespec))) {
+            gmt_to_utc(dest);
+        } else {
+            saved_errno = errno;
+        }
     }
 
     if (tz) {
@@ -376,6 +381,16 @@ void delete_range(char *text, const size_t start, const size_t count)
 }
 
 /**
+ * Replace all occurrences of "GMT" with "UTC".
+ *
+ * @param s String to modify.
+ */
+void gmt_to_utc(char *s)
+{
+    for (; (s = strstr(s, "GMT")); *s++ = 'U', *s++ = 'T', *s++ = 'C');
+}
+
+/**
  * Display application usage information.
  *
  * @param self Name or path of compiled executable.
@@ -387,7 +402,9 @@ static void usage(const char *self)
         "\n"
         "Updates the X11 root window name once per second. It displays the "
         "battery\nstatus, day of the week, day of the month and can also "
-        "display several\nsupplementary clocks in different time zones.\n"
+        "display several\nsupplementary clocks in different time zones. Any "
+        "occurrences of \"GMT\" are\nreplaced with \"UTC\" before displaying "
+        "the clocks. This is not configurable.\n"
         "\n"
         "Exit statuses:\n"
         "  1        Fatal error encountered.\n"
@@ -598,7 +615,9 @@ int main(int argc, char **argv)
         // UTC offset as the local time but different names will still be shown
         // e.g. "10:10 CKT" (Cook Island Time, UTC-10) and "10:10:37 HST"
         // (Hawaii Standard Time, also UTC-10).
-        if (!strftime(OUTPUTBUF(localclock), "%T %Z", &nowtm)) {
+        if (strftime(OUTPUTBUF(localclock), "%T %Z", &nowtm)) {
+            gmt_to_utc(localclock);
+        } else {
             localclock[0] = '\0';
         }
 

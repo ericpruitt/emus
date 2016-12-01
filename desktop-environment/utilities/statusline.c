@@ -422,11 +422,12 @@ static void usage(const char *self)
         "           define multiple clocks that only appear when needed i.e.\n"
         "           after changing the host's local time while traveling.\n"
         "           Clocks are shown in the order they appear on the command\n"
-        "           line followed by the default clock. If this option is\n"
-        "           only specified once and its value is \"XXX\", only the\n"
-        "           default clock for the local time zone is shown, but some\n"
-        "           internal changes are made to address a bug documented\n"
-        "           below.\n"
+        "           line followed by the default clock. When different time\n"
+        "           zones would result in duplicate clocks, only the first\n"
+        "           one is shown. If this option is only specified once and\n"
+        "           its value is \"XXX\", only the default clock for the\n"
+        "           local time zone is shown, but some internal changes are\n"
+        "           made to address a bug documented below.\n"
         "\n"
         "Bugs:\n"
         "  On Linux with glibc, changes to the system's default time zone\n"
@@ -447,6 +448,7 @@ int main(int argc, char **argv)
 {
     char altclock[64];
     const char *altzones[8];
+    char *clocks;
     size_t k;
     char localclock[64];
     char message[2048];
@@ -600,6 +602,7 @@ int main(int argc, char **argv)
             localclock[0] = '\0';
         }
 
+        clocks = eol;
         for (multiple_clocks = 0, k = 0; k < altzones_count; k++) {
             if (altzones_count == 1 && !strcmp("XXX", altzones[k])) {
                 tzstrftime(OUTPUTBUF(altclock), "", now, altzones[k]);
@@ -611,9 +614,11 @@ int main(int argc, char **argv)
                 // Strip seconds from supplementary clock.
                 delete_range(altclock, 5, 3);
 
-                eol = stpcpy(eol, SEPARATOR);
-                eol = stpcpy(eol, altclock);
-                multiple_clocks = 1;
+                if (!strstr(clocks, altclock)) {
+                    eol = stpcpy(eol, SEPARATOR);
+                    eol = stpcpy(eol, altclock);
+                    multiple_clocks = 1;
+                }
             }
         }
 

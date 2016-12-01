@@ -15,8 +15,19 @@ blackwalls
 . ~/.local.xsession
 
 compton -C &
-pgrep -x statusline || statusline -z US/Pacific &
 st &
+
+if ! pgrep -x statusline; then
+    case "$(hostname -f 2>/dev/null || uname -n)" in
+      *.google.*)
+        statusline -z US/Pacific \
+                   -z Europe/Dublin &
+      ;;
+      *)
+        statusline -z US/Pacific &
+      ;;
+    esac
+fi
 
 "$where/scripts/media-control" acpi-mode &
 

@@ -56,23 +56,6 @@ static void usage(const char *);
  */
 #define DEFAULT_COMMAND_LIST_BASENAME ".del"
 
-/**
- * Execute an expression in a while loop until the condition becomes false or
- * `errno` is set to any value but `EINTR`.
- *
- * @param condition Expression to be used as the while loop condition.
- * @param onfail Statement(s) to be executed when the condition fails and
- * `errno` is not `EINTR`. The macro defines a `break` after this substitution,
- * so an explicit `continue` is required to re-evaluate the `condition`.
- */
-#define WHILE_EINTR(condition, onfail) \
-    while (condition) { \
-        if (errno != EINTR) { \
-            onfail; \
-            break; \
-        } \
-    }
-
 #define fork_failed case -1
 #define fork_child case 0
 #define fork_parent default
@@ -335,7 +318,7 @@ static int parse_desktop_entry(const char *fpath, const struct stat *sb,
         }
     }
 
-    WHILE_EINTR(fclose(file), NULL);
+    while (fclose(file) && errno == EINTR);
     return malloc_failed;
 }
 
@@ -357,9 +340,11 @@ static int load_commands_from_file(const char *path)
     int failed = 0;
     int saved_errno = 0;
 
-    WHILE_EINTR(!(file = fopen(path, "r")),
-        return 1;
-    );
+    while (!(file = fopen(path, "r"))) {
+        if (errno != EINTR) {
+            return 1;
+        }
+    }
 
     while ((line_length = getline(&entry, &bufsize, file)) != -1) {
         if (line_length >= 1 && entry[line_length - 1] == '\n') {
@@ -380,7 +365,7 @@ static int load_commands_from_file(const char *path)
     }
 
     free(entry);
-    WHILE_EINTR(fclose(file), NULL);
+    while (fclose(file) && errno == EINTR);
     errno = saved_errno;
     return failed;
 }
@@ -493,20 +478,25 @@ static int refresh_command_list(const char *path, char **dirs, const size_t n)
         return 1;
     }
 
-    WHILE_EINTR((tempfd = mkstemp(tempfile_path)) < 0,
-        goto tempfile_error;
-    );
-    WHILE_EINTR(!(tempfile = fdopen(tempfd, "w")),
-        WHILE_EINTR(close(tempfd), NULL);
-        goto tempfile_error;
-    );
+    while ((tempfd = mkstemp(tempfile_path)) < 0) {
+        if (errno != EINTR) {
+            goto tempfile_error;
+        }
+    }
+
+    while (!(tempfile = fdopen(tempfd, "w"))) {
+        if (errno != EINTR) {
+            while (close(tempfd) && errno == EINTR);
+            goto tempfile_error;
+        }
+    }
 
     for (i = 0; i < command_count; i++) {
         if ((!i || strcmp(commands[i - 1], commands[i])) &&
             fprintf(tempfile, "%s\n", commands[i]) < 0) {
 
             perror("Could not write to temporary file");
-            WHILE_EINTR(fclose(tempfile), NULL);
+            while (fclose(tempfile) && errno == EINTR);
             if (unlink(tempfile_path)) {
                 perror(tempfile_path);
             }
@@ -515,15 +505,21 @@ static int refresh_command_list(const char *path, char **dirs, const size_t n)
         }
     }
 
-    WHILE_EINTR(fflush(tempfile),
-        goto tempfile_error;
-    );
-    WHILE_EINTR(fsync(tempfd),
-        goto tempfile_error;
-    );
-    WHILE_EINTR(fclose(tempfile),
-        goto tempfile_error;
-    );
+    while (fflush(tempfile)) {
+        if (errno != EINTR) {
+            goto tempfile_error;
+        }
+    }
+    while (fsync(tempfd)) {
+        if (errno != EINTR) {
+            goto tempfile_error;
+        }
+    }
+    while (fclose(tempfile)) {
+        if (errno != EINTR) {
+            goto tempfile_error;
+        }
+    }
 
     failed = rename(tempfile_path, path);
     free(tempfile_path);
@@ -586,22 +582,30 @@ static int dmenu(const char *menu_list_path, const int argc, char **argv)
         return 1;
 
       fork_child:
-        WHILE_EINTR(close(pipefds[0]),
-            perror("Could not close unused read-end of pipe");
-            _exit(1);
-        );
-        WHILE_EINTR((status = dup2(pipefds[1], STDOUT_FILENO)) < 0,
-            perror("Could not redirect stdout to parent process");
-            _exit(1);
-        );
-        WHILE_EINTR(close(STDIN_FILENO),
-            perror("Could not close stdin");
-            _exit(1);
-        );
-        WHILE_EINTR(open(menu_list_path, O_RDONLY) < 0,
-            perror(menu_list_path);
-            _exit(1);
-        );
+        while (close(pipefds[0])) {
+            if (errno != EINTR) {
+                perror("Could not close unused read-end of pipe");
+                _exit(1);
+            }
+        }
+        while ((status = dup2(pipefds[1], STDOUT_FILENO)) < 0) {
+            if (errno != EINTR) {
+                perror("Could not redirect stdout to parent process");
+                _exit(1);
+            }
+        }
+        while (close(STDIN_FILENO)) {
+            if (errno != EINTR) {
+                perror("Could not close stdin");
+                _exit(1);
+            }
+        }
+        while (open(menu_list_path, O_RDONLY) < 0) {
+            if (errno != EINTR) {
+                perror(menu_list_path);
+                _exit(1);
+            }
+        }
 
         // Create an array large enough to hold new value for argv[0]. Since
         // argc does not count the NULL pointer, the new array size is
@@ -619,16 +623,20 @@ static int dmenu(const char *menu_list_path, const int argc, char **argv)
         }
 
       fork_parent:
-        WHILE_EINTR(close(pipefds[1]),
-            perror("Could not close unused write-end of pipe");
-            status = 1;
-            goto kill_dmenu_if_parent_failed;
-        );
-        WHILE_EINTR(!(dmenu_output = fdopen(pipefds[0], "r")),
-            perror("Could not execute fdopen on dmenu pipe");
-            status = 1;
-            goto kill_dmenu_if_parent_failed;
-        );
+        while (close(pipefds[1])) {
+            if (errno != EINTR) {
+                perror("Could not close unused write-end of pipe");
+                status = 1;
+                goto kill_dmenu_if_parent_failed;
+            }
+        }
+        while (!(dmenu_output = fdopen(pipefds[0], "r"))) {
+            if (errno != EINTR) {
+                perror("Could not execute fdopen on dmenu pipe");
+                status = 1;
+                goto kill_dmenu_if_parent_failed;
+            }
+        }
 
         while (status != 1 &&
           (line_length = getline(&command, &bufsize, dmenu_output)) != -1) {
@@ -643,7 +651,7 @@ static int dmenu(const char *menu_list_path, const int argc, char **argv)
                 break;
 
               fork_child:
-                WHILE_EINTR(fclose(dmenu_output), NULL);
+                while (fclose(dmenu_output) && errno == EINTR);
                 if (execlp(command, command, NULL)) {
                     perror(command);
                     _exit(1);
@@ -660,7 +668,7 @@ static int dmenu(const char *menu_list_path, const int argc, char **argv)
         }
 
         free(command);
-        WHILE_EINTR(fclose(dmenu_output), NULL);
+        while (fclose(dmenu_output) && errno == EINTR);
 
 kill_dmenu_if_parent_failed:
         if (status == 1) {

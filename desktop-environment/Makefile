@@ -20,6 +20,7 @@ CONFIG_TARGETS = \
 	$(HOME)/.fonts.conf \
 	$(HOME)/.gtkrc-2.0 \
 	$(HOME)/.xsession \
+	$(TERMINFO)/s/st \
 
 UTILITIES = \
 	bin/blackwalls \
@@ -103,6 +104,9 @@ $(HOME)/.gtkrc-2.0: presentation/gtk-2.0.gtkrc
 $(HOME)/.xsession: xsession
 	test ! -h $@ || rm $@
 	ln -s $(PWD)/$^ $@
+
+$(TERMINFO)/s/st: st-src/st.info
+	tic -s -x st-src/st.info
 
 .ALWAYS_RUN:
 

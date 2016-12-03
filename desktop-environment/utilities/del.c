@@ -272,11 +272,14 @@ static int parse_desktop_entry(const char *fpath, const struct stat *sb,
     unused typeflag;
 
     char boolean_value_string[6];
-    const char *command_basename;
     FILE *file;
+    char *k;
+    char *lowercase_basename;
 
     size_t bufsize = 0;
+    int case_changed = 0;
     char command[4096] = "";
+    const char *command_basename = NULL;
     int inside_desktop_entry = 0;
     char *line = NULL;
     size_t strlen_fpath;
@@ -302,22 +305,36 @@ static int parse_desktop_entry(const char *fpath, const struct stat *sb,
                 command[0] = '\0';
                 break;
             }
-        } else {
-            sscanf(line, "Exec = %4095s", command);
+        } else if (sscanf(line, "Exec = %4095s", command) > 0) {
+            command_basename = basename(command);
         }
     }
 
     free(line);
 
-    if (command[0] != '\0') {
-        command_basename = basename(command);
-        if (!command_list_contains(command_basename) &&
-          command_path(command_basename, NULL)) {
-            printf("+ %s\n", command_basename);
-            add_command_to_list(command_basename);
+    if (command[0] == '\0' || command_list_contains(command_basename)) {
+        return 0;
+    } else if (!(lowercase_basename = strdup(command_basename))) {
+        perror("del: could not allocate memory for command name");
+        return 1;
+    }
+
+    for (k = lowercase_basename; *k; k++) {
+        if (*k >= 'A' && *k <= 'Z') {
+            *k += 32;
+            case_changed = 1;
         }
     }
 
+    if (command_path(lowercase_basename, NULL)) {
+        printf("+ %s\n", lowercase_basename);
+        add_command_to_list(lowercase_basename);
+    } else if (case_changed && command_path(command_basename, NULL)) {
+        printf("+ %s\n", command_basename);
+        add_command_to_list(command_basename);
+    }
+
+    free(lowercase_basename);
     while (fclose(file) && errno == EINTR);
     return malloc_failed;
 }

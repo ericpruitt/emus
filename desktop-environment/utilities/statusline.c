@@ -29,16 +29,17 @@
 
 #include <X11/Xlib.h>
 
-char *battery_indicator(const char *);
-void delete_range(char *, const size_t, const size_t);
-size_t dow_with_ordinal_dom(char *, const size_t, struct tm *);
-void gmt_to_utc(char *);
+static char *battery_indicator(const char *);
+static void delete_range(char *, const size_t, const size_t);
+static size_t dow_with_ordinal_dom(char *, const size_t, struct tm *);
+static void gmt_to_utc(char *);
 int main(int, char **);
-double mtime(const char *);
-size_t load_indicators_from_file(char *, size_t, const char *, const char *);
-void set_root_name(Display *, const char *);
-size_t tzstrftime(char *, const size_t, const char *, const time_t,
-                  const char *);
+static double mtime(const char *);
+static size_t load_indicators_from_file(char *, size_t, const char *,
+                                        const char *);
+static void set_root_name(Display *, const char *);
+static size_t tzstrftime(char *, const size_t, const char *, const time_t,
+                         const char *);
 
 /**
  * Get the number of members in a fixed-length array.
@@ -81,8 +82,8 @@ size_t tzstrftime(char *, const size_t, const char *, const time_t,
  *
  * @return Number of bytes written to `dest` excluding the null byte.
  */
-size_t tzstrftime(char *dest, const size_t sizeofdest, const char *format,
-  const time_t when, const char *where) {
+static size_t tzstrftime(char *dest, const size_t sizeofdest,
+  const char *format, const time_t when, const char *where) {
 
     char original_tz_value[1024];
     const struct tm *timespec;
@@ -136,7 +137,7 @@ size_t tzstrftime(char *dest, const size_t sizeofdest, const char *format,
  * @param display X11 display to update.
  * @param text Value to be set.
  */
-void set_root_name(Display *display, const char *text)
+static void set_root_name(Display *display, const char *text)
 {
     XStoreName(display, DefaultRootWindow(display), text);
     XSync(display, False);
@@ -152,8 +153,9 @@ void set_root_name(Display *display, const char *text)
  *
  * @return Number of bytes written to `dest` not including the null byte.
  */
-size_t dow_with_ordinal_dom(char *dest, const size_t sizeofdest, struct tm *tm)
-{
+static size_t dow_with_ordinal_dom(char *dest, const size_t sizeofdest,
+  struct tm *tm) {
+
     size_t k;
     char *cursor = dest;
 
@@ -213,7 +215,7 @@ size_t dow_with_ordinal_dom(char *dest, const size_t sizeofdest, struct tm *tm)
  * @return A pointer to a statically allocated array containing the indicator
  * text.
  */
-char *battery_indicator(const char *path)
+static char *battery_indicator(const char *path)
 {
     char *endptr;
     FILE *file;
@@ -281,7 +283,7 @@ char *battery_indicator(const char *path)
  *
  * @return -1 on error and the file's modification time otherwise.
  */
-double mtime(const char *path)
+static double mtime(const char *path)
 {
     struct stat status;
 
@@ -310,7 +312,7 @@ double mtime(const char *path)
  *
  * @return Number of characters written to `dest` not including the null.
  */
-size_t load_indicators_from_file(char *dest, size_t sizeofdest,
+static size_t load_indicators_from_file(char *dest, size_t sizeofdest,
   const char *path, const char *sep) {
 
     FILE *file;
@@ -370,7 +372,7 @@ size_t load_indicators_from_file(char *dest, size_t sizeofdest,
  * @param start Offset of the beginning of the range to delete.
  * @param count Number of characters to delete.
  */
-void delete_range(char *text, const size_t start, const size_t count)
+static void delete_range(char *text, const size_t start, const size_t count)
 {
     char *read = text + start + count;
     char *write = text + start;
@@ -385,7 +387,7 @@ void delete_range(char *text, const size_t start, const size_t count)
  *
  * @param s String to modify.
  */
-void gmt_to_utc(char *s)
+static void gmt_to_utc(char *s)
 {
     for (; (s = strstr(s, "GMT")); *s++ = 'U', *s++ = 'T', *s++ = 'C');
 }

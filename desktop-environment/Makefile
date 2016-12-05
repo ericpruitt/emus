@@ -35,8 +35,11 @@ BASENAME = $(@F)
 all:
 	touch .MARK
 	$(MAKE) -s dmenu dwm slock st $(UTILITIES)
-	find . -name .git -prune -o -newer .MARK -type f -print \
-	  | grep -q ^ || echo "make: all targets up to date"
+	if [ "$(.TARGETS)" != "install" ] && \
+	  [ "$(MAKECMDGOALS)" != "install" ] ; then \
+		find . -name .git -prune -o -newer .MARK -type f -print \
+		  | grep -q ^ || echo "make: all targets up to date"; \
+	fi
 	rm -f .MARK
 
 install: all

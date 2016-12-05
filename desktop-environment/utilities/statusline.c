@@ -267,12 +267,7 @@ static char *battery_indicator(const char *path)
         snprintf(OUTPUTBUF(icon), "⚡%d", capacity_percent);
     }
 
-    while (fclose(file)) {
-        if (errno != EINTR) {
-            break;
-        }
-    }
-
+    fclose(file);
     return icon;
 }
 
@@ -355,12 +350,7 @@ static size_t load_indicators_from_file(char *dest, size_t sizeofdest,
         saved_errno = errno;
     }
 
-    while (fclose(file)) {
-        if (errno != EINTR) {
-            break;
-        }
-    }
-
+    fclose(file);
     errno = saved_errno;
     return (size_t) (cursor - dest);
 }

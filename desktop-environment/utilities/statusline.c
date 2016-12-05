@@ -229,11 +229,9 @@ static char *battery_indicator(const char *path)
     signed char trend = 0;
 
     while (!(file = fopen(path, "r"))) {
-        if (errno == EINTR) {
-            continue;
+        if (errno != EINTR) {
+            return strcpy(icon, "⚡-");
         }
-        strcpy(icon, "⚡-");
-        return icon;
     }
 
     while (getline(&line, &bufsize, file) != -1) {
@@ -320,10 +318,9 @@ static size_t load_indicators_from_file(char *dest, size_t sizeofdest,
     size_t seplen = strlen(sep);
 
     while (!(file = fopen(path, "r"))) {
-        if (errno == EINTR) {
-            continue;
+        if (errno != EINTR) {
+            return 0;
         }
-        return 0;
     }
 
     while ((line_length = getline(&line, &bufsize, file)) != -1) {

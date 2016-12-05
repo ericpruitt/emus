@@ -30,7 +30,7 @@
 static int add_command_to_list(const char *);
 static int can_execute(const char *);
 static int command_list_contains(const char *);
-static char *command_path(const char *, const char *);
+static char *command_path(const char *);
 static int dmenu(const char *, const int, char **);
 static int load_commands_from_file(const char *);
 int main(int argc, char **);
@@ -56,9 +56,24 @@ static void usage(const char *);
  */
 #define DEFAULT_COMMAND_LIST_BASENAME ".del"
 
-#define fork_failed case -1
-#define fork_child case 0
-#define fork_parent default
+/**
+ * Works like printf(3) but writes to stderr and implicitly adds a newline to
+ * the output. This macro should not be used directly because passing a format
+ * string without additional arguments may produce syntactically invalid code.
+ */
+#define _eprintf(fmt, ...) fprintf(stderr, fmt "\n%s", __VA_ARGS__)
+
+/**
+ * Works like printf(3) but writes to stderr and implicitly adds a newline to
+ * the output.
+ */
+#define fmterr(...) _eprintf(__VA_ARGS__, "")
+
+/**
+ * Variable format alternative to perror(3); this macro accepts a printf(3)
+ * format string and, optionally, a list of values for format substitution.
+ */
+#define verror(fmt, ...) _eprintf(fmt ": %s", __VA_ARGS__, strerror(errno), "")
 
 /**
  * Values that represent the action to be taken based on the command line
@@ -146,18 +161,18 @@ static int add_command_to_list(const char *command)
 
     if (command_count >= max_commands) {
         max_commands += INCREMENTAL_ALLOCATION_SIZE;
-        if ((_commands = realloc(commands, sizeof(char *) * max_commands))) {
-            commands = _commands;
-        } else {
+        if (!(_commands = realloc(commands, sizeof(char *) * max_commands))) {
             max_commands -= INCREMENTAL_ALLOCATION_SIZE;
-            perror("Could not resize command list");
+            perror("del: could not resize command list");
             malloc_failed = 1;
             return 1;
         }
+
+        commands = _commands;
     }
 
     if (!(commands[command_count] = strdup(command))) {
-        perror("Could not update command list");
+        perror("del: could not update command list");
         malloc_failed = 1;
         return 1;
     }
@@ -189,18 +204,16 @@ static int can_execute(const char *command)
 }
 
 /**
- * When given the name of an executable located in a PATH folder, return a its
+ * When given the name of an executable located in a PATH folder, return its
  * full path.
  *
  * This function is inherently racy.
  *
  * @param command Name of the executable to resolve.
- * @param path Value of PATH environment variable. When this is `NULL`, the
- * result of `getenv("PATH")` is used instead.
  *
  * @return Pointer to resolved path stored in a statically allocated buffer.
  */
-static char *command_path(const char *command, const char *path)
+static char *command_path(const char *command)
 {
     size_t command_length;
     char *dest;
@@ -216,7 +229,7 @@ static char *command_path(const char *command, const char *path)
             return (char *) command;
         }
         return NULL;
-    } else if (!(env_value = path ? path : getenv("PATH"))) {
+    } else if (!(env_value = getenv("PATH"))) {
         return NULL;
     }
 
@@ -310,6 +323,7 @@ static int parse_desktop_entry(const char *fpath, const struct stat *sb,
         }
     }
 
+    fclose(file);
     free(line);
 
     if (command[0] == '\0' || command_list_contains(command_basename)) {
@@ -326,16 +340,15 @@ static int parse_desktop_entry(const char *fpath, const struct stat *sb,
         }
     }
 
-    if (command_path(lowercase_basename, NULL)) {
+    if (command_path(lowercase_basename)) {
         printf("+ %s\n", lowercase_basename);
         add_command_to_list(lowercase_basename);
-    } else if (case_changed && command_path(command_basename, NULL)) {
+    } else if (case_changed && command_path(command_basename)) {
         printf("+ %s\n", command_basename);
         add_command_to_list(command_basename);
     }
 
     free(lowercase_basename);
-    while (fclose(file) && errno == EINTR);
     return malloc_failed;
 }
 
@@ -357,17 +370,15 @@ static int load_commands_from_file(const char *path)
     int failed = 0;
     int saved_errno = 0;
 
-    while (!(file = fopen(path, "r"))) {
-        if (errno != EINTR) {
-            return 1;
-        }
+    if (!(file = fopen(path, "r"))) {
+        return 1;
     }
 
     while ((line_length = getline(&entry, &bufsize, file)) != -1) {
         if (line_length >= 1 && entry[line_length - 1] == '\n') {
             entry[line_length - 1] = '\0';
         }
-        if (command_path(entry, NULL)) {
+        if (command_path(entry)) {
             if ((failed = add_command_to_list(entry))) {
                 break;
             }
@@ -382,7 +393,7 @@ static int load_commands_from_file(const char *path)
     }
 
     free(entry);
-    while (fclose(file) && errno == EINTR);
+    fclose(file);
     errno = saved_errno;
     return failed;
 }
@@ -441,21 +452,19 @@ static void usage(const char *self)
  * @param n Number of entries in `dirs`. When this is 0, "/" will be searched
  * by default.
  *
- * @return 0 on success and a non-zero otherwise with `errno` set
- * appropriately.
+ * @return 0 on success and a non-zero value otherwise.
  */
 static int refresh_command_list(const char *path, char **dirs, const size_t n)
 {
-    int failed;
+    int fdtemp;
+    FILE *ftemp;
     size_t i;
     int maxopen;
-    int tempfd;
-    FILE *tempfile;
 
-    char *tempfile_path = NULL;
+    char tempname[PATH_MAX + 6];  // 6: strlen of the mkstemp suffix
 
     if (load_commands_from_file(path) && errno != ENOENT) {
-        perror(path);
+        verror("del: could not load commands from '%s'", path);
         return 1;
     }
 
@@ -473,84 +482,58 @@ static int refresh_command_list(const char *path, char **dirs, const size_t n)
         for (i = 0; i < n; i++) {
             if (nftw(dirs[i], parse_desktop_entry, maxopen, FTW_MOUNT)) {
                 if (!malloc_failed) {
-                    perror(dirs[i]);
+                    verror("del: unable to walk '%s'", dirs[i]);
                 }
                 return 1;
             }
         }
     } else if (nftw("/", parse_desktop_entry, maxopen, FTW_MOUNT)) {
         if (!malloc_failed) {
-            perror("/");
+            perror("del: unable to walk '/'");
         }
         return 1;
     }
 
-    qsort(commands, command_count, sizeof(char *), stringcomparator);
-
-    if ((tempfile_path = malloc(strlen(path) + 7))) {
-        strcpy(tempfile_path, path);
-        strcat(tempfile_path, "XXXXXX");
-    } else {
-        perror("Could not allocate memory for temporary file name");
+    if (!command_count) {
+        fmterr("del: no commands found");
         return 1;
     }
 
-    while ((tempfd = mkstemp(tempfile_path)) < 0) {
-        if (errno != EINTR) {
-            goto tempfile_error;
-        }
-    }
+    strcpy(tempname, path);
+    strcat(tempname, "XXXXXX");
+    tempname[sizeof(tempname) - 1] = '\0';
 
-    while (!(tempfile = fdopen(tempfd, "w"))) {
-        if (errno != EINTR) {
-            while (close(tempfd) && errno == EINTR);
-            goto tempfile_error;
-        }
-    }
+    if ((fdtemp = mkstemp(tempname)) != -1 &&
+        (ftemp = fdopen(fdtemp, "w"))) {
 
-    for (i = 0; i < command_count; i++) {
-        if ((!i || strcmp(commands[i - 1], commands[i])) &&
-            fprintf(tempfile, "%s\n", commands[i]) < 0) {
+        qsort(commands, command_count, sizeof(char *), stringcomparator);
 
-            perror("Could not write to temporary file");
-            while (fclose(tempfile) && errno == EINTR);
-            if (unlink(tempfile_path)) {
-                perror(tempfile_path);
+        for (i = 0; i < command_count; i++) {
+            if ((!i || strcmp(commands[i - 1], commands[i])) &&
+                fprintf(ftemp, "%s\n", commands[i]) < 0) {
+                goto error;
             }
-            free(tempfile_path);
-            return 1;
+        }
+
+        if (fflush(ftemp) || fsync(fdtemp) || fclose(ftemp)) {
+            verror("del: unable to flush changes to '%s'", tempname);
+        } else if (rename(tempname, path)) {
+            verror("del: unable to rename '%s' to '%s'", tempname, path);
+        } else {
+            return 0;
         }
     }
 
-    while (fflush(tempfile)) {
-        if (errno != EINTR) {
-            goto tempfile_error;
-        }
-    }
-    while (fsync(tempfd)) {
-        if (errno != EINTR) {
-            goto tempfile_error;
-        }
-    }
-    while (fclose(tempfile)) {
-        if (errno != EINTR) {
-            goto tempfile_error;
+error:
+    if (fdtemp == -1) {
+        verror("del: mkstemp: %s", tempname);
+    } else {
+        verror("del: %s", tempname);
+        if (fdtemp != -1 && unlink(tempname)) {
+            verror("del: could not delete temporary file '%s'", tempname);
         }
     }
 
-    failed = rename(tempfile_path, path);
-    free(tempfile_path);
-
-    if (failed) {
-        perror("Could not rename temporary file");
-        return 1;
-    }
-
-    return 0;
-
-tempfile_error:
-    perror(tempfile_path);
-    free(tempfile_path);
     return 1;
 }
 
@@ -584,141 +567,105 @@ static int dmenu(const char *menu_list_path, const int argc, char **argv)
 
     size_t bufsize = 0;
     char *command = NULL;
-    const int dmenu_kill_signal = SIGHUP;
-    int parent_killed_dmenu = 0;
-    int status = 0;
+    int dmenu_kill_signal = 0;
+    int failure = 1;
 
     if (pipe(pipefds)) {
-        perror("Could not create pipes for subprocess communication");
+        perror("del: could not create pipes for subprocess communication");
         return 1;
     }
 
     switch ((dmenu_pid = fork())) {
-      fork_failed:
-        perror("Could not fork to launch dmenu");
+      case -1:
+        perror("del: could not fork to launch dmenu");
         return 1;
 
-      fork_child:
-        while (close(pipefds[0])) {
-            if (errno != EINTR) {
-                perror("Could not close unused read-end of pipe");
-                _exit(1);
-            }
+      case 0:  // Child: execute dmenu
+        if (close(pipefds[0])) {
+            perror("del: could not close unused read-end of pipe");
+        } else if ((failure = dup2(pipefds[1], STDOUT_FILENO)) < 0) {
+            perror("del: could not redirect stdout to parent process");
+        } else if (close(STDIN_FILENO)) {
+            perror("del: could not close stdin");
+        } else if (open(menu_list_path, O_RDONLY) < 0) {
+            verror("del: open: %s", menu_list_path);
+        } else if (!(newargv = malloc((size_t) (argc + 2) * sizeof(char *)))) {
+            perror("del: could not allocate memory for dmenu arguments");
+        } else {
+            newargv[0] = "dmenu";
+            memcpy(newargv + 1, argv, (size_t) (argc + 1) * sizeof(char *));
+            execvp(newargv[0], newargv);
+            verror("del: %s", newargv[0]);
         }
-        while ((status = dup2(pipefds[1], STDOUT_FILENO)) < 0) {
-            if (errno != EINTR) {
-                perror("Could not redirect stdout to parent process");
-                _exit(1);
-            }
-        }
-        while (close(STDIN_FILENO)) {
-            if (errno != EINTR) {
-                perror("Could not close stdin");
-                _exit(1);
-            }
-        }
-        while (open(menu_list_path, O_RDONLY) < 0) {
-            if (errno != EINTR) {
-                perror(menu_list_path);
-                _exit(1);
-            }
-        }
+        _exit(1);
+    }
 
-        // Create an array large enough to hold new value for argv[0]. Since
-        // argc does not count the NULL pointer, the new array size is
-        // (argc + 2) instead of (argc + 1).
-        if (!(newargv = malloc((size_t) (argc + 2) * sizeof(char *)))) {
-            perror("Could not allocate memory for dmenu arguments");
-            _exit(1);
-        }
-
-        newargv[0] = "dmenu";
-        memcpy(newargv + 1, argv, (size_t) (argc + 1) * sizeof(char *));
-        if (execvp(newargv[0], newargv)) {
-            perror(newargv[0]);
-            return 1;
-        }
-
-      fork_parent:
-        while (close(pipefds[1])) {
-            if (errno != EINTR) {
-                perror("Could not close unused write-end of pipe");
-                status = 1;
-                goto kill_dmenu_if_parent_failed;
-            }
-        }
-        while (!(dmenu_output = fdopen(pipefds[0], "r"))) {
-            if (errno != EINTR) {
-                perror("Could not execute fdopen on dmenu pipe");
-                status = 1;
-                goto kill_dmenu_if_parent_failed;
-            }
-        }
-
-        while (status != 1 &&
-          (line_length = getline(&command, &bufsize, dmenu_output)) != -1) {
+    if (close(pipefds[1])) {
+        perror("del: could not close unused write-end of pipe");
+    } else if (!(dmenu_output = fdopen(pipefds[0], "r"))) {
+        perror("del: could not execute fdopen on dmenu pipe");
+    } else {
+        failure = 0;
+        while (!failure &&
+          (line_length = getline(&command, &bufsize, dmenu_output)) >= 0) {
             if (line_length >= 1 && command[line_length - 1] == '\n') {
-                command[--line_length] = '\0';
-            }
+                command[line_length - 1] = '\0';
 
-            switch (fork()) {
-              fork_failed:
-                perror("Could not fork to execute command");
-                status = 1;
-                break;
-
-              fork_child:
-                while (fclose(dmenu_output) && errno == EINTR);
-                if (execlp(command, command, NULL)) {
-                    perror(command);
+                switch (fork()) {
+                  case 0:  // Child: execute printed command
+                    if (fclose(dmenu_output)) {
+                        perror("del: could not close inherited file");
+                    } else if (execlp(command, command, NULL)) {
+                        verror("del: %s", command);
+                    }
                     _exit(1);
-                }
 
-              fork_parent:
-                break;
+                  case -1:
+                    perror("del: could not fork to execute command");
+                    failure = 1;
+                }
+            } else {
+                fmterr("del: missing newline after '%s'", command);
             }
         }
 
-        if (!status && !feof(dmenu_output)) {
-            perror("Could not read dmenu output");
-            status = 1;
+        if (!failure && (failure = !feof(dmenu_output))) {
+            perror("del: could not read dmenu output");
+        }
+
+        if (fclose(dmenu_output)) {
+            perror("del: unable to close dmenu output file");
         }
 
         free(command);
-        while (fclose(dmenu_output) && errno == EINTR);
-
-kill_dmenu_if_parent_failed:
-        if (status == 1) {
-            kill(dmenu_pid, dmenu_kill_signal);
-            parent_killed_dmenu = 1;
-        }
-
-        while (1) {
-            if (waitpid(dmenu_pid, &wait_status, 0) == -1) {
-                perror("Error waiting on dmenu");
-                if (!status) {
-                    status = 2;
-                }
-                break;
-            } else if (WIFEXITED(wait_status)) {
-                if (!status) {
-                    status = WEXITSTATUS(wait_status);
-                }
-                break;
-            } else if (WIFSIGNALED(wait_status)) {
-                signum = WTERMSIG(wait_status);
-                if (!parent_killed_dmenu || signum != dmenu_kill_signal) {
-                    fprintf(stderr, "dmenu: killed by signal %d\n", signum);
-                    if (!status) {
-                        status = 128 + signum;
-                    }
-                }
-                break;
-            }
-        }
-
-        return status;
     }
+
+    if (failure == 1) {
+        kill(dmenu_pid, (dmenu_kill_signal = SIGHUP));
+    }
+
+    while (1) {
+        if (waitpid(dmenu_pid, &wait_status, 0) == -1) {
+            perror("del: error waiting on dmenu");
+            if (!failure) {
+                failure = 2;
+            }
+            break;
+        } else if (WIFEXITED(wait_status)) {
+            if (!failure && (failure = WEXITSTATUS(wait_status))) {
+                fmterr("del: dmenu exit status was non-zero: %d", failure);
+            }
+            break;
+        } else if (WIFSIGNALED(wait_status)) {
+            if ((signum = WTERMSIG(wait_status)) != dmenu_kill_signal) {
+                fmterr("del: dmenu received signal %d", signum);
+                failure = failure ? failure : 128 + signum;
+            }
+            break;
+        }
+    }
+
+    return failure;
 }
 
 int main(int argc, char **argv)
@@ -751,7 +698,7 @@ int main(int argc, char **argv)
             // Using "+" to ensure POSIX-style argument parsing is a GNU
             // extension, so an explicit check for "+" as a flag is added for
             // other getopt(3) implementations.
-            fprintf(stderr, "%s: invalid option -- '%c'\n", argv[0], option);
+            fmterr("del: invalid option -- '%c'", option);
           default:
             return 1;
         }
@@ -759,7 +706,7 @@ int main(int argc, char **argv)
 
     if (!command_list_path) {
         if (!(home = getenv("HOME"))) {
-            fputs("HOME is unset. Use \"-f\" to specify list path.", stderr);
+            fmterr("del: HOME is unset; use \"-f\" to specify list path");
             return 1;
         }
 
@@ -769,7 +716,7 @@ int main(int argc, char **argv)
         // The +1 is to ensure there's room to add a '/' if needed.
         if (!(command_list_path = malloc(
            sizeof(DEFAULT_COMMAND_LIST_BASENAME) + strlen_home + 1))) {
-            perror("Could not allocate memory for launcher list filename");
+            perror("del: could not allocate memory for filename");
             return 1;
         }
 

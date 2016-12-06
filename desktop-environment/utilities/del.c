@@ -57,20 +57,20 @@ static void usage(const char *);
 #define DEFAULT_COMMAND_LIST_BASENAME ".del"
 
 /**
- * Works like printf(3) but writes to stderr and implicitly adds a newline to
+ * Works like _printf(3)_ but writes to stderr and implicitly adds a newline to
  * the output. This macro should not be used directly because passing a format
  * string without additional arguments may produce syntactically invalid code.
  */
 #define _eprintf(fmt, ...) fprintf(stderr, fmt "\n%s", __VA_ARGS__)
 
 /**
- * Works like printf(3) but writes to stderr and implicitly adds a newline to
+ * Works like _printf(3)_ but writes to stderr and implicitly adds a newline to
  * the output.
  */
 #define fmterr(...) _eprintf(__VA_ARGS__, "")
 
 /**
- * Variable format alternative to perror(3); this macro accepts a printf(3)
+ * Variable format alternative to _perror(3)_; this macro accepts a _printf(3)_
  * format string and, optionally, a list of values for format substitution.
  */
 #define verror(fmt, ...) _eprintf(fmt ": %s", __VA_ARGS__, strerror(errno), "")
@@ -95,29 +95,29 @@ typedef enum {
 static char **commands = NULL;
 
 /**
- * Maximum number of pointers that `commands` can hold.
+ * Maximum number of pointers that "commands" can hold.
  */
 static size_t max_commands = 0;
 
 /**
- * Number of pointers in `commands` that have been assigned.
+ * Number of pointers in "commands" that have been assigned.
  */
 static size_t command_count = 0;
 
 /**
- * Value set by functions involved with updating `commands` when there was a
+ * Value set by functions involved with updating "commands" when there was a
  * memory allocation failure that is used to propagate errors generated inside
- * of `nftw(3)` to the caller.
+ * of _nftw(3)_ to the caller.
  */
 static int malloc_failed = 0;
 
 /**
- * This function is used as the comparison function for `qsort(3)` and sorts a
+ * This function is used as the comparison function for _qsort(3)_ and sorts a
  * list of strings alphabetically ignoring case. This function is **not**
  * locale-aware.
  *
- * @return A negative number when `a` should come before `b`, a positive number
- * when `b` should be come before `a` and 0 otherwise.
+ * Return: A negative number when "a" should come before "b", a positive number
+ * when "b" should be come before "a" and 0 otherwise.
  */
 static int stringcomparator(const void *a, const void *b)
 {
@@ -128,9 +128,10 @@ static int stringcomparator(const void *a, const void *b)
  * Check to see if a given command is already in the command list. The search
  * is case insensitive.
  *
- * @param needle Name of the command.
+ * Arguments:
+ * - needle: Name of the command.
  *
- * @return 0 if the command is not the command list and a non-zero value
+ * Return: 0 if the command is not the command list and a non-zero value
  * otherwise.
  */
 static int command_list_contains(const char *needle)
@@ -149,11 +150,12 @@ static int command_list_contains(const char *needle)
 /**
  * Add given a given command to the command list. This function does not check
  * for duplicates. If memory allocation fails, the global variable
- * `malloc_failed` is set to 1.
+ * "malloc_failed" is set to 1.
  *
- * @param command Name of the command to add to the command list.
+ * Arguments:
+ * - command: Name of the command to add to the command list.
  *
- * @return 0 if the addition succeeded and a non-zero value otherwise.
+ * Return: 0 if the addition succeeded and a non-zero value otherwise.
  */
 static int add_command_to_list(const char *command)
 {
@@ -186,10 +188,11 @@ static int add_command_to_list(const char *command)
  *
  * This function is inherently racy.
  *
- * @param command Relative or absolute path of the command to be tested.
+ * Arguments:
+ * - command: Relative or absolute path of the command to be tested.
  *
- * @return Non-zero value if the path is a file the current user can execute
- * and 0 otherwise. The value of `errno` can be used to determine exactly why
+ * Return: Non-zero value if the path is a file the current user can execute
+ * and 0 otherwise. The value of "errno" can be used to determine exactly why
  * the file cannot be executed.
  */
 static int can_execute(const char *command)
@@ -209,9 +212,10 @@ static int can_execute(const char *command)
  *
  * This function is inherently racy.
  *
- * @param command Name of the executable to resolve.
+ * Arguments:
+ * - command: Name of the executable to resolve.
  *
- * @return Pointer to resolved path stored in a statically allocated buffer.
+ * Return: Pointer to resolved path stored in a statically allocated buffer.
  */
 static char *command_path(const char *command)
 {
@@ -274,8 +278,14 @@ static char *command_path(const char *command)
 }
 
 /**
- * Function designed to be used with nftw(3) that parses Freedesktop entries,
+ * Function designed to be used with _nftw(3)_ that parses Freedesktop entries,
  * looks for executable command and adds them to launcher list.
+ *
+ * Arguments:
+ * - fpath: Path of the file to process.
+ *
+ * Return: 1 if a non-recoverable error was encountered while processing the
+ * file and 0 otherwise.
  */
 static int parse_desktop_entry(const char *fpath, const struct stat *sb,
   int typeflag, struct FTW *ftwbuf) {
@@ -355,9 +365,10 @@ static int parse_desktop_entry(const char *fpath, const struct stat *sb,
 /**
  * Load commands from specified file into memory.
  *
- * @param path Path to file containing list of commands.
+ * Arguments:
+ * - path: Path to file containing list of commands.
  *
- * @return 0 on success and a non-zero value otherwise. On failure, `errno` is
+ * Return: 0 on success and a non-zero value otherwise. On failure, "errno" is
  * set appropriately.
  */
 static int load_commands_from_file(const char *path)
@@ -401,7 +412,8 @@ static int load_commands_from_file(const char *path)
 /**
  * Display application usage information.
  *
- * @param self Name or path of compiled executable.
+ * Arguments:
+ * - self: Name or path of compiled executable.
  */
 static void usage(const char *self)
 {
@@ -446,13 +458,14 @@ static void usage(const char *self)
  * boundaries, so subdirectories on devices that differ from the parent must be
  * explicitly enumerated.
  *
- * @param path File name of the command list.
- * @param dirs List of strings that are directories to search for Freedesktop
- * Desktop Entries. If this is `NULL`, "/" will be searched by default.
- * @param n Number of entries in `dirs`. When this is 0, "/" will be searched
- * by default.
+ * Arguments:
+ * - path: File name of the command list.
+ * - dirs: List of strings that are directories to search for Freedesktop
+ *   Desktop Entries. If this is `NULL`, "/" will be searched by default.
+ * - n: Number of entries in "dirs". When this is 0, "/" will be searched by
+ *   default.
  *
- * @return 0 on success and a non-zero value otherwise.
+ * Return: 0 on success and a non-zero value otherwise.
  */
 static int refresh_command_list(const char *path, char **dirs, const size_t n)
 {
@@ -540,20 +553,21 @@ error:
 /**
  * Run dmenu and attempt to execute any commands it returns.
  *
- * @param menu_list_path File containing list of executable commands to display
- * with dmenu.
- * @param argc Number of command line arguments to pass to dmenu.
- * @param argv Array of command line arguments to pass to dmenu. This array
- * must be terminated with a `NULL` pointer.
+ * Arguments:
+ * - menu_list_path: File containing list of executable commands to display
+ *   with dmenu.
+ * - argc: Number of command line arguments to pass to dmenu.
+ * - argv: Array of command line arguments to pass to dmenu. This array
+ *   must be terminated with a `NULL` pointer.
  *
- * @return The return code depends several different factors. In order of
+ * Return: The return code depends several different factors. In order of
  * precedence, they are:
  * - 0 is returned if there were no problems during function execution.
- * - 1 is returned if there was a fatal error:
+ * - 1 is returned if there was a fatal error.
  * - 2 indicates a non-fatal error arose during function execution.
  * - If there were no other problems and dmenu exited with a non-zero status,
  *   this function returns its exit status.
- * - If dmenu was killed by a signal, the signal number + 128 is returned.
+ * - If dmenu was killed by a signal, `signal_number + 128` is returned.
  */
 static int dmenu(const char *menu_list_path, const int argc, char **argv)
 {

@@ -44,9 +44,10 @@ static size_t tzstrftime(char *, const size_t, const char *, const time_t,
 /**
  * Get the number of members in a fixed-length array.
  *
- * @param x Array
+ * Arguments:
+ * - x: Array
  *
- * @return Length of array.
+ * Return: Length of array.
  */
 #define ARRAY_LENGTH(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -64,23 +65,25 @@ static size_t tzstrftime(char *, const size_t, const char *, const time_t,
  * Convenience macro for fixed-length buffers that expands to the name of the
  * buffer followed by a comma and the size of the buffer.
  *
- * @ param x Array
+ * Arguments:
+ * - x: Array
  */
 #define OUTPUTBUF(x) (x), sizeof(x)
 
 /**
- * Works like `strftime(3)` but expects a `time_t` timestamp instead of a
+ * Works like _strftime(3)_ but expects a `time_t` timestamp instead of a
  * `struct tm *` and accepts an additional parameter, the time zone in which
  * the conversion should take place.
  *
- * @param dest The result will written to this character array.
- * @param sizeofdest Size of the result buffer.
- * @param format Format string as defined for `strftime(3)`.
- * @param when Unix timestamp representing the time to be formatted.
- * @param where Time zone in which the conversion takes place e.g.
- * "America/Las_Angeles".
+ * Arguments:
+ * - dest: The result will written to this character array.
+ * - sizeofdest: Size of the result buffer.
+ * - format: Format string as defined for _strftime(3)_.
+ * - when: Unix timestamp representing the time to be formatted.
+ * - where: Time zone in which the conversion takes place e.g.
+ *   "America/Las_Angeles".
  *
- * @return Number of bytes written to `dest` excluding the null byte.
+ * Return: Number of bytes written to "dest" excluding the null byte.
  */
 static size_t tzstrftime(char *dest, const size_t sizeofdest,
   const char *format, const time_t when, const char *where) {
@@ -134,8 +137,9 @@ static size_t tzstrftime(char *dest, const size_t sizeofdest,
 /**
  * Set the name of the X11 root window.
  *
- * @param display X11 display to update.
- * @param text Value to be set.
+ * Arguments:
+ * - display: X11 display to update.
+ * - text: Value to be set.
  */
 static void set_root_name(Display *display, const char *text)
 {
@@ -144,14 +148,15 @@ static void set_root_name(Display *display, const char *text)
 }
 
 /**
- * Write the day of the week and an ordinal day of the month to `dest` e.g.
+ * Write the day of the week and an ordinal day of the month to "dest" e.g.
  * "Wed. the 21st."
  *
- * @param dest The string will be written to this character array.
- * @param sizeofdest Size of `dest`.
- * @param tm Time structure representing the date to be displayed.
+ * Arguments:
+ * - dest: The string will be written to this character array.
+ * - sizeofdest: Size of "dest".
+ * - tm: Time structure representing the date to be displayed.
  *
- * @return Number of bytes written to `dest` not including the null byte.
+ * Return: Number of bytes written to "dest" not including the null byte.
  */
 static size_t dow_with_ordinal_dom(char *dest, const size_t sizeofdest,
   struct tm *tm) {
@@ -209,10 +214,11 @@ static size_t dow_with_ordinal_dom(char *dest, const size_t sizeofdest,
  *   because the format was not recognized.
  * - `⚡!`: Shown when there was an error reading the battery data file.
  *
- * @param path Path to the file containing the battery data in the form of a
- * uevent sysfs battery node e.g. `/sys/class/power_supply/BAT0/uevent`.
+ * Arguments:
+ * - path: Path to the file containing the battery data in the form of a uevent
+ *   sysfs battery node e.g. "/sys/class/power_supply/BAT0/uevent".
  *
- * @return A pointer to a statically allocated array containing the indicator
+ * Return: A pointer to a statically allocated array containing the indicator
  * text.
  */
 static char *battery_indicator(const char *path)
@@ -272,9 +278,10 @@ static char *battery_indicator(const char *path)
 /**
  * Return file's modification time.
  *
- * @param path File path.
+ * Arguments:
+ * - path: File path.
  *
- * @return -1 on error and the file's modification time otherwise.
+ * Return: -1 on error and the file's modification time otherwise.
  */
 static double mtime(const char *path)
 {
@@ -295,15 +302,16 @@ static double mtime(const char *path)
 
 /**
  * Reads lines from a file treating each one as a separate status bar indicator
- * and writes them to `dest`.
+ * and writes them to "dest".
  *
- * @param dest Output destination.
- * @param sizeofdest The size of the destination buffer.
- * @param path File path.
- * @param sep Separator that will be added between indicators. Can be null to
- * have no separation.
+ * Arguments:
+ * - dest: Output destination.
+ * - sizeofdest: The size of the destination buffer.
+ * - path File path.
+ * - sep: Separator that will be added between indicators. Can be null to have
+ *   no separation.
  *
- * @return Number of characters written to `dest` not including the null.
+ * Return: Number of characters written to "dest" not including the null.
  */
 static size_t load_indicators_from_file(char *dest, size_t sizeofdest,
   const char *path, const char *sep) {
@@ -355,9 +363,10 @@ static size_t load_indicators_from_file(char *dest, size_t sizeofdest,
 /**
  * Delete range of characters from string.
  *
- * @param text String to modify.
- * @param start Offset of the beginning of the range to delete.
- * @param count Number of characters to delete.
+ * Arguments:
+ * - text: String to modify.
+ * - start: Offset of the beginning of the range to delete.
+ * - count: Number of characters to delete.
  */
 static void delete_range(char *text, const size_t start, const size_t count)
 {
@@ -372,7 +381,8 @@ static void delete_range(char *text, const size_t start, const size_t count)
 /**
  * Replace all occurrences of "GMT" with "UTC".
  *
- * @param s String to modify.
+ * Arguments:
+ * - s: String to modify.
  */
 static void gmt_to_utc(char *s)
 {
@@ -382,7 +392,8 @@ static void gmt_to_utc(char *s)
 /**
  * Display application usage information.
  *
- * @param self Name or path of compiled executable.
+ * Arguments:
+ * - self: Name or path of compiled executable.
  */
 static void usage(const char *self)
 {

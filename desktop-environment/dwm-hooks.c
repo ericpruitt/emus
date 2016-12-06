@@ -24,7 +24,10 @@ static const char hexdecmap[] = {
  * string in place and returns a pointer to the end of the escaped data. The
  * return value can be used to detect embedded null bytes.
  *
- * @param text C-escaped text.
+ * Arguments:
+ * - text: C-escaped text.
+ *
+ * Return: Text with escape sequences converted to individual bytes.
  */
 static char *unescape(char *text)
 {
@@ -97,10 +100,11 @@ static char *unescape(char *text)
 /**
  * Check to see if a regular expression matches a string.
  *
- * @param haystack String to be searched.
- * @param expression Extended regular expression.
+ * Arguments:
+ * - haystack: String to be searched.
+ * - expression: Extended regular expression.
  *
- * @return 1 if the regular expression matches the string and 0 if it does not
+ * Return: 1 if the regular expression matches the string and 0 if it does not
  * match or if there was an error compiling the regular expression.
  */
 static int regexmatch(const char *haystack, const char *expression)

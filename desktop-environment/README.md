@@ -393,9 +393,8 @@ refactored. This patch notably differs from Jan's in the following ways:
 - C preprocessor guards have been added so slock can still be compiled when
   this patch is applied regardless of whether or not the PAM development
   libraries are available.
-- The build configuration has been modified to support a "USE_PAM" variable
-  that can be used to toggle build support for PAM; when it is empty or unset,
-  slock is compiled without PAM while any other value compiles slock with PAM.
+- Build support for libpam is enabled automatically if the user's account is
+  not listed in "/etc/passwd".
 
 Other changes include:
 

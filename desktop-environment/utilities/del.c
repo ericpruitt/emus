@@ -481,14 +481,14 @@ static int refresh_command_list(const char *path, char **dirs, const size_t n)
         return 1;
     }
 
-    // 3 is subtracted below under the assumption that stdin, stdout and
-    // stderr are the only open files.
+    // 4 is subtracted below under the assumption that stdin, stdout and stderr
+    // are the only open files and that parse_desktop_entry will open 1 file.
     if (sysconf(_SC_OPEN_MAX) > INT_MAX) {
-        maxopen = INT_MAX - 3;
+        maxopen = INT_MAX - 4;
     } else {
         // POSIX mandates that _SC_OPEN_MAX must be at
         // least 20, so this value should never be negative.
-        maxopen = (int) sysconf(_SC_OPEN_MAX) - 3;
+        maxopen = (int) sysconf(_SC_OPEN_MAX) - 4;
     }
 
     if (dirs && n) {

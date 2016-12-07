@@ -610,7 +610,7 @@ static int menu(const char *menu_list_path, char **argv)
             perror("del: could not close unused read-end of pipe");
         } else if ((failure = dup2(pipefds[1], STDOUT_FILENO)) < 0) {
             perror("del: could not redirect stdout to parent process");
-        } else if (close(STDIN_FILENO)) {
+        } else if (close(STDIN_FILENO) && errno != EBADF) {
             perror("del: could not close stdin");
         } else if (open(menu_list_path, O_RDONLY) < 0) {
             verror("del: open: %s", menu_list_path);

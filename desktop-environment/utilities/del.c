@@ -31,9 +31,9 @@ static int add_command_to_list(const char *);
 static int can_execute(const char *);
 static int command_list_contains(const char *);
 static char *command_path(const char *);
-static int dmenu(const char *, const int, char **);
 static int load_commands_from_file(const char *);
 int main(int argc, char **);
+static int menu(const char *, char **);
 static int parse_desktop_entry(const char *, const struct stat *, int,
                                struct FTW *);
 static int refresh_command_list(const char *, char **, const size_t);
@@ -55,6 +55,11 @@ static void usage(const char *);
  * Basename of default command list file which is saved under "$HOME".
  */
 #define DEFAULT_COMMAND_LIST_BASENAME ".del"
+
+/**
+ * Default command used to present a menu to the user.
+ */
+#define DEFAULT_MENU "dmenu"
 
 /**
  * Works like _printf(3)_ but writes to stderr and implicitly adds a newline to
@@ -81,7 +86,7 @@ static void usage(const char *);
  */
 typedef enum {
     REFRESH_COMMAND_LIST,
-    LAUNCH_DMENU,
+    LAUNCH_MENU,
 } action_et;
 
 /**
@@ -443,11 +448,18 @@ static void usage(const char *self)
         "           When no paths are given, \"/\" is searched by default.\n"
         "\n"
         "When \"-r\" is not specified, dmenu is launched with the command\n"
-        "list feed into standard input. Trailing command line parameters can\n"
-        "be used to pass arguments to dwm, e.g.: %s -- -sb '#ff0000'.\n"
+        "list feed into standard input. Trailing command line arguments can\n"
+        "be used to pass flags to dmenu or use a different menu altogether:\n"
+        "\n"
+        "  Set the background color of selected text to red:\n"
+        "  $ %s -- -sb \"#ff0000\"\n"
+        "\n"
+        "  Use rofi in dmenu mode instead of dmenu:\n"
+        "  $ %s rofi -dmenu\n"
         ,
         self,
         DEFAULT_COMMAND_LIST_BASENAME,
+        self,
         self
     );
 }
@@ -551,37 +563,36 @@ error:
 }
 
 /**
- * Run dmenu and attempt to execute any commands it returns.
+ * Launch a menu and execute the commands it prints to standard output. Each
+ * line must contain one command with no arguments.
  *
  * Arguments:
- * - menu_list_path: File containing list of executable commands to display
- *   with dmenu.
- * - argc: Number of command line arguments to pass to dmenu.
- * - argv: Array of command line arguments to pass to dmenu. This array
- *   must be terminated with a `NULL` pointer.
+ * - menu_list_path: File containing list of executable commands. Its contents
+ *   will be redirected to the menu's standard input.
+ * - argv: Command name and argument list for menu. This will become "argv" in
+ *   the subprocess and must be terminated with a `NULL` pointer.
  *
  * Return: The return code depends several different factors. In order of
  * precedence, they are:
  * - 0 is returned if there were no problems during function execution.
  * - 1 is returned if there was a fatal error.
  * - 2 indicates a non-fatal error arose during function execution.
- * - If there were no other problems and dmenu exited with a non-zero status,
+ * - If there were no other problems and menu exited with a non-zero status,
  *   this function returns its exit status.
- * - If dmenu was killed by a signal, `signal_number + 128` is returned.
+ * - If menu was killed by a signal, `signal_number + 128` is returned.
  */
-static int dmenu(const char *menu_list_path, const int argc, char **argv)
+static int menu(const char *menu_list_path, char **argv)
 {
-    FILE *dmenu_output;
-    pid_t dmenu_pid;
+    FILE *menu_output;
+    pid_t menu_pid;
     ssize_t line_length;
-    char **newargv;
     int pipefds[2];
     int signum;
     int wait_status;
 
     size_t bufsize = 0;
     char *command = NULL;
-    int dmenu_kill_signal = 0;
+    int menu_kill_signal = 0;
     int failure = 1;
 
     if (pipe(pipefds)) {
@@ -589,12 +600,12 @@ static int dmenu(const char *menu_list_path, const int argc, char **argv)
         return 1;
     }
 
-    switch ((dmenu_pid = fork())) {
+    switch ((menu_pid = fork())) {
       case -1:
-        perror("del: could not fork to launch dmenu");
+        verror("del: could not fork to launch %s", argv[0]);
         return 1;
 
-      case 0:  // Child: execute dmenu
+      case 0:  // Child: execute menu
         if (close(pipefds[0])) {
             perror("del: could not close unused read-end of pipe");
         } else if ((failure = dup2(pipefds[1], STDOUT_FILENO)) < 0) {
@@ -603,31 +614,27 @@ static int dmenu(const char *menu_list_path, const int argc, char **argv)
             perror("del: could not close stdin");
         } else if (open(menu_list_path, O_RDONLY) < 0) {
             verror("del: open: %s", menu_list_path);
-        } else if (!(newargv = malloc((size_t) (argc + 2) * sizeof(char *)))) {
-            perror("del: could not allocate memory for dmenu arguments");
         } else {
-            newargv[0] = "dmenu";
-            memcpy(newargv + 1, argv, (size_t) (argc + 1) * sizeof(char *));
-            execvp(newargv[0], newargv);
-            verror("del: %s", newargv[0]);
+            execvp(argv[0], argv);
+            verror("del: %s", argv[0]);
         }
         _exit(1);
     }
 
     if (close(pipefds[1])) {
         perror("del: could not close unused write-end of pipe");
-    } else if (!(dmenu_output = fdopen(pipefds[0], "r"))) {
-        perror("del: could not execute fdopen on dmenu pipe");
+    } else if (!(menu_output = fdopen(pipefds[0], "r"))) {
+        verror("del: could not execute fdopen on %s pipe", argv[0]);
     } else {
         failure = 0;
         while (!failure &&
-          (line_length = getline(&command, &bufsize, dmenu_output)) >= 0) {
+          (line_length = getline(&command, &bufsize, menu_output)) >= 0) {
             if (line_length >= 1 && command[line_length - 1] == '\n') {
                 command[line_length - 1] = '\0';
 
                 switch (fork()) {
                   case 0:  // Child: execute printed command
-                    if (fclose(dmenu_output)) {
+                    if (fclose(menu_output)) {
                         perror("del: could not close inherited file");
                     } else if (execlp(command, command, NULL)) {
                         verror("del: %s", command);
@@ -643,36 +650,36 @@ static int dmenu(const char *menu_list_path, const int argc, char **argv)
             }
         }
 
-        if (!failure && (failure = !feof(dmenu_output))) {
-            perror("del: could not read dmenu output");
+        if (!failure && (failure = !feof(menu_output))) {
+            verror("del: could not read %s output", argv[0]);
         }
 
-        if (fclose(dmenu_output)) {
-            perror("del: unable to close dmenu output file");
+        if (fclose(menu_output)) {
+            verror("del: unable to close %s output file", argv[0]);
         }
 
         free(command);
     }
 
     if (failure == 1) {
-        kill(dmenu_pid, (dmenu_kill_signal = SIGHUP));
+        kill(menu_pid, (menu_kill_signal = SIGHUP));
     }
 
     while (1) {
-        if (waitpid(dmenu_pid, &wait_status, 0) == -1) {
-            perror("del: error waiting on dmenu");
+        if (waitpid(menu_pid, &wait_status, 0) == -1) {
+            verror("del: error waiting on %s", argv[0]);
             if (!failure) {
                 failure = 2;
             }
             break;
         } else if (WIFEXITED(wait_status)) {
             if (!failure && (failure = WEXITSTATUS(wait_status))) {
-                fmterr("del: dmenu exit status was non-zero: %d", failure);
+                fmterr("del: %s died with exit status %d", argv[0], failure);
             }
             break;
         } else if (WIFSIGNALED(wait_status)) {
-            if ((signum = WTERMSIG(wait_status)) != dmenu_kill_signal) {
-                fmterr("del: dmenu received signal %d", signum);
+            if ((signum = WTERMSIG(wait_status)) != menu_kill_signal) {
+                fmterr("del: %s received signal %d", argv[0], signum);
                 failure = failure ? failure : 128 + signum;
             }
             break;
@@ -687,10 +694,11 @@ int main(int argc, char **argv)
     int exit_status;
     const char *home;
     size_t i;
+    char *menu_argv0;
     int option;
     size_t strlen_home;
 
-    action_et action = LAUNCH_DMENU;
+    action_et action = LAUNCH_MENU;
     char *command_list_path = NULL;
     int must_free_command_list_path = 0;
 
@@ -749,8 +757,12 @@ int main(int argc, char **argv)
           (size_t) (argc - optind));
         break;
 
-      case LAUNCH_DMENU:
-        exit_status = dmenu(command_list_path, argc - optind, argv + optind);
+      case LAUNCH_MENU:
+        menu_argv0 = *(argv + optind);
+        if (optind <= argc && (!menu_argv0 || menu_argv0[0] == '-')) {
+            *(argv + (--optind)) = DEFAULT_MENU;
+        }
+        exit_status = menu(command_list_path, argv + optind);
         break;
     }
 

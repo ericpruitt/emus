@@ -41,7 +41,7 @@ is encountered.
 to reduce the likelihood of conflicting with other patches.
 
 diff --git a/dwm.c b/dwm.c
-index b2bc9bd..286f548 100644
+index 421bf27..827ca7a 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -134,6 +134,17 @@ struct Monitor {
@@ -70,7 +70,7 @@ index b2bc9bd..286f548 100644
  static void arrange(Monitor *m);
  static void arrangemon(Monitor *m);
  static void attach(Client *c);
-@@ -379,6 +391,56 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
+@@ -379,6 +391,60 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
  }
  
  void
@@ -83,8 +83,12 @@ index b2bc9bd..286f548 100644
 +	static int old_nmaster = 1;
 +	static const Layout *old_layout = &layouts[0];
 +	static Layout new_layout;
-+	static float old_mfact = mfact;
++	static float old_mfact = -1;
 +	TagRule tr;
++
++	if (old_mfact == -1) {
++		old_mfact = mfact;
++	}
 +
 +	if (rollback) {
 +		if (!can_rollback) {
@@ -127,7 +131,7 @@ index b2bc9bd..286f548 100644
  arrange(Monitor *m)
  {
  	if (m)
-@@ -386,10 +448,15 @@ arrange(Monitor *m)
+@@ -386,10 +452,15 @@ arrange(Monitor *m)
  	else for (m = mons; m; m = m->next)
  		showhide(m->stack);
  	if (m) {

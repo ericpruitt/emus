@@ -1,4 +1,5 @@
-FORCE_PAM = false
+.POSIX:
+
 PREFIX = $(HOME)
 SUPERUSER_PREFIX = /usr/local
 
@@ -10,6 +11,8 @@ DWM_COMMIT = 839c7f6939368fe5784058975ee95062cc88d4c3
 
 SLOCK_URL = http://git.suckless.org/slock
 SLOCK_COMMIT = 2d2a21a90ad1b53594b1b90b97486189ec54afce
+SLOCK_FORCE_PAM = false
+SLOCK_VARS = $$($(SLOCK_FORCE_PAM) && echo "IN_PASSWD=false")
 
 ST_URL = http://git.suckless.org/st
 ST_COMMIT = e44832408bb3147826c346872b49de105a4d0e0b
@@ -29,8 +32,50 @@ UTILITIES = \
 
 BASENAME = $(@F)
 
-.POSIX:
-.SILENT: all deps clean cleaner install
+.SILENT: all deps clean cleaner install printvar
+
+.DEFAULT:
+	@case "$${target:=$@}" in \
+	  patch-*) \
+		patch_prefix="$${target#patch-}"; \
+		cd "$$patch_prefix"-src/; \
+		if git diff --quiet \
+		  $$(find . -name .git -prune -o -type f); then \
+			for patch in ../patches/"$$patch_prefix"-*.diff; do \
+				test -e "$$patch" || exit 0; \
+				echo "- $${patch##*/}"; \
+				patch < "$$patch"; \
+			done; \
+		fi; \
+	  ;; \
+	  clean-*) \
+		target="$${target#clean-}"; \
+		if ! cd "$$target" 2>/dev/null && \
+		   ! cd "$$target"-*/ 2>/dev/null && \
+		   ! -e "$$target"; then \
+			echo "make: $@: path not found" >&2; \
+			exit 1; \
+		elif [ -n "$$OLDPWD" ] && [ -e .git ]; then \
+			git stash save --quiet "make $@"; \
+			git clean -d -f -q -x; \
+		else \
+			echo "make: not sure how to clean '$$target'" >&2; \
+			exit 1; \
+		fi; \
+	  ;; \
+	  dmenu-src|dwm-src|slock-src|st-src) \
+		prefix="$$(echo $${target%-src} | tr 'a-z-' 'A-Z_')"; \
+		url="$$($(MAKE) -s printvar VARIABLE=$${prefix}_URL)"; \
+		commit="$$($(MAKE) -s printvar VARIABLE=$${prefix}_COMMIT)"; \
+		git clone "$$url" "$(BASENAME).tmp"; \
+		(cd "$(BASENAME).tmp" && git reset --hard $$commit); \
+		mv "$(BASENAME).tmp" "$(BASENAME)"; \
+	  ;; \
+	  *) \
+		echo "make: $@: target not recognized" >&2; \
+		exit 1; \
+	  ;; \
+	esac; \
 
 all:
 	touch .MARK
@@ -56,7 +101,7 @@ install: all
 
 deps:
 	if [ -e /etc/debian_version ]; then \
-		sudo apt-get install \
+		apt-get install \
 			compton \
 			fonts-dejavu \
 			fonts-vlgothic \
@@ -77,17 +122,20 @@ deps:
 	fi; \
 
 clean:
-	for folder in *-src/.git; do \
-		test -e "$$folder" || contiue; \
-		echo "- $${folder%/.git}"; \
-		$(MAKE) -s git-reset-"$${folder%/.git}"; \
+	for folder in *-src; do \
+		test -e "$$folder" || continue; \
+		echo "- $$folder"; \
+		$(MAKE) -s "clean-$$folder"; \
 	done
-	rm -f .MARK bin/* slock-src/slock
+	rm -f .MARK bin/*
 	echo "Done cleaning."
 
 cleaner:
 	rm -rf .MARK *-src bin
 	echo "All external source trees and compiled binaries deleted."
+
+printvar:
+	echo '$($(VARIABLE))'
 
 $(HOME)/.config/Trolltech.conf: presentation/qt.conf
 	cp $^ $@
@@ -113,75 +161,14 @@ $(TERMINFO)/s/st: st-src/st.info
 
 .ALWAYS_RUN:
 
-.DEFAULT:
-	@target="$@"; \
-	case "$$target" in \
-	  dmenu-src) \
-		git="$(DMENU_URL)"; \
-		commit="$(DMENU_COMMIT)"; \
-	  ;; \
-	  dwm-src) \
-		git="$(DWM_URL)"; \
-		commit="$(DWM_COMMIT)"; \
-	  ;; \
-	  slock-src) \
-		git="$(SLOCK_URL)"; \
-		commit="$(SLOCK_COMMIT)"; \
-	  ;; \
-	  st-src) \
-		git="$(ST_URL)"; \
-		commit="$(ST_COMMIT)"; \
-	  ;; \
-	  patch-*) \
-		patch_prefix="$${target#patch-}"; \
-	  ;; \
-	  git-reset-*) \
-		git_reset_folder="$${target#git-reset-}"; \
-	  ;; \
-	  *) \
-		echo "make: $@: target not recognized" >&2; \
-		exit 1; \
-	  ;; \
-	esac; \
-	if [ -n "$$git" ]; then \
-		git clone "$$git" "$(BASENAME).tmp"; \
-		if [ -n "$$commit" ]; then \
-			(cd "$(BASENAME).tmp" && git reset --hard "$$commit"); \
-		fi; \
-		mv "$(BASENAME).tmp" "$(BASENAME)"; \
-		exit 0; \
-	fi; \
-	if [ -n "$$patch_prefix" ]; then \
-		cd "$$patch_prefix"-src/; \
-		if git diff --quiet \
-		  $$(find . -name .git -prune -o -type f); then \
-			for patch in ../patches/"$$patch_prefix"-*.diff; do \
-				test -e "$$patch" || exit 0; \
-				echo "- $${patch##*/}"; \
-				patch < "$$patch"; \
-			done; \
-		fi; \
-		exit 0; \
-	fi; \
-	if [ -n "$$git_reset_folder" ]; then \
-		cd "$$git_reset_folder"; \
-		git stash save --quiet "make $@"; \
-		git clean -d -f -q -x; \
-		exit 0; \
-	fi; \
-
 # The combination of the "+" command prefix and "-n" is used to force make to
 # display the command being executed even if "-s" is inherited from the
 # invoking make.
 $(UTILITIES): .ALWAYS_RUN
 	mkdir -p bin
-	source="utilities/$(@F).c"; \
-	command=$$(sed -n -e "/^ \* Make: /{s///p;q}" "$$source"); \
-	if [ -z "$$command" ]; then \
-		echo "$$source: could not extract make recipe" >&2; \
-		exit 1; \
-	fi; \
-	echo "$@: $$source; +$$command" | $(MAKE) -n -f -
+	source="utilities/$(BASENAME).c"; \
+	make=$$(sed -n "/^[^A-Za-z]* Make: /{s///p;q;}; /^$$/q" "$$source"); \
+	echo "$@: $$source; +$${make:?$@: recipe not found}" | $(MAKE) -n -f -
 
 dmenu-src/dmenu: dmenu-src .ALWAYS_RUN
 	ln -s -f ../dx-config.mk dmenu-src/config.mk
@@ -221,8 +208,7 @@ st: bin/st
 slock-src/slock: slock-src .ALWAYS_RUN
 	ln -s -f ../slock-config.h slock-src/config.h
 	$(MAKE) -s patch-slock
-	(cd slock-src && \
-	 $(MAKE) -s $$($(FORCE_PAM) && echo "IN_PASSWD=false") slock)
+	(cd slock-src && $(MAKE) -s $(SLOCK_VARS) slock)
 
 slock: slock-src/slock
 

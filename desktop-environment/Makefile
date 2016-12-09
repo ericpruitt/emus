@@ -1,5 +1,6 @@
 .POSIX:
 
+CC = cc
 PREFIX = $(HOME)
 SUPERUSER_PREFIX = /usr/local
 
@@ -11,8 +12,6 @@ DWM_COMMIT = 839c7f6939368fe5784058975ee95062cc88d4c3
 
 SLOCK_URL = http://git.suckless.org/slock
 SLOCK_COMMIT = 2d2a21a90ad1b53594b1b90b97486189ec54afce
-SLOCK_FORCE_PAM = false
-SLOCK_VARS = $$($(SLOCK_FORCE_PAM) && echo "IN_PASSWD=false")
 
 ST_URL = http://git.suckless.org/st
 ST_COMMIT = e44832408bb3147826c346872b49de105a4d0e0b
@@ -32,7 +31,7 @@ UTILITIES = \
 
 BASENAME = $(@F)
 
-.SILENT: all deps clean cleaner install printvar
+.SILENT: all deps clean cleaner config.mk install printvar
 
 .DEFAULT:
 	@case "$${target:=$@}" in \
@@ -47,6 +46,8 @@ BASENAME = $(@F)
 				patch < "$$patch"; \
 			done; \
 		fi; \
+		cd "$$OLDPWD"; \
+		$(MAKE) -s "$$patch_prefix-src/config.mk"; \
 	  ;; \
 	  clean-*) \
 		target="$${target#clean-}"; \
@@ -58,6 +59,7 @@ BASENAME = $(@F)
 		elif [ -n "$$OLDPWD" ] && [ -e .git ]; then \
 			git stash save --quiet "make $@"; \
 			git clean -d -f -q -x; \
+			rm -f config.mk; \
 		else \
 			echo "make: not sure how to clean '$$target'" >&2; \
 			exit 1; \
@@ -69,6 +71,7 @@ BASENAME = $(@F)
 		commit="$$($(MAKE) -s printvar VARIABLE=$${prefix}_COMMIT)"; \
 		git clone "$$url" "$(BASENAME).tmp"; \
 		(cd "$(BASENAME).tmp" && git reset --hard $$commit); \
+		rm -f "$(BASENAME).tmp/config.mk"; \
 		mv "$(BASENAME).tmp" "$(BASENAME)"; \
 	  ;; \
 	  *) \
@@ -137,6 +140,30 @@ cleaner:
 printvar:
 	echo '$($(VARIABLE))'
 
+# Check each value in $(ARGS) to verify that the compilation toolchain supports
+# it as a flag or include. If an argument starts with a "-", the argument is
+# treated as a compiler flag. Otherwise, the argument is treated as a path to
+# load using an "include" preprocessor directive. The compiler is only invoked
+# once per argument, and if the inovcation succeeds, the argument is printed to
+# standard output.
+cc-test:
+	trap 'rm -f -- a.out "$$src"' EXIT; \
+	src=".temp.$$$$.c"; \
+	for arg in $(ARGS); do \
+		echo "int main(void) {}" > "$$src"; \
+		test -z "$${arg%%-*}" || echo "#include <$$arg>" >> "$$src"; \
+		$(CC) "$$src" $${arg##[!-]*} 2>/dev/null || continue; \
+		printf "%s " "$$arg"; \
+	done
+
+config.mk:
+	echo CFLAGS = -std=c99 -pedantic -Wall -O3 -I.. \
+		-D_POSIX_C_SOURCE=200809L '-DVERSION=\"edge\"' $(CFLAGS) \
+		$$(test -z "$(LIBRARIES)" || pkg-config --cflags $(LIBRARIES))
+	echo LDFLAGS = $(LDFLAGS) \
+		$$(test -z "$(LIBRARIES)" || pkg-config --libs $(LIBRARIES))
+	echo CC = $(CC)
+
 $(HOME)/.config/Trolltech.conf: presentation/qt.conf
 	cp $^ $@
 
@@ -170,8 +197,16 @@ $(UTILITIES): .ALWAYS_RUN
 	make=$$(sed -n "/^[^A-Za-z]* Make: /{s///p;q;}; /^$$/q" "$$source"); \
 	echo "$@: $$source; +$${make:?$@: recipe not found}" | $(MAKE) -n -f -
 
+dmenu-src/config.mk dwm-src/config.mk:
+	lxinerama="$$(pkg-config --silence-errors --libs xinerama)"; \
+	$(MAKE) -s config.mk \
+		CFLAGS="$${lxinerama:+-DXINERAMA}" \
+		LDFLAGS="$$lxinerama $$($(MAKE) -s cc-test ARGS=-lrt)" \
+		LIBRARIES="fontconfig x11 xft" \
+	  > $@.tmp
+	mv $@.tmp $@
+
 dmenu-src/dmenu: dmenu-src .ALWAYS_RUN
-	ln -s -f ../dx-config.mk dmenu-src/config.mk
 	ln -s -f ../dmenu-config.h dmenu-src/config.h
 	$(MAKE) -s patch-dmenu
 	(cd dmenu-src && $(MAKE) -s dmenu)
@@ -183,7 +218,6 @@ bin/dmenu: dmenu-src/dmenu
 dmenu: bin/dmenu
 
 dwm-src/dwm: dwm-src .ALWAYS_RUN
-	ln -s -f ../dx-config.mk dwm-src/config.mk
 	ln -s -f ../dwm-config.h dwm-src/config.h
 	$(MAKE) -s patch-dwm
 	(cd dwm-src && $(MAKE) -s dwm)
@@ -193,6 +227,13 @@ bin/dwm: dwm-src/dwm
 	cp $? $@
 
 dwm: bin/dwm
+
+st-src/config.mk:
+	$(MAKE) -s config.mk \
+		LDFLAGS="-lm -lutil $$($(MAKE) -s cc-test ARGS=-lrt)" \
+		LIBRARIES="fontconfig x11 xft" \
+	  > $@.tmp
+	mv $@.tmp $@
 
 st-src/st: st-src .ALWAYS_RUN
 	ln -s -f ../st-config.h st-src/config.h
@@ -205,10 +246,22 @@ bin/st: st-src/st
 
 st: bin/st
 
+slock-src/config.mk:
+	cc_shadow_h="$$($(MAKE) cc-test ARGS=shadow.h)"; \
+	LDFLAGS="$$($(MAKE) cc-test ARGS='-lcrypt -lpam')"; \
+	echo "$$LDFLAGS" | grep -q -e -lpam && pam_cflags="-DHAVE_PAM_AUTH"; \
+	$(MAKE) -s config.mk \
+		CFLAGS="$${pam_cflags:-} $${cc_shadow_h:+-DHAVE_SHADOW_H}" \
+		LDFLAGS="$$LDFLAGS" \
+		LIBRARIES="x11 xext xrandr" \
+	  > $@.tmp
+	uname | grep -qi openbsd || echo COMPATSRC = explicit_bzero.c >> $@.tmp
+	mv $@.tmp $@
+
 slock-src/slock: slock-src .ALWAYS_RUN
 	ln -s -f ../slock-config.h slock-src/config.h
 	$(MAKE) -s patch-slock
-	(cd slock-src && $(MAKE) -s $(SLOCK_VARS) slock)
+	(cd slock-src && $(MAKE) -s slock)
 
 slock: slock-src/slock
 

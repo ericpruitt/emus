@@ -24,10 +24,9 @@ external dependencies as needed. Once the binaries are built, they can be
 installed with `make install`. This will symlink into place binaries that do
 not require super-user privileges and copy those that do.
 
-Files ending in *-config.h and *.mk are typically the application configuration
-options and build configuration headers for suckless.org projects. These are
-automatically copied into place as config.h and config.mk as part of the build
-process.
+Files ending in \*-config.h are typically the application options for
+suckless.org projects. These are automatically copied into place as config.h as
+part of the build process.
 
 The "utilities" folder contains miscellaneous C applications typically
 consisting of a single source file. The compilation information is extracted
@@ -393,8 +392,6 @@ refactored. This patch notably differs from Jan's in the following ways:
 - C preprocessor guards have been added so slock can still be compiled when
   this patch is applied regardless of whether or not the PAM development
   libraries are available.
-- Build support for libpam is enabled automatically if the user's account is
-  not listed in "/etc/passwd".
 
 Other changes include:
 
@@ -402,6 +399,9 @@ Other changes include:
   index is `PAM_WAIT`.
 - With this patch, slock drops privileges using the return values of
   _getuid(2)_ and _getgid(2)_ instead of constants in "config.h".
+
+To build slock with PAM support, add "-lpam" to the library flags and
+"-DHAVE_PAM_AUTH" to the C preprocessor flags.
 
   [jce-pam-auth]: http://tools.suckless.org/slock/patches/pam_auth
 

@@ -33,6 +33,12 @@ BASENAME = $(@F)
 
 .SILENT: all deps clean cleaner config.mk install printvar
 
+# The default target handles fetching, patching and reverting (cleaning)
+# external repositories. Targets matching "patch-*" will result in "*-src"
+# being patched if there are patches available for it. Targets matching
+# "clean-*" will result in "*" being cleaned or, when that path does not exist
+# "*-src" being cleaned. Targets ending in "*-src" will retch external
+# dependencies.
 .DEFAULT:
 	@case "$${target:=$@}" in \
 	  patch-*) \
@@ -80,6 +86,7 @@ BASENAME = $(@F)
 	  ;; \
 	esac; \
 
+# Compile all known binaries.
 all:
 	touch .MARK
 	$(MAKE) -s dmenu dwm slock st $(UTILITIES)
@@ -90,6 +97,7 @@ all:
 	fi
 	rm -f .MARK
 
+# Install all compiled binaries.
 install: all
 	echo "PREFIX = $(PREFIX)"
 	echo "SUPERUSER_PREFIX = $(SUPERUSER_PREFIX)"
@@ -102,6 +110,7 @@ install: all
 	done
 	$(MAKE) -s $(CONFIG_TARGETS)
 
+# Install build dependencies.
 deps:
 	if [ -e /etc/debian_version ]; then \
 		apt-get install \
@@ -124,6 +133,7 @@ deps:
 		exit 1; \
 	fi; \
 
+# Revert external repositories to a fresh state and delete compiled binaries.
 clean:
 	for folder in *-src; do \
 		test -e "$$folder" || continue; \
@@ -133,10 +143,12 @@ clean:
 	rm -f .MARK bin/*
 	echo "Done cleaning."
 
+# Delete all external source trees and compiled binaries.
 cleaner:
 	rm -rf .MARK *-src bin
 	echo "All external source trees and compiled binaries deleted."
 
+# Print the contents of a variable named $(VARIABLE).
 printvar:
 	echo '$($(VARIABLE))'
 
@@ -156,6 +168,10 @@ cc-test:
 		printf "%s " "$$arg"; \
 	done
 
+# Print text that can be used to generate a config.mk file for suckless.org
+# projects. This target assumes that the variables CFLAGS, LDFLAGS and CC flags
+# are defined. A list of libraries supported by pkg-config can optionally be
+# provided via LIBRARIES.
 config.mk:
 	echo CFLAGS = -std=c99 -pedantic -Wall -O3 -I.. \
 		-D_POSIX_C_SOURCE=200809L '-DVERSION=\"edge\"' $(CFLAGS) \
@@ -186,6 +202,8 @@ $(HOME)/.xsession: xsession
 $(TERMINFO)/s/st: st-src/st.info
 	tic -s -x st-src/st.info
 
+# Dummy target used to ensure a recipe is always executed even if it is
+# otherwise up to date.
 .ALWAYS_RUN:
 
 # The combination of the "+" command prefix and "-n" is used to force make to

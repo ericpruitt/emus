@@ -28,6 +28,7 @@ set noswapfile
 set nowritebackup
 set ruler
 "set scrolloff=5
+set sections=
 set shiftwidth=4
 set shortmess+=I
 set smartcase

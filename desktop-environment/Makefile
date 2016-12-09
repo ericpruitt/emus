@@ -182,6 +182,10 @@ config.mk:
 		$$(test -z "$(LIBRARIES)" || pkg-config --libs $(LIBRARIES))
 	echo CC = $(CC)
 
+# Dummy target used to ensure a recipe is always executed even if it is
+# otherwise up to date.
+ALWAYS_RUN:
+
 $(HOME)/.config/Trolltech.conf: presentation/qt.conf
 	cp $^ $@
 
@@ -204,14 +208,10 @@ $(HOME)/.xsession: xsession
 $(TERMINFO)/s/st: st-src/st.info
 	tic -s -x st-src/st.info
 
-# Dummy target used to ensure a recipe is always executed even if it is
-# otherwise up to date.
-.ALWAYS_RUN:
-
 # The combination of the "+" command prefix and "-n" is used to force make to
 # display the command being executed even if "-s" is inherited from the
 # invoking make.
-$(UTILITIES): .ALWAYS_RUN
+$(UTILITIES): ALWAYS_RUN
 	mkdir -p bin
 	source="utilities/$(BASENAME).c"; \
 	make=$$(sed -n "/^[^A-Za-z]* Make: /{s///p;q;}; /^$$/q" "$$source"); \
@@ -226,7 +226,7 @@ dmenu-src/config.mk dwm-src/config.mk:
 	  > $@.tmp
 	mv $@.tmp $@
 
-dmenu-src/dmenu: dmenu-src .ALWAYS_RUN
+dmenu-src/dmenu: dmenu-src ALWAYS_RUN
 	ln -s -f ../dmenu-config.h dmenu-src/config.h
 	$(MAKE) -s patch-dmenu
 	(cd dmenu-src && $(MAKE) -s dmenu)
@@ -237,7 +237,7 @@ bin/dmenu: dmenu-src/dmenu
 
 dmenu: bin/dmenu
 
-dwm-src/dwm: dwm-src .ALWAYS_RUN
+dwm-src/dwm: dwm-src ALWAYS_RUN
 	ln -s -f ../dwm-config.h dwm-src/config.h
 	$(MAKE) -s patch-dwm
 	(cd dwm-src && $(MAKE) -s dwm)
@@ -255,7 +255,7 @@ st-src/config.mk:
 	  > $@.tmp
 	mv $@.tmp $@
 
-st-src/st: st-src .ALWAYS_RUN
+st-src/st: st-src ALWAYS_RUN
 	ln -s -f ../st-config.h st-src/config.h
 	$(MAKE) -s patch-st
 	(cd st-src && $(MAKE) -s st)
@@ -278,7 +278,7 @@ slock-src/config.mk:
 	uname | grep -qi openbsd || echo COMPATSRC = explicit_bzero.c >> $@.tmp
 	mv $@.tmp $@
 
-slock-src/slock: slock-src .ALWAYS_RUN
+slock-src/slock: slock-src ALWAYS_RUN
 	ln -s -f ../slock-config.h slock-src/config.h
 	$(MAKE) -s patch-slock
 	(cd slock-src && $(MAKE) -s slock)

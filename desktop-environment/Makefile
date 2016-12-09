@@ -286,4 +286,4 @@ slock-src/slock: slock-src ALWAYS_RUN
 slock: slock-src/slock
 
 $(SUPERUSER_PREFIX)/bin/slock: slock-src/slock
-	sudo install -m 4755 -g 0 -o 0 $? $@
+	$$(command -v sudo || command -v doas) install -m 4755 -g 0 -o 0 $? $@

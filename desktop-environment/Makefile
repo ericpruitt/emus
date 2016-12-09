@@ -1,3 +1,5 @@
+# Author: Eric Pruitt (https://www.codevat.com)
+# License: BSD 2-Clause (http://opensource.org/licenses/BSD-2-Clause)
 .POSIX:
 
 CC = cc

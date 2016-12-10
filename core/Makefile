@@ -1,5 +1,7 @@
 # Author: Eric Pruitt (https://www.codevat.com)
 # License: 2-Clause BSD (http://opensource.org/licenses/BSD-2-Clause)
+.POSIX:
+
 COMMON_PREFIX = $(PWD)/common
 CFLAGS = -I$(COMMON_PREFIX)/include -O3 -s
 LDFLAGS = -L$(COMMON_PREFIX)/lib -static
@@ -114,16 +116,6 @@ PRINT_AUTOCONF_UNDEFS = printf "/**/ \#undef HAVE_%s\n" \
 	GETSERVBYNAME \
 	GETSERVENT \
 	GRP_H \
-
-default: all
-
-# These lines are used to ensure errexit and nounset are enabled for all
-# commands with some BSD make variants (.SHELL) and GNU make (.SHELLFLAGS).
-# When .POSIX is specified, compliant make implementations should at least set
-# errexit even if other targets are ignored.
-.POSIX:
-.SHELL: path=/bin/sh errFlag=eu
-.SHELLFLAGS = -euc
 
 all:
 	@if [ -n "$${CC:-}" ]; then \

@@ -500,7 +500,7 @@ $(BASH)/bash: $(BASH_FOLDER) $(READLINE_BUILT)
 			CFLAGS="$(CFLAGS)" \
 			LDFLAGS="$(LDFLAGS)" \
 			--disable-nls \
-			--with-installed-readline \
+			--with-installed-readline="$(COMMON_PREFIX)" \
 			--without-bash-malloc \
 		; \
 	fi; \

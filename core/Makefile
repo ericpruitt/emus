@@ -306,6 +306,7 @@ purge:
 binaries: bash coreutils findutils gawk grep less tmux vim
 
 $(PUBRING):
+	rm -rf "$(DIRNAME).tmp"; \
 	mkdir -m 700 $(DIRNAME).tmp; \
 	for key in public-keys/*; do \
 		test ! -h "$$key" || continue; \

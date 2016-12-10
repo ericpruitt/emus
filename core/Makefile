@@ -3,8 +3,9 @@
 .POSIX:
 
 COMMON_PREFIX = $(PWD)/common
-CFLAGS = -I$(COMMON_PREFIX)/include -O
+CFLAGS = -I$(COMMON_PREFIX)/include -O1
 LDFLAGS = -L$(COMMON_PREFIX)/lib -static
+DEFAULT_TERMINFO_DIR = /etc/terminfo:/lib/terminfo:/usr/share/terminfo
 DIST_BIN = ~/.local/bin
 DIST_MAN = ~/.local/share/man
 
@@ -433,7 +434,7 @@ $(NCURSES_BUILT): $(NCURSES_FOLDER)
 			--disable-db-install \
 			--enable-static \
 			--prefix="$(COMMON_PREFIX)" \
-			--with-default-terminfo-dir=/etc/terminfo:/lib/terminfo:/usr/share/terminfo \
+			--with-default-terminfo-dir="$(DEFAULT_TERMINFO_DIR)" \
 			--without-ada \
 			--without-cxx \
 			--without-cxx-binding \

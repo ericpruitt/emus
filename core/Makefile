@@ -69,9 +69,17 @@ TARGET = $$(echo "$@" | grep "^/" || echo "$(PWD)/$@")
 
 GPG = gpg --homedir=gnupghome
 MAN1 = $(MAN)/man1
-OS = $$(echo $$(uname)-$$(uname -r) | tr A-Z a-z)
 PUBRING = gnupghome/pubring.gpg
 WGET = wget --no-use-server-timestamps -nv
+OS = $$( \
+	if [ -e /etc/debian_version ]; then \
+		echo debian; \
+	elif [ -e /etc/redhat-release ]; then \
+		echo redhat; \
+	else \
+		echo $$(uname)-$$(uname -r) | tr A-Z a-z; \
+	fi; \
+)
 
 BINARIES = \
 	$(BASH)/bash \
@@ -172,14 +180,8 @@ sanity:
 	exit "$${exit_status:-0}"; \
 
 deps:
-	@if [ -e /etc/debian_version ]; then \
-		echo "Detected Debian-based Linux: running apt-get..."; \
-		apt-get install \
-			automake \
-			build-essential \
-			pkg-config \
-		; \
-	elif [ "$(OS)" = openbsd-6.0 ]; then \
+	@case "$${os=$(OS)}" in \
+	  openbsd-6.0) \
 		echo "Detected OpenBSD 6.0: running pkg_add..."; \
 		pkg_add \
 			automake-1.15p0 \
@@ -190,8 +192,9 @@ deps:
 		; \
 		echo "Please ensure that AUTOCONF_VERSION and" \
 		     "AUTOMAKE_VERSION are defined in the environment."; \
-	elif [ "$(OS)" = freebsd-11.0-release-p1 ]; then \
-		echo "Detected FreeBSD 11.0: running pkg..."; \
+	  ;; \
+	  freebsd-11.*) \
+		echo "Detected FreeBSD 11: running pkg..."; \
 		pkg install \
 			automake \
 			git \
@@ -199,9 +202,20 @@ deps:
 			pkgconf \
 			wget \
 		; \
-	else \
-		echo "Unsupported OS: cannot install build dependencies" >&2; \
-	fi; \
+	  ;; \
+	  *debian*) \
+		echo "Detected Debian-based Linux: running apt-get..."; \
+		apt-get install \
+			automake \
+			build-essential \
+			pkg-config \
+		; \
+	  ;; \
+	  *) \
+		echo "$$os: dependency installation not supported" >&2; \
+		exit 1; \
+	  ;; \
+	esac; \
 
 install what:
 	@if [ $@ = install ]; then \

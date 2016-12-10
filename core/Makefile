@@ -110,7 +110,18 @@ VIM_RUNTIME_TARGETS = \
 VIM_RUNTIME_EXTRAS = \
 	runtime/doc/tags \
 
-# These features must be disabled to achieve full static linking with glibc.
+# These features are known to be incompatible with static linking on certain
+# platforms with various libc implementation. Although the list was generated
+# based on compiler warnings from glibc on Linux, I have verified that
+# dlopen(3) does not work in FreeBSD static binaries, and documentation for
+# other platforms indicates this list at least partially applies to other
+# systems; the NOTES section from nsswitch.conf(4) for SunOS 5.8 reads:
+#
+#   Programs that use the getXXbyYY() functions cannot be linked statically
+#   since the implementation of these functions requires dynamic linker
+#   functionality to access the shared objects /usr/lib/nss_SSS.so.1 at run
+#   time.
+#
 # The "/**/" ensures that autoconf will not modify these lines since they will
 # no longe match the regular expression it uses to find preprocessor
 # definitions (/^[\t ]*#[\t ]*(define|undef)[\t ]+.../ in the files reviewed).

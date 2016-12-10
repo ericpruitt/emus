@@ -3,7 +3,7 @@
 .POSIX:
 
 COMMON_PREFIX = $(PWD)/common
-CFLAGS = -I$(COMMON_PREFIX)/include -O3 -s
+CFLAGS = -I$(COMMON_PREFIX)/include -O
 LDFLAGS = -L$(COMMON_PREFIX)/lib -static
 DIST_BIN = ~/.local/bin
 DIST_MAN = ~/.local/share/man
@@ -189,6 +189,15 @@ deps:
 		; \
 		echo "Please ensure that AUTOCONF_VERSION and" \
 		     "AUTOMAKE_VERSION are defined in the environment."; \
+	elif [ "$(OS)" = freebsd-11.0-release-p1 ]; then \
+		echo "Detected FreeBSD 11.0: running pkg..."; \
+		pkg install \
+			automake \
+			git \
+			gnupg1 \
+			pkgconf \
+			wget \
+		; \
 	else \
 		echo "Unsupported OS: cannot install build dependencies" >&2; \
 	fi; \
@@ -306,11 +315,15 @@ purge:
 binaries: bash coreutils findutils gawk grep less tmux vim
 
 $(PUBRING):
+	weak_key_flag="--allow-weak-digest-algos"; \
+	gpg $$weak_key_flag -h > /dev/null 2>&1 || weak_key_flag=""; \
 	rm -rf "$(DIRNAME).tmp"; \
 	mkdir -m 700 $(DIRNAME).tmp; \
 	for key in public-keys/*; do \
 		test ! -h "$$key" || continue; \
-		$(GPG) --homedir="$(DIRNAME).tmp" --import < "$$key"; \
+		flag="$$weak_key_flag"; \
+		test "$${key##*/}" = "findutils-james-youngman.asc" || flag=""; \
+		$(GPG) $$flag --homedir="$(DIRNAME).tmp" --import < "$$key"; \
 	done; \
 	mv $(DIRNAME).tmp $(DIRNAME); \
 
@@ -611,10 +624,19 @@ $(GAWK_FOLDER): $(GAWK).tar.xz $(GAWK).tar.xz.sig $(PUBRING)
 	(cat $(PATCHES) || echo) | (cd $(DIRNAME) && patch -p0); \
 	touch $(TARGET); \
 
+# The configuration script fails to detect mktime on FreeBSD, but since mktime
+# is a POSIX function, it will be present on all of the platforms I care about.
+# This recipe appends "#define HAVE_MKTIME 1" to the end of the configuration
+# template regardless of whether or not autoconf defines it. The statement
+# "test -e configh.in" is to make this somewhat future proof -- since all of
+# the other repositories use "config.h.in", I think configh.in may be renamed
+# in the future.
 $(GAWK)/gawk: $(GAWK_FOLDER) $(GMP_BUILT) $(MPFR_BUILT) $(NCURSES_BUILT) $(READLINE_BUILT)
 	cd $(GAWK); \
 	LDFLAGS="$(LDFLAGS)"; \
 	if ! [ -e Makefile ]; then \
+		test -e configh.in; \
+		echo "/**/ #define HAVE_MKTIME 1" >> configh.in; \
 		./configure \
 			CFLAGS="$(CFLAGS) -DREALLYMEAN" \
 			LDFLAGS="$$LDFLAGS" \

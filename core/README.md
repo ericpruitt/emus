@@ -40,6 +40,9 @@ implementations though it most certainly works on others:
 - OpenBSD 6.0
   - GNU Make
   - OpenBSD Make (NetBSD derivative forked c. 1995)
+- FreeBSD 11
+  - GNU Make
+  - NetBSD Make
 
 As of October 30th, 2016, `$(PWD)` evaluates to an empty string when using GNU
 Make on OpenBSD 6.0 which will cause various build recipes to fail. When using

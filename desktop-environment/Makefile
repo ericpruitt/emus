@@ -176,7 +176,7 @@ cc-test:
 # provided via LIBRARIES.
 config.mk:
 	echo CFLAGS = -std=c99 -pedantic -Wall -O3 -I.. \
-		-D_POSIX_C_SOURCE=200809L '-DVERSION=\"edge\"' $(CFLAGS) \
+		-D_DEFAULT_SOURCE '-DVERSION=\"edge\"' $(CFLAGS) \
 		$$(test -z "$(LIBRARIES)" || pkg-config --cflags $(LIBRARIES))
 	echo LDFLAGS = $(LDFLAGS) \
 		$$(test -z "$(LIBRARIES)" || pkg-config --libs $(LIBRARIES))
@@ -250,6 +250,7 @@ dwm: bin/dwm
 
 st-src/config.mk:
 	$(MAKE) -s config.mk \
+		CFLAGS="-D_XOPEN_SOURCE" \
 		LDFLAGS="-lm -lutil $$($(MAKE) -s cc-test ARGS=-lrt)" \
 		LIBRARIES="fontconfig x11 xft" \
 	  > $@.tmp

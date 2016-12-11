@@ -71,9 +71,9 @@ index b2bc9bd..70bbd3e 100644
  #include "util.h"
  
  /* macros */
-+#define argmatch(format, ...)   (sscanf(_p.t, " " format " %n", __VA_ARGS__, &_p.o) && (_p.t += _p.o))
-+#define wordmatch(name)         (sscanf(_p.t, " %255s %n", _p.n, &_p.o) && (!strcmp(name, _p.n) && (_p.t += _p.o)))
-+#define PARSING_LOOP(data)      for (struct {char *t; char n[256]; int o; } _p = {.t = data}; _p.t[0];)
++#define argmatch(format, ...)   (sscanf(_cursor, " " format " %n", __VA_ARGS__, &_read) && (_cursor += _read))
++#define wordmatch(name)         (sscanf(_cursor, " %255s %n", _buffer, &_read) && (!strcmp(name, _buffer) && (_cursor += _read)))
++#define PARSING_LOOP(data)      char *_cursor; char _buffer[256]; int _read; for (_cursor = data; _cursor[0];)
  #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
  #define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
  #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \

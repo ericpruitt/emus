@@ -141,6 +141,13 @@ function main()
     elif [[ "$command" == "commit" ]]; then
         shift
         git commit --untracked-files=no -v "$@"
+    elif [[ "$command" == "status" ]] && [[ "$#" -eq 1 ]] && [[ -t 1 ]]; then
+        echo "Branches:"
+        git branch -a -v
+        echo
+        git -c color.status=always status | sed -e 's/(use "git.*//g' \
+                                                -e '/^[ \t]\+$/d' \
+                                                -e '/^On branch/d'
     elif [[ "$(type -t "git-$command")" == "function" ]]; then
         shift
         git-"$command" "$@"

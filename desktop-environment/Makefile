@@ -5,6 +5,11 @@
 CC = cc
 PREFIX = $(HOME)
 SUPERUSER_PREFIX = /usr/local
+RUN_COMMAND_AS_ROOT = $$( \
+	{ command -v sudo && echo "/bin/sh"; } || \
+	{ command -v doas && echo "/bin/sh"; } || \
+	echo "su root" \
+) -c
 
 DMENU_URL = http://git.suckless.org/dmenu
 DMENU_COMMIT = e90b88e12a88d6214c00d5ee58ceb69446aa5ac4
@@ -286,4 +291,4 @@ slock-src/slock: slock-src ALWAYS_RUN
 slock: slock-src/slock
 
 $(SUPERUSER_PREFIX)/bin/slock: slock-src/slock
-	$$(command -v sudo || command -v doas) install -m 4755 -g 0 -o 0 $? $@
+	$(RUN_COMMAND_AS_ROOT) 'install -m 4755 -g 0 -o 0 $? $@'

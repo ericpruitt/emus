@@ -65,8 +65,7 @@ BASENAME = $(@F)
 			echo "make: $@: path not found" >&2; \
 			exit 1; \
 		elif [ -n "$$OLDPWD" ] && [ -e .git ]; then \
-			git stash save --quiet "make $@"; \
-			git clean -d -f -q -x; \
+			git stash save --quiet -u "make $@"; \
 			rm -f config.mk; \
 		else \
 			echo "make: not sure how to clean '$$target'" >&2; \

@@ -67,9 +67,10 @@ DIRNAME = $(@D)
 PATCHES = $(PWD)/patches/$$(echo $@ | cut -d/ -f1)-*
 TARGET = $$(echo "$@" | grep "^/" || echo "$(PWD)/$@")
 
-GPG = gpg --homedir=gnupghome
+GNUPGHOME = gnupghome
+GPG = gpg --homedir="$(GNUPGHOME)"
 MAN1 = $(MAN)/man1
-PUBRING = gnupghome/pubring.gpg
+PUBRING = $(GNUPGHOME)/pubring.gpg
 WGET = wget --no-use-server-timestamps -nv
 OS = $$( \
 	if [ -e /etc/debian_version ]; then \
@@ -136,6 +137,48 @@ PRINT_AUTOCONF_UNDEFS = printf "/**/ \#undef HAVE_%s\n" \
 	GETSERVBYNAME \
 	GETSERVENT \
 	GRP_H \
+
+# The default target handles cleaning operations.
+.DEFAULT:
+	@case "$${target:=$@}" in \
+	  clean-common) \
+		test -e common || exit 0; \
+		for path in common/* common; do \
+			test -f "$$path" -o "$$path" = "common" || continue; \
+			library_folder="$${path##*/}"; \
+			echo "- $$library_folder"; \
+			rm -f -r "$$library_folder"; \
+		done; \
+	  ;; \
+	  clean-*) \
+		clean_target="$${target#clean-}"; \
+		for binary in $(BINARIES); do \
+			test "$$clean_target" = "$${binary##*/}" || continue; \
+			cd "$${folder=$${binary%%/*}}" 2>/dev/null || exit 0; \
+			if [ -d .git ]; then \
+			    test -n "$$(git status --porcelain)" || exit 0; \
+			    git stash save -u --quiet "make $@"; \
+			else \
+				cd ..; \
+				rm -f -r "$$OLDPWD"; \
+			fi; \
+			exec echo "- $$folder"; \
+		done; \
+		echo "make: not sure how to clean '$$clean_target'" >&2; \
+		exit 1; \
+	  ;; \
+	  clean) \
+		for binary in $(BINARIES); do \
+			test -d "$${binary%%/*}" || continue; \
+			$(MAKE) -s "clean-$${binary##*/}"; \
+		done; \
+		test ! -e common || $(MAKE) -s clean-common; \
+	  ;; \
+	  *) \
+		echo "make: $$target: target not recognized" >&2; \
+		exit 1; \
+	  ;; \
+	esac; \
 
 all:
 	@if [ -n "$${CC:-}" ]; then \
@@ -301,42 +344,20 @@ dist.tar.xz:
 
 dist: dist.tar.xz
 
-clean:
-	@PATHS="$(PATHS)"; \
-	for path in $${PATHS:-*/}; do \
-		if [ -d "$$path" ] && [ "$$path" != patches/ ] && \
-		  [ "$$path" != public-keys/ ] && \
-		   [ "$$path" != musl-*/ ]; then \
-			if [ -d "$$path"/.git ]; then \
-				printf "\055 %s: " "$$path"; \
-				cd "$$path"; \
-				git reset --hard; \
-				git clean -d -f -q -x; \
-				cd ..; \
-			else \
-				echo "- $$path"; \
-				rm -r -f "$$path"; \
-			fi; \
-		fi; \
+purge: clean
+	@for path in *.tar.* *.sig *.asc *.log; do \
+		test -e "$$path" || continue; \
+		echo "- $$path"; \
+		rm -f "$$path"; \
 	done; \
-	rm -f *.log; \
-	if [ -e $(MUSL).tar.gz ] && ! [ -s $(MUSL).tar.gz ]; then \
-		printf "\055 %s\n" $(MUSL).tar.gz*; \
-		rm "$(MUSL).tar.gz"*; \
-	fi; \
-
-purge:
-	@if [ -n "$(PATHS)" ]; then \
-		echo "PATHS is only valid for 'clean.'" >&2; \
-		exit 1; \
-	fi; \
-	for path in */ *.tar.* *.sig *.asc *.log; do \
-		if [ -e "$$path" ] && [ "$$path" != patches/ ] && \
-		  [ "$$path" != public-keys/ ]; then \
-			echo "- $$path"; \
-			rm -r -f "$$path"; \
-		fi; \
+	for path in */.git; do \
+		dirname="$${path%%/*}"; \
+		test -e "$$dirname" || continue; \
+		echo "- $$dirname"; \
+		rm -f -r "$$dirname"; \
 	done; \
+	test ! -d musl-*/ || rm -f -r musl-*/; \
+	test ! -d "$(GNUPGHOME)" || rm -f -r "$(GNUPGHOME)"; \
 
 binaries: bash coreutils findutils gawk grep less tmux vim
 

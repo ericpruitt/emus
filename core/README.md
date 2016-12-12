@@ -92,14 +92,13 @@ executed.
   and "MAN" used by the distributable's Makefile. The default value of
   "DIST_BIN" is "~/.local/bin", and the default value of "DIST_MAN" is
   "~/.local/share/man".
-- **clean:** Iterate over folders in this directory and, if a folder is a Git
-  repository, restore it to a pristine state. Any other folders that are not
-  "patches/", "public-keys/" or "musl-\*" are deleted. Specific folders can be
-  cleaned by setting the "PATHS" variable, e.g. `make clean PATHS='tmux*
-  libevent-2.0.22-stable'`.
-- **purge:** Like clean but also delete Git repository folders, folders
-  matching "musl-\*" and any files matching \*.tar.\*, \*.sig or \*.asc. This
-  target fails if "PATHS" is set.
+- **clean:** Iterate over source code and build folders in this directory and,
+  if a folder is a Git repository, restore it to a pristine state while other
+  folders are deleted in their entirety. To clean a specific project's folder,
+  use `clean-$PROJECT_NAME` e.g. "clean-bash," "clean-less," etc.
+- **purge:** Like clean but also delete Git repository folders, the local GPG
+  home directory, folders matching musl-\* and any files matching \*.tar.\*,
+  \*.sig, \*.asc or \*.log.
 - **binaries:** Attempt to build all available applications.
 
 ### Patches ###

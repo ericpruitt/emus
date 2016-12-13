@@ -12,7 +12,7 @@ xrdb -load "$where/xrdb.ad"
 xset s off -dpms
 blackwalls
 
-test -e "$HOME/.local.xsession" && "$HOME/.local.xsession"
+test -e "$HOME/.local.xsession" && . "$HOME/.local.xsession"
 
 compton -C &
 st &

@@ -32,7 +32,6 @@ static int can_execute(const char *);
 static int command_list_contains(const char *);
 static char *command_path(const char *);
 static int load_commands_from_file(const char *);
-int main(int argc, char **);
 static int menu(const char *, char **);
 static int parse_desktop_entry(const char *, const struct stat *, int,
                                struct FTW *);

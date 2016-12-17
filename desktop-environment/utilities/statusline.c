@@ -33,7 +33,6 @@ static char *battery_indicator(const char *);
 static void delete_range(char *, const size_t, const size_t);
 static size_t dow_with_ordinal_dom(char *, const size_t, struct tm *);
 static void gmt_to_utc(char *);
-int main(int, char **);
 static double mtime(const char *);
 static size_t load_indicators_from_file(char *, size_t, const char *,
                                         const char *);

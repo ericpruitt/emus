@@ -40,11 +40,6 @@ static int stringcomparator(const void *, const void *);
 static void usage(const char *);
 
 /**
- * Indicate a variable is unused to silence compiler warnings.
- */
-#define unused (void)
-
-/**
  * This value controls the number of additional members the command list will
  * have allocated when it needs to be resized.
  */
@@ -291,12 +286,12 @@ static char *command_path(const char *command)
  * Return: 1 if a non-recoverable error was encountered while processing the
  * file and 0 otherwise.
  */
-static int parse_desktop_entry(const char *fpath, const struct stat *sb,
-  int typeflag, struct FTW *ftwbuf) {
+static int parse_desktop_entry(const char *fpath, const struct stat *_2,
+  int _3, struct FTW *_4) {
 
-    unused ftwbuf;
-    unused sb;
-    unused typeflag;
+    /* Unused: */ (void) _2;
+    /* Unused: */ (void) _3;
+    /* Unused: */ (void) _4;
 
     char boolean_value_string[6];
     FILE *file;

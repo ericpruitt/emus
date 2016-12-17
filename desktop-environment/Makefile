@@ -237,7 +237,7 @@ dmenu-src/dmenu: dmenu-src ALWAYS_RUN
 
 bin/dmenu: dmenu-src/dmenu
 	mkdir -p bin
-	cp $? $@
+	cp -f $? $@
 
 dmenu: bin/dmenu
 
@@ -248,7 +248,7 @@ dwm-src/dwm: dwm-src ALWAYS_RUN
 
 bin/dwm: dwm-src/dwm
 	mkdir -p bin
-	cp $? $@
+	cp -f $? $@
 
 dwm: bin/dwm
 
@@ -267,7 +267,7 @@ st-src/st: st-src ALWAYS_RUN
 
 bin/st: st-src/st
 	mkdir -p bin
-	cp $? $@
+	cp -f $? $@
 
 st: bin/st
 

@@ -1,0 +1,16 @@
+--- original.shell.c	2016-12-17 20:31:12.930010667 -0800
++++ shell.c	2016-12-17 20:31:05.362213931 -0800
+@@ -1774,10 +1774,10 @@
+ 	}
+       else
+ 	{
+-	  current_user.user_name = _("I have no name!");
++	  current_user.user_name = getenv("LOGNAME") ? getenv("LOGNAME") : _("I have no name!");
+ 	  current_user.user_name = savestring (current_user.user_name);
+-	  current_user.shell = savestring ("/bin/sh");
+-	  current_user.home_dir = savestring ("/");
++	  current_user.shell = savestring (getenv("SHELL") ? getenv("SHELL") : "/bin/sh");
++	  current_user.home_dir = savestring (getenv("HOME") ? getenv("HOME") : "/");
+ 	}
+ #if defined (HAVE_GETPWENT)
+       endpwent ();

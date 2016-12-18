@@ -138,6 +138,9 @@ launched, is used as a fallback when "/proc/self/exe" cannot be read.
   - When running commands interactively, the terminal attributes are modified
     so the suspend character is interpreted as literal sequence at the prompt
     but produces a SIGTSTP signal during command execution.
+  - If a user's information cannot be queried from the password database, Bash
+    will use the environment variables "LOGNAME", "HOME" and "SHELL" if they
+    are set.
 
 Repository Layout
 -----------------

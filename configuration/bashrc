@@ -343,6 +343,7 @@ function -setup()
     source "$HOME/.local.bashrc" 2>&-
 
     export COLUMNS
+    export LINES
     test "$BASH_MAJOR_MINOR" -lt 4004 || set -u
     test "${SHLVL_OFFSET:-}" || export SHLVL_OFFSET="$SHLVL"
     test "$(trap -p DEBUG)" || trap '\-debug-hook "$BASH_COMMAND"' DEBUG

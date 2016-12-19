@@ -414,6 +414,15 @@ color when they are released without pressing a complementary key.
 
 This patch depends on "slock-00-pam-authentication.diff".
 
+### Support for Longer Passwords ###
+
+**File:** slock-10-longer-password-buffer.diff
+
+This patch enlarges the buffer used to store user input so slock can support
+longer passwords.
+
+This patch depends on "slock-00-pam-authentication.diff".
+
 Patches for _st_
 ----------------
 

@@ -84,6 +84,7 @@ function -define-aliases()
     alias tr='-paginate tr --'
     alias tree='-paginate tree -C -a -I ".git|__pycache__|lost+found"'
     alias vi='vim'
+    alias whois='-paginate whois --'
     alias xargs='-paginate xargs -- --verbose'
     alias xxd='-paginate xxd --'
 

@@ -4,7 +4,7 @@
 shopt -s extglob
 
 # Path of canonical Git binary.
-declare -g GIT_PATH="${GIT_PATH:-}"
+declare -g CANONICAL_GIT="${CANONICAL_GIT:-/usr/bin/git}"
 
 # Pull from the default remote branch overwriting any local changes.
 #
@@ -109,6 +109,32 @@ function git-ls()
       | xargs -0 ls --color=auto -d ${ls_flags[@]+"${ls_flags[@]}"} --
 }
 
+# Make the commit file verbose by default, and do not include information about
+# untracked files.
+#
+function git-commit()
+{
+    git commit --untracked-files=no --verbose "$@"
+}
+
+# This function works mostly like the regular status command, but when no
+# arguments are supplied, the default output shows branch information and
+# removes usage hints.
+#
+function git-status()
+{
+    if [[ "$#" -gt 0 ]] || ! [[ -t 1 ]]; then
+        git "$@"
+        return
+    fi
+
+    echo "Branches:"
+    git branch -a -v
+    echo
+    git -c color.status=always status \
+      | sed -e 's/(use "git.*//g' -e '/^[ \t]\+$/d' -e '/^On branch/d'
+}
+
 # Stand-in function that calls the canonical Git binary to eliminate infinite
 # loops.
 #
@@ -116,44 +142,28 @@ function git-ls()
 #
 function git()
 {
-    "$GIT_PATH" "$@"
+    "$CANONICAL_GIT" "$@"
 }
 
 function main()
 {
     local command="${1:-}"
 
-    local path
     local git
 
     set -e -u -o pipefail
 
-    for git in $(which -a git); do
-        if ! [[ "$git" -ef "$0" ]]; then
-            GIT_PATH="$git"
-            break
-        fi
-    done
+    if ! [[ -e "$CANONICAL_GIT" ]]; then
+        for git in $(which -a git); do
+            test ! "$git" -ef "$0" && CANONICAL_GIT="$git" && break
+        done
 
-    if [[ -z "$GIT_PATH" ]]; then
-        echo "Could not find canonical Git binary." >&2
-        exit 1
-    elif [[ "$command" == "commit" ]]; then
+        test -z "$CANONICAL_GIT" && echo "Could not find Git binary." && exit 1
+    fi
+
+    if [[ "$(type -t "git-$command")" = "function" ]]; then
         shift
-        git commit --untracked-files=no -v "$@"
-    elif [[ "$command" == "status" ]] && [[ "$#" -eq 1 ]] && [[ -t 1 ]]; then
-        echo "Branches:"
-        git branch -a -v
-        echo
-        git -c color.status=always status | sed -e 's/(use "git.*//g' \
-                                                -e '/^[ \t]\+$/d' \
-                                                -e '/^On branch/d'
-    elif [[ "$(type -t "git-$command")" == "function" ]]; then
-        shift
-        git-"$command" "$@"
-    elif [[ "$(type -t "$0")" == "function" ]]; then
-        shift
-        "$0" "$@"
+        "git-$command" "$@"
     else
         git "$@"
     fi

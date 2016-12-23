@@ -23,6 +23,9 @@ SLOCK_COMMIT = 2d2a21a90ad1b53594b1b90b97486189ec54afce
 ST_URL = http://git.suckless.org/st
 ST_COMMIT = e44832408bb3147826c346872b49de105a4d0e0b
 
+USER_LAUNCHER_ENTRIES = \
+	st \
+
 CONFIG_TARGETS = \
 	$(HOME)/.config/Trolltech.conf \
 	$(HOME)/.del \
@@ -194,8 +197,7 @@ $(HOME)/.config/Trolltech.conf: presentation/qt.conf
 	cp $^ $@
 
 $(HOME)/.del: $(PREFIX)/bin/del
-	echo st > $@
-	del -r > /dev/null
+	printf "%s\n" $(USER_LAUNCHER_ENTRIES) | del -r > /dev/null
 
 $(HOME)/.fonts.conf: presentation/fonts.conf
 	test ! -h $@ || rm $@

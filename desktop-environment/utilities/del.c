@@ -31,7 +31,7 @@ static int add_command_to_list(const char *);
 static int can_execute(const char *);
 static int command_list_contains(const char *);
 static char *command_path(const char *);
-static int load_commands_from_file(const char *);
+static int load_commands_from_file(const char *, FILE *);
 static int menu(const char *, char **);
 static int parse_desktop_entry(const char *, const struct stat *, int,
                                struct FTW *);
@@ -360,17 +360,21 @@ static int parse_desktop_entry(const char *fpath, const struct stat *_2,
 }
 
 /**
- * Load commands from specified file into memory.
+ * Load commands from specified file into memory. The file can be specified
+ * using either a string or a preexisting `FILE *` but not both at the same
+ * time.
  *
  * Arguments:
- * - path: Path to file containing list of commands.
+ * - path: Path to file containing list of commands. This must be `NULL` when
+ *   "file" is not.
+ * - file: File containing list of commands. This must be `NULL` when "path" is
+ *   not. This function will **not** call _fclose(3)_ on this argument.
  *
  * Return: 0 on success and a non-zero value otherwise. On failure, "errno" is
  * set appropriately.
  */
-static int load_commands_from_file(const char *path)
+static int load_commands_from_file(const char *path, FILE *file)
 {
-    FILE *file;
     ssize_t line_length;
 
     size_t bufsize = 0;
@@ -378,7 +382,10 @@ static int load_commands_from_file(const char *path)
     int failed = 0;
     int saved_errno = 0;
 
-    if (!(file = fopen(path, "r"))) {
+    if ((file && path) || !(file || path)) {
+        errno = EINVAL;
+        return 1;
+    } else if (path && !(file = fopen(path, "r"))) {
         return 1;
     }
 
@@ -401,7 +408,9 @@ static int load_commands_from_file(const char *path)
     }
 
     free(entry);
-    fclose(file);
+    if (path) {
+        fclose(file);
+    }
     errno = saved_errno;
     return failed;
 }
@@ -438,6 +447,10 @@ static void usage(const char *self)
         "           of find(1), the search is equivalent to the following:\n"
         "           find $ARGUMENTS -xdev -name '*.desktop'\n"
         "           When no paths are given, \"/\" is searched by default.\n"
+        "           A newline-separated list of programs can be fed to del\n"
+        "           via stdin to include programs that do not have desktop\n"
+        "           entries in the generated launcher list. The programs\n"
+        "           must exist in $PATH or they will be silently ignored.\n"
         "\n"
         "When \"-r\" is not specified, dmenu is launched with the command\n"
         "list feed into standard input. Trailing command line arguments can\n"
@@ -480,7 +493,11 @@ static int refresh_command_list(const char *path, char **dirs, const size_t n)
 
     char tempname[PATH_MAX + 6];  // 6: strlen of the mkstemp suffix
 
-    if (load_commands_from_file(path) && errno != ENOENT) {
+    if (!isatty(STDIN_FILENO) && errno != EBADF &&
+      load_commands_from_file(NULL, stdin)) {
+        perror("del: could not load commands from stdin");
+        return 1;
+    } else if (load_commands_from_file(path, NULL) && errno != ENOENT) {
         verror("del: could not load commands from '%s'", path);
         return 1;
     }

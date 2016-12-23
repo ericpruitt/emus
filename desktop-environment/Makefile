@@ -197,6 +197,7 @@ $(HOME)/.config/Trolltech.conf: presentation/qt.conf
 	cp $^ $@
 
 $(HOME)/.del: $(PREFIX)/bin/del
+	echo "- launcher list"
 	printf "%s\n" $(USER_LAUNCHER_ENTRIES) | del -r > /dev/null
 
 $(HOME)/.fonts.conf: presentation/fonts.conf
@@ -212,7 +213,8 @@ $(HOME)/.xsession: xsession
 	ln -s $(PWD)/$^ $@
 
 $(TERMINFO)/s/st: st-src/st.info
-	tic -s -x st-src/st.info
+	echo "- terminfo"
+	tic -x st-src/st.info
 
 # The combination of the "+" command prefix and "-n" is used to force make to
 # display the command being executed even if "-s" is inherited from the

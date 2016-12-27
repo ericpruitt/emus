@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+playground="$(mktemp -d)/playground"
+mkdir -- "$playground"
+cd "$playground"
+export HISTFILE="/dev/null"
+set +e
+echo "PWD: $playground"
+"${SHELL:-/bin/sh}"
+rc="$?"
+
+if [ "$1" != "-k" ]; then
+    rm -r -f -- "$(dirname "$playground")"
+    echo 'Playground files deleted.'
+fi
+
+exit "$rc"

@@ -154,7 +154,8 @@ PRINT_AUTOCONF_UNDEFS = printf "/**/ \#undef HAVE_%s\n" \
 		clean_target="$${target#clean-}"; \
 		for binary in $(BINARIES); do \
 			test "$$clean_target" = "$${binary##*/}" || continue; \
-			cd "$${folder=$${binary%%/*}}" 2>/dev/null || exit 0; \
+			folder="$${binary%%/*}"; \
+			cd "$${folder:=/dev/null/X}" 2>/dev/null || exit 0; \
 			if [ -d .git ]; then \
 			    test -n "$$(git status --porcelain)" || exit 0; \
 			    git stash save -u --quiet "make $@"; \

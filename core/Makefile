@@ -357,7 +357,7 @@ purge: clean
 		echo "- $$dirname"; \
 		rm -f -r "$$dirname"; \
 	done; \
-	test ! -d musl-*/ || rm -f -r musl-*/; \
+	rm -f -r musl-*/ *-patches/; \
 	test ! -d "$(GNUPGHOME)" || rm -f -r "$(GNUPGHOME)"; \
 
 binaries: bash coreutils findutils gawk grep less tmux vim

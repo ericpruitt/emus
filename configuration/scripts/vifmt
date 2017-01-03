@@ -1,0 +1,191 @@
+#!/usr/bin/mawk -f
+# This script is designed to be used with Vim's "formatprg" option. It reads
+# text from standard input, formats the text and writes the text to standard
+# output. In addition to formatting plain text files, the script also supports
+# formatting code that uses C/C++ style comments (i.e. "//..." and "/* ... */")
+# and comment-only lines denoted with "#".
+#
+# User-specifiable variables:
+#
+# - FORMAT: This can be "c" to support C/C++ style comments, "hash" to support
+#   comment lines denoted with "#" or "plain" to indicate that the entire file
+#   is plain text. The default value is "plain".
+# - TAB_SIZE: Leading tabs will be expanded to the number of spaces specified
+#   in this variable. If this value is less than 1, it will be set to 1.
+# - TEXT_WIDTH: Last column that may contain printable characters. This
+#   defaults to 79.
+#
+# These variables are set using awk's "-v" option. In the following example,
+# the text width is set to 72 and the comment format to C/C++:
+#
+#   vifmt -v TEXT_WIDTH=72 -v FORMAT=c
+#
+# This script is POSIX-Awk compatible, but mawk is used in the shebang line
+# since it tends to be faster than gawk which is often symlinked from
+# .../bin/awk on Linux systems.
+#
+# This script works similarly to Vim's built-in formatting, but it supports
+# wrapping text with two columns, specifically for formatting command line tool
+# usage information, and it also supports list-specific wrapping inside of
+# source code comments.
+#
+# TODO:
+# - When FORMAT is "c", switch to plain mode if the first non-blank line is not
+#   a comment.
+# - Markdown support to make it possible to filter an entire document through
+#   this script and have it gracefully handle things like headers, code blocks
+#   and avoid putting words inside of link brackets on separate lines.
+BEGIN {
+    # Currently only used to match "-" lists but may be expanded later.
+    LEADER_REGEX = "^ *- "
+
+    if (FORMAT == "c") {
+        COMMENT_PREFIX = "^( */?(\\*|//)( |$))"
+    } else if (FORMAT == "hash") {
+        COMMENT_PREFIX = "^ *#( |$)"
+    } else if (FORMAT == "plain") {
+        COMMENT_PREFIX = ""
+    } else {
+        if (!length(FORMAT)) {
+            FORMAT = "(unset / empty string)"
+        }
+        print "vifmt: unrecognized format: " FORMAT > (stderr = "/dev/fd/2")
+        close(stderr)
+        exit 1
+    }
+
+    TEXT_WIDTH = int(0 + TEXT_WIDTH)
+    if (TEXT_WIDTH < 1) {
+        TEXT_WIDTH = 79
+    }
+
+    TAB_SIZE = int(0 + TAB_SIZE)
+    if (TAB_SIZE < 1) {
+        TAB_SIZE = 8
+    }
+
+    buffer = ""
+    buffer_comment = ""
+    prefix = ""
+}
+
+function wrap(text, margin,    c, columns, eol, leader, cfix, n, pad, width)
+{
+    leader = ""
+    cfix = FORMAT == "c" ? index(margin, "/*") : 0
+    pad = ""
+
+    if (match(text, /^[ \t]+/)) {
+        pad = substr(text, RSTART, RLENGTH)
+        text = substr(text, RSTART + RLENGTH)
+    }
+
+    # Detect lists denoted with "-"
+    if (index(text, "- ") == 1) {
+        leader = "- "
+
+    # Detect blocks of text with two columns
+    } else if (match(text, /  ([^ ] |[^ ][^ ])+  +/)) {
+        leader = substr(text, 1, RSTART + RLENGTH - 1)
+    } else if (match(text, /  +/)) {
+        leader = substr(text, 1, RSTART + RLENGTH - 1)
+    }
+
+    if (length(leader)) {
+        text = substr(text, length(leader) + 1)
+    }
+
+    n = split(text, columns)
+    leader = pad leader
+    eol = TEXT_WIDTH - length(leader) - length(margin)
+    if (match(pad, /^\t+/)) {
+        eol -= (TAB_SIZE - 1) * RLENGTH
+    }
+
+    width = 0
+
+    for (c = 1; c <= n; c++) {
+        if (!width && length(columns[c]) >= eol) {
+            print margin leader columns[c]
+        } else {
+            width = width + length(columns[c])
+            if (c == 1 || width >= eol) {
+                width = length(columns[c])
+                if (c != 1) {
+                    print ""
+                }
+                printf "%s", margin leader columns[c]
+            } else {
+                width = width + 1
+                printf " %s", columns[c]
+            }
+            if (c == n) {
+                print ""
+            }
+        }
+
+        if (cfix) {
+            cfix = 0
+            sub("/", " ", margin)
+        }
+
+        # The original contents of the leader are only shown for the first
+        # line of wrapped text. After that, it becomes a set of spaces to align
+        # subsequent lines.
+        gsub(/[^ \t]/, " ", leader)
+    }
+}
+
+{
+    text = $0
+    comment = ""
+
+    if (length(COMMENT_PREFIX) && match(text, COMMENT_PREFIX)) {
+        comment = substr(text, RSTART, RLENGTH)
+        text = substr(text, RSTART + RLENGTH)
+        if (substr(comment, length(comment), 1) != " ") {
+            comment = comment " "
+        }
+
+        if ((comment != buffer_comment) && !length(buffer_comment)) {
+            buffer_comment = comment
+        }
+    } else if (buffer_comment) {
+        wrap(buffer, buffer_comment)
+        buffer = ""
+        buffer_comment = ""
+    }
+
+    sub(/[ \t]+$/, "", text)
+    is_blank = !split(text, _)
+    ignore = length(COMMENT_PREFIX) && !length(comment)
+
+    if (length(buffer) && (is_blank || match(text, LEADER_REGEX) || ignore)) {
+        wrap(buffer, buffer_comment)
+        buffer = ""
+
+        # For C/C++ style block comments, "/*" should only be used for the
+        # first line.
+        if (FORMAT == "c" && index(buffer_comment, "/*")) {
+            sub(/\//, " ", buffer_comment)
+        }
+    }
+
+    if (ignore) {
+        print
+    } else if (is_blank) {
+        gsub(/[ \t]+$/, "", comment)
+        print comment
+    } else if (length(buffer)) {
+        gsub(/^[ \t]+|[ \t]+$/, "", text)
+        buffer = buffer " " text
+    } else {
+        buffer = text
+    }
+}
+
+END {
+    if (length(buffer)) {
+        wrap(buffer, buffer_comment)
+    }
+}

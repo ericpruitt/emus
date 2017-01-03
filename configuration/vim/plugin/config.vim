@@ -7,3 +7,7 @@ hi link BufTabLineActive Comment
 hi link BufTabLineCurrent Normal
 hi link BufTabLineFill Comment
 hi link BufTabLineHidden Comment
+
+" This keeps brackets embedded in parentheses from being highlighted as an
+" error in C files.
+hi def link cErrInParen Normal

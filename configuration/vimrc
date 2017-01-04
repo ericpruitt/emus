@@ -11,7 +11,6 @@ set encoding=utf8
 set expandtab
 set fileformat=unix
 set fillchars+=vert:│
-set formatprg=vifmt\ -v\ FORMAT=hash
 set hidden
 set hlsearch
 set ignorecase
@@ -61,7 +60,6 @@ if !&diff
     autocmd BufLeave * let b:view = winsaveview()
 endif
 
-autocmd FileType c,cpp,java,php,*.h setlocal formatprg=vifmt\ -v\ FORMAT=c
 autocmd FileType gitcommit setlocal textwidth=72 spell
 autocmd FileType make,gitconfg,go,gitconfig setlocal noexpandtab
 autocmd FileType markdown setlocal formatprg=

@@ -7,9 +7,22 @@
 #
 # User-specifiable variables:
 #
-# - FORMAT: This can be "c" to support C/C++ style comments, "hash" to support
-#   comment lines denoted with "#" or "plain" to indicate that the entire file
-#   is plain text. The default value is "plain".
+# - FORMAT: Format of the text in the file being edited. The valid values for
+#   this are "c", "generic" and "plain:"
+#   - c: text file that supports C/C++ style comments. The format internally
+#     falls back to "plain" if the first non-blank line does not begin with a
+#     C/C++ style comment so blocks of text inside of /* ... */ without leading
+#     asterisks (*) on each line can be wrapped like a normal, plain-text file
+#     which is likely what most users want to happen. If the first non-blank
+#     line of the input is a comment, all of the following lines that are not
+#     comment are left unchanged.
+#   - generic: text file supports comments marked by a spaces and then a
+#     certain string of characters. The supported comment strings are "#",
+#     "--", "//", ";" and '"'. The string used for comments is automatically
+#     detected, and lines that do not match the expected comment format are
+#     left unchanged.
+#   - plain: text file format that does not support comments.
+#
 # - TAB_SIZE: Leading tabs will be expanded to the number of spaces specified
 #   in this variable. If this value is less than 1, it will be set to 1.
 # - TEXT_WIDTH: Last column that may contain printable characters. This
@@ -30,29 +43,27 @@
 # source code comments.
 #
 # TODO:
-# - When FORMAT is "c", switch to plain mode if the first non-blank line is not
-#   a comment.
 # - Markdown support to make it possible to filter an entire document through
 #   this script and have it gracefully handle things like headers, code blocks
 #   and avoid putting words inside of link brackets on separate lines.
 BEGIN {
-    # Currently only used to match "-" lists but may be expanded later.
-    LEADER_REGEX = "^ *- "
-
-    if (FORMAT == "c") {
-        COMMENT_PREFIX = "^( */?(\\*|//)( |$))"
-    } else if (FORMAT == "hash") {
-        COMMENT_PREFIX = "^ *#( |$)"
-    } else if (FORMAT == "plain") {
-        COMMENT_PREFIX = ""
-    } else {
-        if (!length(FORMAT)) {
-            FORMAT = "(unset / empty string)"
-        }
+    if (FORMAT !~ /^(c|generic|plain)$/) {
         print "vifmt: unrecognized format: " FORMAT > (stderr = "/dev/fd/2")
         close(stderr)
         exit 1
     }
+
+    # Currently only used to match "-" lists but may be expanded later.
+    LEADER_REGEX = "^ *- "
+
+    TOKEN_TO_FORMAT["/*"]   = "c"
+    TOKEN_TO_FORMAT["/**"]  = "c"
+
+    TOKEN_TO_FORMAT["#"]    = "generic"         # Shell, AWK, Python, etc.
+    TOKEN_TO_FORMAT["--"]   = "generic"         # SQL
+    TOKEN_TO_FORMAT["//"]   = "generic"         # Go
+    TOKEN_TO_FORMAT[";"]    = "generic"         # Assembly, INI files
+    TOKEN_TO_FORMAT["\""]   = "generic"         # Vim
 
     TEXT_WIDTH = int(0 + TEXT_WIDTH)
     if (TEXT_WIDTH < 1) {
@@ -66,7 +77,6 @@ BEGIN {
 
     buffer = ""
     buffer_comment = ""
-    prefix = ""
 }
 
 function wrap(text, margin,    c, columns, eol, leader, cfix, n, pad, width)
@@ -137,10 +147,26 @@ function wrap(text, margin,    c, columns, eol, leader, cfix, n, pad, width)
 }
 
 {
+    if (FORMAT != "plain" && !length(COMMENT_REGEX) && NF) {
+        if (FORMAT == "c" || ((guess = TOKEN_TO_FORMAT[$1]) == "c")) {
+            if (FORMAT == "c" && $1 !~ /^(\/\*\*?|\*|\/\/)$/) {
+                FORMAT = "plain"
+            } else {
+                COMMENT_REGEX = "^([ \t]*/?(\\*|//)( |$))"
+                FORMAT = guess
+            }
+        } else if (guess) {
+            COMMENT_REGEX = "^[ \t]*" $1 "( |$)"
+        } else {
+            print
+            next
+        }
+    }
+
     text = $0
     comment = ""
 
-    if (length(COMMENT_PREFIX) && match(text, COMMENT_PREFIX)) {
+    if (length(COMMENT_REGEX) && match(text, COMMENT_REGEX)) {
         comment = substr(text, RSTART, RLENGTH)
         text = substr(text, RSTART + RLENGTH)
         if (substr(comment, length(comment), 1) != " ") {
@@ -158,7 +184,7 @@ function wrap(text, margin,    c, columns, eol, leader, cfix, n, pad, width)
 
     sub(/[ \t]+$/, "", text)
     is_blank = !length(text)
-    ignore = length(COMMENT_PREFIX) && !length(comment)
+    ignore = length(COMMENT_REGEX) && !length(comment)
 
     if (length(buffer) && (is_blank || match(text, LEADER_REGEX) || ignore)) {
         wrap(buffer, buffer_comment)

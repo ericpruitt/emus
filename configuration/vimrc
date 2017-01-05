@@ -119,3 +119,7 @@ cabbrev E e <C-r>=getchar(1) == 32 && getchar(0) ? $PWD . "/" : ""<CR>
 " Make * and # searches case sensitive by default.
 nnoremap * /\C\<<C-R>=expand("<cword>")<CR>\><CR>
 nnoremap # ?\C\<<C-R>=expand("<cword>")<CR>\><CR>
+
+" Remap gw to gq-equivalent so it uses formatprg
+nnoremap gw{ gq{''
+nnoremap gw} gq}''

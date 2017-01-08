@@ -10,7 +10,7 @@ function! ConfigureFormatScript()
     endif
     let &l:formatprg = "vifmt"
 \                    . " -v FORMAT=" . l:format
-\                    . " -v TAB_SIZE=" . &l:tabstop
+\                    . " -v TAB_STOP=" . &l:tabstop
 \                    . " -v TEXT_WIDTH=" . &l:textwidth
 endfunction
 

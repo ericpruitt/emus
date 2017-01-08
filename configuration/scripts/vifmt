@@ -53,9 +53,6 @@ BEGIN {
         exit 1
     }
 
-    # Currently only used to match "-" lists but may be expanded later.
-    LEADER_REGEX = "^ *- "
-
     TOKEN_TO_FORMAT["/*"]   = "c"
     TOKEN_TO_FORMAT["/**"]  = "c"
 
@@ -102,8 +99,8 @@ function wrap(text, margin,    c, columns, eol, leader, cfix, n, pad, width)
     }
 
     # Detect lists denoted with "-"
-    if (index(text, "- ") == 1) {
-        leader = "- "
+    if (text ~ /^[*-] /) {
+        leader = substr(text, 1, 1) " "
 
     # Detect blocks of text with two columns
     } else if (match(text, /  ([^ ] |[^ ][^ ])+  +/)) {
@@ -250,7 +247,7 @@ function is_title(text)
         }
     }
 
-    if (is_blank || verbatim || reset || match(text, LEADER_REGEX)) {
+    if (is_blank || verbatim || reset || text ~ /^[ \t]*(([*-]|[0-9]+\.) )/) {
         wrap(buffer, buffer_comment)
         buffer = ""
 

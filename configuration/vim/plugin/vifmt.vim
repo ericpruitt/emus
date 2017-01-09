@@ -10,6 +10,7 @@ function! ConfigureFormatScript()
     endif
     let &l:formatprg = "vifmt"
 \                    . " -v FORMAT=" . l:format
+\                    . " -v MARKDOWN=" . (&filetype == "markdown")
 \                    . " -v TAB_STOP=" . &l:tabstop
 \                    . " -v TEXT_WIDTH=" . &l:textwidth
 endfunction

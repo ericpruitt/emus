@@ -23,6 +23,9 @@
 #     left unchanged.
 #   - plain: text file format that does not support comments.
 #
+# - MARKDOWN: When this is a non-zero value, all formatted text is treated as
+#   Markdown so things like code blocks, headers and link references are left
+#   untouched.
 # - TAB_STOP: Leading tabs will be expanded to the number of spaces specified
 #   in this variable. If this value is less than 1, it will be set to 1.
 # - TEXT_WIDTH: Last column that may contain printable characters. This
@@ -42,10 +45,6 @@
 # usage information, and it also supports list-specific wrapping inside of
 # source code comments.
 #
-# TODO:
-# - Markdown support to make it possible to filter an entire document through
-#   this script and have it gracefully handle things like headers, code blocks
-#   and avoid putting words inside of link brackets on separate lines.
 BEGIN {
     if (FORMAT !~ /^(c|generic|plain)$/) {
         print "vifmt: unrecognized format: " FORMAT > (stderr = "/dev/fd/2")
@@ -74,6 +73,29 @@ BEGIN {
     TITLE_CASE_IGNORED_REGEX = "( (" \
         "a|is|and|for|to|the|for|nor|but|so|by|as|in|out|per|at|via" \
     ")( |$))+"
+
+    _["ATX header"] = "^##?#?#?#?#? "
+    _["Header or horizontal rule"] = "^(===+|---+|\\*\\*\\*+|___+)$"
+    _["Indented code block"] = "^    ([^*-]|[-*]([^ \t]|$))"
+    _["Link reference"] = "^ ? ? ? ?[[^][ \t]+]: "
+    MARKDOWN_INLINE_VERBATIM_REGEX = join("|", _)
+}
+
+# Combine all values in an array with a delimiter.
+#
+# Arguments:
+# - delimiter: String that will separate each array element.
+# - array: Array to be joined with delimiter.
+#
+# Return: All values of "array" joined with "delimiter."
+#
+function join(delimiter, array,    key, output)
+{
+    for (key in array) {
+        output = output ? output delimiter array[key] : array[key]
+    }
+
+    return output
 }
 
 # Print text wrapped so the last occupied column is "TEXT_WIDTH."
@@ -248,6 +270,30 @@ function is_title(text)
             # Lines that appear to be metadata (things like "Author: ...",
             # "License: ...", etc.) mark the beginning of a new block.
             reset = reset || verbatim || is_title(substr(text, 1, colon - 1))
+        }
+    }
+
+    if (!is_usage && MARKDOWN) {
+        verbatim = verbatim || length(fenced_code_block)
+
+        if (!verbatim && match(text, MARKDOWN_INLINE_VERBATIM_REGEX)) {
+            # A line made entirely of "=" or "-" after a line of text indicates
+            # that the preceding line was a header and should be printed as-is.
+            if (text ~ /^[=-]/ && length(buffer)) {
+                print buffer
+                buffer = ""
+                buffer_comment = ""
+            }
+            verbatim = 1
+        } else if (text ~ /^(~~~+|```+)$/) {
+            verbatim = 1
+            if (length(fenced_code_block)) {
+                if (index(text, fenced_code_block)) {
+                    fenced_code_block = ""
+                }
+            } else {
+                fenced_code_block = substr(text, 1, 3)
+            }
         }
     }
 

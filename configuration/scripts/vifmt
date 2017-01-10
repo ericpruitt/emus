@@ -77,7 +77,7 @@ BEGIN {
     _["ATX header"] = "^##?#?#?#?#? "
     _["Header or horizontal rule"] = "^(===+|---+|\\*\\*\\*+|___+)$"
     _["Indented code block"] = "^    ([^*-]|[-*]([^ \t]|$))"
-    _["Link reference"] = "^ ? ? ? ?[[^][ \t]+]: "
+    _["Link reference"] = "^ ? ? ? ?\\[[^][ \t]+\\]: "
     MARKDOWN_INLINE_VERBATIM_REGEX = join("|", _)
 }
 

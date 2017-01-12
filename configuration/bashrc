@@ -72,6 +72,7 @@ function -define-aliases()
     alias pstree='-paginate pstree -- -a -p -s -U'
     alias readelf='-paginate readelf --'
     alias reset='tput reset'
+    alias scp='scp -p -r'
     alias screen='env SHLVL_OFFSET= screen'
     alias sed='-paginate sed --'
     alias shred='shred -n 0 -v -u -z'

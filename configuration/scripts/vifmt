@@ -194,7 +194,7 @@ function is_title(text)
 
     if (FORMAT != "plain" && !length(COMMENT_REGEX) && NF) {
         if (FORMAT == "c" || ((guess = TOKEN_TO_FORMAT[$1]) == "c")) {
-            if (FORMAT == "c" && $1 !~ /^(\/\*\*?|\*|\/\/)$/) {
+            if (FORMAT == "c" && $1 !~ /^(\/\*\*?|\*|\/\/|#.*)$/) {
                 FORMAT = "plain"
             } else {
                 COMMENT_REGEX = "^([ \t]*/?(\\*|//)( |$))"

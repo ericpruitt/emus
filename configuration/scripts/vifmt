@@ -280,7 +280,7 @@ function is_title(text)
             # A line made entirely of "=" or "-" after a line of text indicates
             # that the preceding line was a header and should be printed as-is.
             if (text ~ /^[=-]/ && length(buffer)) {
-                print buffer
+                print comment buffer
                 buffer = ""
                 buffer_comment = ""
             }

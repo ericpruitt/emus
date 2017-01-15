@@ -27,7 +27,6 @@ set nonumber
 set noswapfile
 set nowritebackup
 set ruler
-set scrolloff=3
 set sections=
 set shiftwidth=4
 set shortmess+=I
@@ -36,6 +35,7 @@ set softtabstop=4
 set t_vb=""
 set tabstop=4
 set timeout timeoutlen=1000 ttimeoutlen=50
+set updatetime=100
 set viminfo=
 set virtualedit=block
 set visualbell
@@ -102,6 +102,14 @@ for i in range(char2nr("a"), char2nr("z"))
     exec "vnoremap '" . nr2char(i) . " '" . toupper(nr2char(i))
 endfor
 unlet i
+
+" When searching for text, change the value of scrolloff so there is always
+" some context visible. After a delay defined by updatetime, the scrolloff will
+" be reset to 0 so it does not affect motion keys.
+autocmd CursorHold * set scrolloff=0
+for s:_ in ["/", "?", "n", "N", "*", "#"]
+    exec "nnoremap " . s:_ . " :set scrolloff=3<CR>" . s:_
+endfor
 
 " Replacement for autochdir that doesn't require netbeans_intg or sun_workshop
 " compile-time options.

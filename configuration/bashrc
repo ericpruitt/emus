@@ -86,6 +86,7 @@ function -define-aliases()
     alias tree='-paginate tree -C -a -I ".git|__pycache__|lost+found"'
     alias vi='vim'
     alias whois='-paginate whois --'
+    alias wmctrl='-paginate env -- DISPLAY="${DISPLAY:-:0.0}" wmctrl'
     alias xargs='-paginate xargs -- --verbose'
     alias xxd='-paginate xxd --'
 
@@ -151,7 +152,7 @@ function -prune-aliases()
         argv=($alias_value)
         # Ignore environment variables and the paginate function.
         i=0
-        while [[ "${argv[i]}" = @(env|-paginate|[A-Z_]*([A-Z0-9_])=*) ]]; do
+        while [[ "${argv[i]}" = @(env|-paginate|--|[A-Z_]*([A-Z0-9_])=*) ]]; do
             let i++
         done
         if ! hash "${argv[i]}" 2>&-; then

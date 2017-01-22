@@ -154,6 +154,13 @@ excluding vacant tags from the list of displayed tags. Empty rectangles would
 normally be drawn next to vacant tags, but this patch removes them since they
 are no longer necessary.
 
+### Ignore Floating Windows In Monocle Mode Count ###
+
+**File:** dwm-00-ignore-floating-windows-in-monocle-count.diff
+
+The number of windows shown in the monocle mode icon will not include floating
+windows with this patch applied.
+
 ### Eliminate Reordering Caused By `_NET_ACTIVE_WINDOW` ###
 
 **File:** dwm-00-no-reordering-from-net-active-window.diff

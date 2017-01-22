@@ -1,0 +1,19 @@
+Title: Ignore Floating Windows In Monocle Mode Count
+Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+The number of windows shown in the monocle mode icon will not include floating
+windows with this patch applied.
+
+diff --git dwm.c dwm.c
+index 421bf27..5f82faa 100644
+--- dwm.c
++++ dwm.c
+@@ -1124,7 +1124,7 @@ monocle(Monitor *m)
+ 	Client *c;
+ 
+ 	for (c = m->clients; c; c = c->next)
+-		if (ISVISIBLE(c))
++		if (ISVISIBLE(c) && !c->isfloating)
+ 			n++;
+ 	if (n > 0) /* override layout symbol */
+ 		snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n);

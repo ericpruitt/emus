@@ -1,6 +1,6 @@
 " Configure format script based on the current settings for the buffer.
 function! ConfigureFormatScript()
-    if !empty(matchstr("^(java|c|cpp|php)$", &l:filetype))
+    if !empty(matchstr("^(java(script)?|c|cpp|php)$", &l:filetype))
         let l:format = "c"
     elseif !len(&filetype) ||
 \     !empty(matchstr("^(gitcommit|markdown|text)$", &l:filetype))

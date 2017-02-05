@@ -159,6 +159,7 @@ PRINT_AUTOCONF_UNDEFS = printf "/**/ \#undef HAVE_%s\n" \
 			if [ -d .git ]; then \
 			    test -n "$$(git status --porcelain)" || exit 0; \
 			    git stash save -u --quiet "make $@"; \
+			    git clean -f -q -x; \
 			else \
 				cd ..; \
 				rm -f -r "$$OLDPWD"; \

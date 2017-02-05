@@ -806,7 +806,6 @@ $(VIM_FOLDER):
 
 $(VIM)/src/auto/config.h: $(VIM_FOLDER) $(NCURSES_BUILT)
 	cd $(VIM); \
-	git checkout 04e2b4b^ src/mbyte.c; \
 	git diff --quiet && (cat $(PATCHES) || echo) | patch -p0; \
 	if git diff --quiet src/config.h.in; then \
 		{ \

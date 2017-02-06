@@ -3,6 +3,7 @@
 .POSIX:
 
 TARGETS = \
+	$(HOME)/.abcde.conf \
 	$(HOME)/.bashrc \
 	$(HOME)/.dir_colors \
 	$(HOME)/.elinks/elinks.conf \

@@ -22,6 +22,7 @@ MUSL_VERSION = 1.1.15
 NCURSES_VERSION = 6.0
 READLINE_VERSION = 7.0
 TMUX_VERSION = 2.3
+VIM_VERSION = 8.0.0295
 
 BASH = bash-$(BASH_VERSION)
 BASH_PATCHES = $(BASH)-patches
@@ -802,7 +803,7 @@ $(BIN)/tmux: $(TMUX)/tmux
 	cp -f $? $(TARGET); \
 
 $(VIM_FOLDER):
-	git clone https://github.com/vim/vim.git $(VIM); \
+	git clone -b v$(VIM_VERSION) https://github.com/vim/vim.git $(VIM); \
 
 $(VIM)/src/auto/config.h: $(VIM_FOLDER) $(NCURSES_BUILT)
 	cd $(VIM); \

@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# Before locking the screen, attempt to save the values of the variables listed
+# in tmux's update-environment option so they can be restored after the screen
+# is unlocked. This script created to resolve issues caused by logging into a
+# host using a GUI, locking the screen and logging back in via SSH then
+# returning to and unlocking the screen later on.
+set -e -u -o pipefail
+
+declare -r ALWAYS_UNSET_AFTER_UNLOCK="SSH_CONNECTION SSH_TTY"
+declare -r LOCK_COMMAND="slock"
+declare -r TMUX_ENV_LIST="$(tmux show-options -g -v -q update-environment)"
+
+declare    tmux_args=""
+declare    tempfile
+
+# Save the contents of the tmux environment variables listed in
+# "TMUX_ENV_LIST."
+#
+function save-environment()
+{
+    local name
+    local -a parts
+    local regex
+    local script
+    local session_attached
+
+    local matched=""
+    local _tmux_args=""
+
+    for session_attached in $(tmux ls -F "#{session_id}-#{session_attached}"); do
+        test -z "${session_attached#*-1}" || continue
+        matched="x"
+        break
+    done
+
+    test -n "$matched"
+
+    if [[ "$ALWAYS_UNSET_AFTER_UNLOCK" ]]; then
+        printf -v regex "%s|" $ALWAYS_UNSET_AFTER_UNLOCK
+        regex="^(${regex::-1})$"
+    fi
+
+    for name in $TMUX_ENV_LIST; do
+        # Ignore identifiers not using all caps names.
+        test -n "${name##*[!A-Z0-9_]*}" || continue
+        _tmux_args+="setenv -u $name ';' "
+        if ! [[ "$name" =~ $regex ]]; then
+            parts+=("test -z \"\$$name\" || \
+                printf \"setenv %s %q ';' \" \"$name\" \"\$$name\"; "
+            )
+        fi
+    done
+
+    # Glue all of the parts together then quote the Bash script so it can be
+    # passed as a single argument to Bash in any POSIX-compliant shell.
+    printf -v script "%q" "${parts[*]}"
+
+    # The tmux process that will execute this command is not the same process
+    # that is spawned from this script which means it will not inherit any file
+    # descriptors from the shell. On systems with /proc/.../fd/... support,
+    # this can circumvented by writing to standard output of subshell.
+    # Otherwise, a temporary file is used to read output from the server.
+    if [[ -e /proc/self/fd/1 ]]; then
+        _tmux_args+="$(tmux run "bash -c $script > /proc/$BASHPID/fd/1")" ||
+            return
+    else
+        trap 'rm -f -- "$tempfile"' EXIT
+        printf -v tempfile "%q" "$(mktemp /tmp/lock-screen.XXXXXXXXX)"
+        test -n "$tempfile"
+        tmux run "bash -c $script > $tempfile"
+        _tmux_args+="$(<"$tempfile")"
+    fi
+
+    tmux_args="$_tmux_args"
+}
+
+function main()
+{
+    save-environment || echo "$0: could not save tmux environment" >&2
+    "${LOCK_COMMAND[@]}"
+    test -z "$tmux_args" || eval "tmux $tmux_args"
+}
+
+main "$@"

@@ -296,7 +296,7 @@ function -debug-hook()
         done
 
         test -z "$env" || command="$env $command"
-        printf "\033]2;%s\033\\" "${SSH_TTY:+$LOGNAME@$HOSTNAME: }$command"
+        printf '\e]2;%s\e\' "${SSH_TTY:+${LOGNAME:-$USER}@$HOSTNAME: }$command"
     fi
 
     debug_hook_ran="x"

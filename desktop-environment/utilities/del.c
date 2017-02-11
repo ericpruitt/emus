@@ -428,7 +428,8 @@ static void usage(const char *self)
         "\n"
         "DEL searches for Freedesktop Desktop Entries, generates a list of "
         "graphical\ncommands and uses dmenu as a front-end so the user can "
-        "select a command to\nexecute.\n"
+        "select a command to\nexecute. The first time DEL is executed, it "
+        "should be invoked as \"del -r\" to\ngenerate the application list.\n"
         "\n"
         "Exit statuses:\n"
         "  1        Fatal error encountered.\n"
@@ -622,7 +623,11 @@ static int menu(const char *menu_list_path, char **argv)
         } else if (close(STDIN_FILENO) && errno != EBADF) {
             perror("del: could not close stdin");
         } else if (open(menu_list_path, O_RDONLY) < 0) {
-            verror("del: open: %s", menu_list_path);
+            if (errno == ENOENT) {
+                fmterr("del: %s missing; was \"del -r\" run?", menu_list_path);
+            } else {
+                verror("del: open: %s", menu_list_path);
+            }
         } else {
             execvp(argv[0], argv);
             verror("del: %s", argv[0]);

@@ -3,7 +3,7 @@
 .POSIX:
 .SILENT:
 
-TARGETS = \
+USER_TARGETS = \
 	$(HOME)/.abcde.conf \
 	$(HOME)/.bashrc \
 	$(HOME)/.dir_colors \
@@ -20,12 +20,40 @@ TARGETS = \
 	$(HOME)/.vimrc \
 	$(HOME)/bin \
 
+HOST_TARGETS = \
+	/etc/modprobe.d/local.conf \
+	/etc/systemd/system/lock-on-suspend.service \
+	linux-tmpfs-tmp \
+
 BACKUP_FOLDER = $(HOME)/config-backups
 
 PLATFORM = $$(uname -s -m | tr "A-Z " "a-z-" | sed "s/x86_64/amd64/g")
 USERLAND = https://www.codevat.com/downloads/static-unix-userland-$(PLATFORM)
 
-all: $(TARGETS)
+all: $(USER_TARGETS)
+	if ! command -v bash | fgrep -q "$(HOME)" && \
+	  wget -q --spider $(USERLAND); then \
+		$(MAKE) userland; \
+	fi
+	$(MAKE) host
+
+user: $(USER_TARGETS)
+
+host:
+	for target in $(HOST_TARGETS); do \
+		case "$$target" in \
+		  linux-*) uname | grep -iq linux || continue ;; \
+		  *) test -d "$$(dirname -- $$target)" || contnue ;; \
+		esac; \
+		targets="$$targets $$target"; \
+	done; \
+	test -n "$$targets" || exit 0; \
+	if [ "$$(id -u)" -ne 0 ]; then \
+		command -v sudo > /dev/null && exec sudo $(MAKE) $$targets; \
+		echo "make: $@: target must executed as root" >&2; \
+		exit 1; \
+	fi; \
+	$(MAKE) $$targets; \
 
 userland:
 	trap 'cd / && rm -rf "$$tempdir"' EXIT; \
@@ -82,3 +110,64 @@ $(HOME)/.terminfo/t/tmux: terminfo/tmux.info
 	mkdir -p $(@D)
 	find terminfo/ -name "*.info" -print -exec tic {} ";"
 	touch $@
+
+/etc/modprobe.d/local.conf:
+	echo "- $@"
+	rm -f $@.tmp
+	# Disable floppy disk support since having this enabled can cause slow
+	# boot times on systems that support floppy disks but don't have a
+	# physical dive present.
+	echo "blacklist floppy" >> $@.tmp
+	# Depending on how the driver is compiled, FireWire may make the host
+	# vulnerable to DMA exploits, so it is disabled since I have no devices
+	# that rely on FireWire.
+	echo "blacklist firewire_core" >> $@.tmp
+	# Disable blinking activity LED for Intel wireless cards.
+	case "$$(lsmod)" in *iwlwifi*) \
+	  echo "options iwlwifi led_mode=1" >> $@.tmp ;; \
+	esac
+	# If there's a discrete Sound Blaster sound card installed, blacklist
+	# every other PCI audio module to avoid load order / driver precedence
+	# issues if there happens to be another device that also has the
+	# ability to act as a sound card (e.g. a video card that supports audio
+	# over HDMI).
+	case "$$(lsmod)" in *snd_emu10k1*) \
+	  find "/lib/modules/$$(uname -r)/kernel/sound/pci" -type f \
+	    | sed -e '/emu10k/d' \
+	          -e 's/\.ko$$//' \
+	          -e 's/-/_/g' \
+	          -e 's:.*/:blacklist :' >> $@.tmp ;; \
+	esac
+	chmod 644 $@.tmp
+	mv $@.tmp $@
+
+/etc/systemd/system/lock-on-suspend.service:
+	echo "- $@"
+	if [ -z "$(SUDO_USER)" ]; then \
+		echo "make: $@: SUDO_USER must be set to create file" >&2; \
+		exit 1; \
+	fi
+	printf '%s\n' \
+		'[Unit]' \
+		'Description=Lock screen on suspend' \
+		'Before=sleep.target' \
+		'[Service]' \
+		'User=$(SUDO_USER)' \
+		'Type=oneshot' \
+		'Environment=DISPLAY=:0' \
+		'ExecStart=/bin/sh -c \
+			"/usr/local/bin/slock & sleep 1 && pgrep -x slock"' \
+		'KillMode=none' \
+		'[Install]' \
+		'WantedBy=sleep.target' \
+	  | sudo sh -c "touch $@ && chmod 644 $@ && cat > $@"
+	case "$$(systemctl list-unit-files $(@F))" in \
+	  *$(@F)*enabled*) systemctl daemon-reload ;; \
+	  *)               systemctl enable $(@F) ;; \
+	esac
+
+linux-tmpfs-tmp:
+	if ! egrep -q "^\s*tmpfs\s+/tmp/?\s" /etc/fstab; then \
+		echo "tmpfs /tmp/ tmpfs defaults 0" >> /etc/fstab; \
+		echo "- mount -t tmpfs tmpfs /tmp/ (reboot required)"; \
+	fi

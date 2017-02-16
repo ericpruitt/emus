@@ -47,10 +47,10 @@ able to match the specified pattern or string.
 **Note:** The "fifopath" variable supports using `~/` as a prefix to represent
 the user's home directory.
 
-diff --git a/dwm.c b/dwm.c
-index b2bc9bd..70bbd3e 100644
---- a/dwm.c
-+++ b/dwm.c
+diff --git dwm.c dwm.c
+index d27cb67..e7adde8 100644
+--- dwm.c
++++ dwm.c
 @@ -21,6 +21,7 @@
   * To understand everything else, start reading main().
   */
@@ -85,7 +85,7 @@ index b2bc9bd..70bbd3e 100644
  static char stext[256];
  static int screen;
  static int sw, sh;           /* X display screen geometry width, height */
-@@ -489,6 +495,11 @@ cleanup(void)
+@@ -490,6 +496,11 @@ cleanup(void)
  	XSync(dpy, False);
  	XSetInputFocus(dpy, PointerRoot, RevertToPointerRoot, CurrentTime);
  	XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
@@ -97,7 +97,7 @@ index b2bc9bd..70bbd3e 100644
  }
  
  void
-@@ -764,6 +775,12 @@ drawbars(void)
+@@ -749,6 +760,12 @@ drawbars(void)
  		drawbar(m);
  }
  
@@ -110,7 +110,7 @@ index b2bc9bd..70bbd3e 100644
  void
  enternotify(XEvent *e)
  {
-@@ -1393,11 +1410,41 @@ void
+@@ -1378,11 +1395,41 @@ void
  run(void)
  {
  	XEvent ev;
@@ -155,18 +155,11 @@ index b2bc9bd..70bbd3e 100644
  }
  
  void
-@@ -1549,6 +1596,7 @@ setmfact(const Arg *arg)
- void
- setup(void)
- {
-+	char realfifopath[PATH_MAX];
- 	XSetWindowAttributes wa;
- 
- 	/* clean up any zombies immediately */
-@@ -1600,6 +1648,26 @@ setup(void)
+@@ -1598,6 +1645,27 @@ setup(void)
  	XSelectInput(dpy, root, wa.event_mask);
  	grabkeys();
  	focus(NULL);
++	char realfifopath[PATH_MAX];
 +	if (fifopath[0] == '~' && fifopath[1] == '/') {
 +		if (!getenv("HOME")) {
 +			die("Could not determine home directory; HOME is unset.");
@@ -189,8 +182,8 @@ index b2bc9bd..70bbd3e 100644
 +	}
  }
  
- void
-@@ -1634,6 +1702,7 @@ spawn(const Arg *arg)
+ 
+@@ -1646,6 +1714,7 @@ spawn(const Arg *arg)
  	if (arg->v == dmenucmd)
  		dmenumon[0] = '0' + selmon->num;
  	if (fork() == 0) {

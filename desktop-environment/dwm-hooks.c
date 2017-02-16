@@ -138,7 +138,7 @@ static void ruleshook(Client *c)
 
     // Mark windows that get created offscreen as urgent.
     if (!scanning && !ISVISIBLE(c) && strcmp(c->name, "Buddy List")) {
-        seturgent(c);
+        seturgent(c, 1);
     }
 }
 
@@ -228,7 +228,7 @@ static void fifohook(char *command)
         // adds it.
         } else if (argmatch("urgency %d", &intarg)) {
             for (k = 0; k < matchcount; k++) {
-                (intarg ? seturgent : clearurgent)(matches[k]);
+                seturgent(matches[k], intarg);
                 drawbar(matches[k]->mon);
             }
 

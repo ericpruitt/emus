@@ -6,9 +6,11 @@ focused.
 
 This patch depends on "dwm-00-systray.diff".
 
+diff --git dwm.c dwm.c
+index 4933a1f..e987f92 100644
 --- dwm.c
 +++ dwm.c
-@@ -807,11 +807,9 @@ drawbar(Monitor *m)
+@@ -792,11 +792,9 @@ drawbar(Monitor *m)
  		stw = getsystraywidth();
  
  	/* draw status first so it can be overdrawn by tags later */
@@ -23,7 +25,7 @@ This patch depends on "dwm-00-systray.diff".
  
  	resizebarwin(m);
  	for (c = m->clients; c; c = c->next) {
-@@ -2197,9 +2195,13 @@ updatetitle(Client *c)
+@@ -2209,9 +2207,13 @@ updatetitle(Client *c)
  void
  updatestatus(void)
  {

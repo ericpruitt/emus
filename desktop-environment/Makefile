@@ -15,7 +15,7 @@ DMENU_URL = http://git.suckless.org/dmenu
 DMENU_COMMIT = e90b88e12a88d6214c00d5ee58ceb69446aa5ac4
 
 DWM_URL = http://git.suckless.org/dwm
-DWM_COMMIT = 839c7f6939368fe5784058975ee95062cc88d4c3
+DWM_COMMIT = bb3bd6fec37174e8d4bb9457ca815c00609e5157
 
 SLOCK_URL = http://git.suckless.org/slock
 SLOCK_COMMIT = 2d2a21a90ad1b53594b1b90b97486189ec54afce

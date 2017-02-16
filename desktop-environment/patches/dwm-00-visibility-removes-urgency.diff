@@ -14,7 +14,7 @@ index 0362114..e8f808e 100644
  	if (ISVISIBLE(c)) {
  		/* show clients top down */
 +		if (c->isurgent) {
-+			clearurgent(c);
++			seturgent(c, 0);
 +		}
  		XMoveWindow(dpy, c->win, c->x, c->y);
  		if ((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) && !c->isfullscreen)
@@ -25,7 +25,7 @@ index 0362114..e8f808e 100644
  	}
 +
 +	if (c->isurgent && ISVISIBLE(c)) {
-+		clearurgent(c);
++		seturgent(c, 0);
 +	}
  }
  

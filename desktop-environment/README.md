@@ -161,16 +161,6 @@ are no longer necessary.
 The number of windows shown in the monocle mode icon will not include floating
 windows with this patch applied.
 
-### Eliminate Reordering Caused By `_NET_ACTIVE_WINDOW` ###
-
-**File:** dwm-00-no-reordering-from-net-active-window.diff
-
-Some poorly behaved applications (Steam and Chromium to name a couple)
-unnecessarily emit a `_NET_ACTIVE_WINDOW` event when focused or clicked causing
-dwm to pop the window and re-order the window list. This patch changes dwm's
-behavior so `_NET_ACTIVE_WINDOW` events result in "focus" being called on a
-window without popping it to eliminate unwanted reordering.
-
 ### Pipe IPC ###
 
 **File:** dwm-00-pipe-ipc.diff
@@ -236,12 +226,6 @@ Adds function that is used to select the most recently, previously focused
 window that is currently visible. To compile dwm with this patch, the command
 line option "-lrt" must be set and `_POSIX_C_SOURCE` must be greater than or
 equal to 199309 (`cc ... -D_POSIX_C_SOURCE=199309L ...`).
-
-### Implementation of "seturgent" Function ###
-
-**File:** dwm-00-seturgent-function.diff
-
-Adds a new function called "seturgent" for setting the X11 window urgency hint.
 
 ### Smaller Clickable Tag-Bar Area ###
 

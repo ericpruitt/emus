@@ -158,9 +158,10 @@ PRINT_AUTOCONF_UNDEFS = printf "/**/ \#undef HAVE_%s\n" \
 			folder="$${binary%%/*}"; \
 			cd "$${folder:=/dev/null/X}" 2>/dev/null || exit 0; \
 			if [ -d .git ]; then \
-			    test -n "$$(git status --porcelain)" || exit 0; \
+			    test -n "$$(git status --porcelain --ignored)" || \
+			        exit 0; \
 			    git stash save -u --quiet "make $@"; \
-			    git clean -f -q -x; \
+			    git clean -d -f -q -x; \
 			else \
 				cd ..; \
 				rm -f -r "$$OLDPWD"; \

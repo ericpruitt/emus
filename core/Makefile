@@ -512,7 +512,7 @@ $(READLINE_FOLDER): $(READLINE).tar.gz $(READLINE).tar.gz.sig $(PUBRING)
 	(cat $(PATCHES) || echo) | (cd $(DIRNAME) && patch -p0); \
 	touch $(TARGET); \
 
-$(READLINE_BUILT): $(READLINE_FOLDER)
+$(READLINE_BUILT): $(READLINE_FOLDER) $(NCURSES_BUILT)
 	cd $(READLINE); \
 	./configure -C \
 		CFLAGS="$(CFLAGS)" \
@@ -682,7 +682,7 @@ $(GAWK_FOLDER): $(GAWK).tar.xz $(GAWK).tar.xz.sig $(PUBRING)
 # "test -e configh.in" is to make this somewhat future proof -- since all of
 # the other repositories use "config.h.in", I think configh.in may be renamed
 # in the future.
-$(GAWK)/gawk: $(GAWK_FOLDER) $(GMP_BUILT) $(MPFR_BUILT) $(NCURSES_BUILT) $(READLINE_BUILT)
+$(GAWK)/gawk: $(GAWK_FOLDER) $(GMP_BUILT) $(MPFR_BUILT) $(READLINE_BUILT)
 	cd $(GAWK); \
 	LDFLAGS="$(LDFLAGS)"; \
 	if ! [ -e Makefile ]; then \

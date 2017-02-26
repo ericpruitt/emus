@@ -23,9 +23,9 @@
  
 +      if (!vsusp && indirection_level == 1 && interactive &&
 +       !tcgetattr(STDERR_FILENO, &ttyattr)) {
-+        vsusp = ttyattr.c_cc[VSUSP];
-+        ttyattr.c_cc[VSUSP] = 0;
-+        tcsetattr(STDERR_FILENO, TCSADRAIN, &ttyattr);
++	vsusp = ttyattr.c_cc[VSUSP];
++	ttyattr.c_cc[VSUSP] = 0;
++	tcsetattr(STDERR_FILENO, TCSADRAIN, &ttyattr);
 +      }
 +
        code = setjmp_nosigs (top_level);
@@ -36,10 +36,10 @@
  		}
  
 +	      if (vsusp) {
-+	        ttyattr.c_cc[VSUSP] = vsusp;
-+	        if (!tcsetattr(STDERR_FILENO, TCSADRAIN, &ttyattr)) {
-+	          vsusp = 0;
-+	        }
++		ttyattr.c_cc[VSUSP] = vsusp;
++		if (!tcsetattr(STDERR_FILENO, TCSADRAIN, &ttyattr)) {
++		  vsusp = 0;
++		}
 +	      }
 +
  	      execute_command (current_command);

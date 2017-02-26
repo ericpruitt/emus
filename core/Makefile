@@ -806,6 +806,9 @@ $(BIN)/tmux: $(TMUX)/tmux
 $(VIM_FOLDER):
 	git clone -b v$(VIM_VERSION) https://github.com/vim/vim.git $(VIM); \
 
+# Autoconf detection of the __DATE__ and __TIME__ macros is disabled with
+# "#undef HAVE_DATE_TIME" so the compiled binaries are independent of the
+# current time.
 $(VIM)/src/auto/config.h: $(VIM_FOLDER) $(NCURSES_BUILT)
 	cd $(VIM); \
 	git diff --quiet && (cat $(PATCHES) || echo) | patch -p0; \
@@ -814,6 +817,7 @@ $(VIM)/src/auto/config.h: $(VIM_FOLDER) $(NCURSES_BUILT)
 			$(PRINT_AUTOCONF_UNDEFS); \
 			echo "#define FEAT_CONCEAL 1"; \
 			echo "#define FEAT_TERMGUICOLORS 1"; \
+			echo "/**/ #undef HAVE_DATE_TIME"; \
 		} >> src/config.h.in; \
 	fi; \
 	./configure \

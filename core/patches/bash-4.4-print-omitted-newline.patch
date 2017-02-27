@@ -1,0 +1,86 @@
+--- parse.y	2016-09-11 08:31:46.000000000 -0700
++++ parse.y	2017-02-26 22:23:54.111621001 -0800
+@@ -34,6 +34,14 @@
+ #  include <locale.h>
+ #endif
+ 
++#include <errno.h>
++#include <fcntl.h>
++#include <termios.h>
++#include <sys/ioctl.h>
++
++#define ECMA_48_CPR "\033[6n" /* ECMA-48 8.3.14: Cursor Position Report */
++#define REPEATABLE (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
++
+ #include <stdio.h>
+ #include "chartypes.h"
+ #include <signal.h>
+@@ -5386,6 +5394,68 @@
+ #if defined (READLINE)
+   if (!no_line_editing)
+     {
++      struct termios attr_new;
++      struct termios attr_old;
++      int rval;
++
++      int col_1 = 0;
++      char data[BUFSIZ * 2] = {0};
++      ssize_t pos = 0;
++      int tty = open("/dev/tty", O_RDWR | O_NOCTTY);
++
++      size_t eol = sizeof(data) - 1; // -1 to preserve NUL
++
++      if (tty == -1) {
++	goto update_prompt;
++      }
++
++      while ((rval = tcgetattr(tty, &attr_old)) && REPEATABLE);
++      if (rval == -1) {
++	goto done_with_tty;
++      }
++
++      attr_new = attr_old;
++      attr_new.c_lflag &= ~(ICANON | ECHO | CREAD);
++      while ((rval = tcsetattr(tty, TCSANOW, &attr_new)) && REPEATABLE);
++
++      if (rval) {
++	goto done_with_tty;
++      } else if (write(tty, ECMA_48_CPR, sizeof(ECMA_48_CPR) - 1) == -1) {
++	goto restore_tty_attr;
++      }
++
++      while ((rval = read(tty, &data[pos], eol - pos)) > 0) {
++	if (rval >= 6 /* "\033[1;1R" */ && rval <= 10 /* "\033[999;999R" */
++	 && data[pos] == '\033' && data[pos + rval - 1] == 'R') {
++	  // A newline is needed if the terminal emulator reports that the
++	  // cursor is not in the first column.
++	  col_1 = data[pos + rval - 3] == ';' && data[pos + rval - 2] == '1';
++	  data[pos] = '\0';
++	  eol = pos;
++	  pos = 0;
++	  break;
++	}
++	// If the data read does not appear to be the response to the cursor
++	// position request, increment the buffer usage counter so the newly
++	// received data is not overwritten during the next read.
++	pos += rval;
++      }
++
++restore_tty_attr:
++      while (tcsetattr(tty, TCSANOW, &attr_old) && REPEATABLE);
++
++      if (!col_1) {
++	write(STDERR_FILENO, "\n", 1);
++      }
++
++      // Push any data that was not part of the terminal emulator's reply to
++      // the cursor position request back into the input queue.
++      while (pos < eol && !ioctl(tty, TIOCSTI, &data[pos++]));
++
++done_with_tty:
++      close(tty);
++
++update_prompt:
+       FREE (current_readline_prompt);
+       current_readline_prompt = temp_prompt;
+     }

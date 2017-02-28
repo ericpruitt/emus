@@ -18,7 +18,7 @@ GREP_VERSION = 2.26
 LESS_VERSION = 481
 LIBEVENT_VERSION = 2.0.22-stable
 MPFR_VERSION = 3.1.5
-MUSL_VERSION = 1.1.15
+MUSL_VERSION = 1.1.16
 NCURSES_VERSION = 6.0
 READLINE_VERSION = 7.0
 TMUX_VERSION = 2.3
@@ -384,7 +384,6 @@ $(MUSL).tar.gz $(MUSL).tar.gz.asc:
 $(MUSL_FOLDER): $(MUSL).tar.gz $(MUSL).tar.gz.asc $(PUBRING)
 	$(GPG) --verify $(MUSL).tar.gz.asc; \
 	tar -x -z -f $(MUSL).tar.gz; \
-	(cat $(PATCHES) || echo) | (cd $(DIRNAME) && patch -p0); \
 	touch $(TARGET); \
 
 $(MUSL_CC): $(MUSL_FOLDER)

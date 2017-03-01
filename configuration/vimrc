@@ -35,7 +35,6 @@ set softtabstop=4
 set t_vb=""
 set tabstop=4
 set timeout timeoutlen=1000 ttimeoutlen=50
-set updatetime=100
 set viminfo=
 set virtualedit=block
 set visualbell
@@ -104,11 +103,16 @@ endfor
 unlet i
 
 " When searching for text, change the value of scrolloff so there is always
-" some context visible. After a delay defined by updatetime, the scrolloff will
-" be reset to 0 so it does not affect motion keys.
-autocmd CursorHold * set scrolloff=0
-for s:_ in ["/", "?", "n", "N", "*", "#"]
-    exec "nnoremap " . s:_ . " :set scrolloff=3<CR>" . s:_
+" some context visible. When using "/" and "?", the scrolloff is reset to 0
+" using updatetime since adding text after those characters in the mapping
+" would pollute the prompt.
+autocmd CursorHold * if &scrolloff | set scrolloff=0 updatetime=0 | endif
+nnoremap / :set scrolloff=3 updatetime=1<CR>/
+nnoremap ? :set scrolloff=3 updatetime=1<CR>?
+for s:c in ["#", "g#", "*", "g#", "N", "n"]
+    exec "nnoremap " . s:c ." :set scrolloff=3<CR>"
+\                    . s:c . ":set scrolloff=0<CR>"
+\                          . ":echo (v:searchforward ? '/' : '?') . @/<CR>"
 endfor
 
 " Replacement for autochdir that doesn't require netbeans_intg or sun_workshop

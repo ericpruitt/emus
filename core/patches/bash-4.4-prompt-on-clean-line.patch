@@ -1,0 +1,14 @@
+--- parse.y	2016-09-11 08:31:46.000000000 -0700
++++ parse.y	2017-04-08 14:26:41.425394991 -0700
+@@ -5386,6 +5386,11 @@
+ #if defined (READLINE)
+   if (!no_line_editing)
+     {
++      int columns;
++      get_new_window_size(0, NULL, &columns);
++      // The escape sequences temporarily disable and re-enable the cursor
++      // to reduce flickering.
++      fprintf(stderr, "\033[?25l%*s\r\033[?25h", columns, "");
+       FREE (current_readline_prompt);
+       current_readline_prompt = temp_prompt;
+     }

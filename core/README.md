@@ -141,8 +141,8 @@ launched, is used as a fallback when "/proc/self/exe" cannot be read.
   - If a user's information cannot be queried from the password database, Bash
     will use the environment variables "LOGNAME", "HOME" and "SHELL" if they
     are set.
-  - A newline is automatically inserted before displaying the Bash prompt if
-    the output of the previous command did not leave the cursor in column 1.
+  - The prompt will always be displayed on a clean line even if the output of
+    the last program did not end with a newline.
 
 Repository Layout
 -----------------

@@ -22,7 +22,7 @@ MUSL_VERSION = 1.1.16
 NCURSES_VERSION = 6.0
 READLINE_VERSION = 7.0
 TMUX_VERSION = 2.3
-VIM_VERSION = 8.0.0295
+VIM_VERSION = 8.0.0553
 
 BASH = bash-$(BASH_VERSION)
 BASH_PATCHES = $(BASH)-patches
@@ -850,8 +850,6 @@ $(VIM)/src/xxd/xxd: $(VIM)/src/auto/config.h
 vim: $(VIM)/src/xxd/xxd $(VIM)/src/vim
 
 $(BIN)/vim: $(VIM)/src/vim
-	test ! -e $(TMUX) || VIMRUNTIME="$(VIM)/runtime" \
-	                     ./make-tmux-syntax.awk $(TMUX)/*.c > /dev/null; \
 	test -e $(VIM)/vimruntime || ln -s -f runtime $(VIM)/vimruntime; \
 	target_regex=$$(printf '/%s\\>/,/^$$/p;' $(VIM_RUNTIME_TARGETS)); \
 	(cd $(VIM) && \

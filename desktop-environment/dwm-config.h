@@ -56,6 +56,8 @@ static const char wmname[] = "LG3D";
 
 static const char fifopath[] = "~/.dwmfifo";
 
+const int nonmasterpriority = TAG(9);
+
 /**
  * Color scheme definitions
  *

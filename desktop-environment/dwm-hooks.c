@@ -44,32 +44,15 @@ static char *unescape(char *text)
         }
 
         switch (*++in) {
-          case 'a':
-            *out++ = '\a';
-            continue;
-          case 'b':
-            *out++ = '\b';
-            continue;
-          case 't':
-            *out++ = '\t';
-            continue;
-          case 'n':
-            *out++ = '\n';
-            continue;
-          case 'v':
-            *out++ = '\v';
-            continue;
-          case 'f':
-            *out++ = '\f';
-            continue;
-          case 'r':
-            *out++ = '\r';
-            continue;
-          case '\\':
-            *out++ = '\\';
-            continue;
-          case '\0':
-            continue;
+          case 'a':  *out++ = '\a'; continue;
+          case 'b':  *out++ = '\b'; continue;
+          case 't':  *out++ = '\t'; continue;
+          case 'n':  *out++ = '\n'; continue;
+          case 'v':  *out++ = '\v'; continue;
+          case 'f':  *out++ = '\f'; continue;
+          case 'r':  *out++ = '\r'; continue;
+          case '\\': *out++ = '\\'; continue;
+          case '\0':                continue;
         }
 
         value = 0;

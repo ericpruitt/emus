@@ -277,17 +277,11 @@ static int isvisible(Client *c)
     }
 
     // The window is only visible if it fits in the master area.
-    for (k = c->mon->clients; k && (masterslots > 0); k = k->next) {
-        if (k->isfloating || !(k->tags & active)) {
-            continue;
+    for (k = c->mon->clients; (masterslots > 0) && k != c; k = k->next) {
+        if (!k->isfloating && (k->tags & (active | nonmasterpriority))) {
+            masterslots--;
         }
-
-        if (k == c) {
-            return (masterslots > 0);
-        }
-
-        masterslots--;
     }
 
-    return 0;
+    return (masterslots > 0);
 }

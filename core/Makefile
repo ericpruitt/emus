@@ -21,7 +21,7 @@ MPFR_VERSION = 3.1.5
 MUSL_VERSION = 1.1.16
 NCURSES_VERSION = 6.0
 READLINE_VERSION = 7.0
-TMUX_VERSION = 2.3
+TMUX_VERSION = 2.4
 VIM_VERSION = 8.0.0553
 
 BASH = bash-$(BASH_VERSION)
@@ -783,12 +783,12 @@ $(TMUX)/tmux: $(LIBEVENT_BUILT) $(TMUX_FOLDER) $(NCURSES_BUILT)
 	cd $(TMUX); \
 	test -e configure || ./autogen.sh; \
 	test -e Makefile || ./configure \
-		CFLAGS="$(CFLAGS)" \
+		CFLAGS="$(CFLAGS) -I$(COMMON_PREFIX)/include/ncurses" \
 		LDFLAGS="$(LDFLAGS)" \
 		LIBEVENT_CFLAGS="-I$(COMMON_PREFIX)/include" \
 		LIBEVENT_LIBS="-levent" \
-		LIBNCURSES_CFLAGS="-I$(COMMON_PREFIX)/include/ncurses" \
-		LIBNCURSES_LIBS="-lncurses" \
+		LIBTINFO_CFLAGS="-I$(COMMON_PREFIX)/include/ncurses" \
+		LIBTINFO_LIBS="-lncurses" \
 		--disable-dependency-tracking \
 		--enable-static \
 		--sysconfdir=/etc \

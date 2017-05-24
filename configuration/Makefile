@@ -23,7 +23,10 @@ USER_TARGETS = \
 HOST_TARGETS = \
 	/etc/modprobe.d/local.conf \
 	/etc/systemd/system/lock-on-suspend.service \
+	/usr/lib/pm-utils/sleep.d/00lock-screen-on-suspend \
 	linux-tmpfs-tmp \
+
+SLOCK_BINARY = /usr/local/bin/slock
 
 BACKUP_FOLDER = $(HOME)/config-backups
 
@@ -156,7 +159,7 @@ $(HOME)/.terminfo/t/tmux: terminfo/tmux.info
 		'Type=oneshot' \
 		'Environment=DISPLAY=:0' \
 		'ExecStart=/bin/sh -c \
-			"/usr/local/bin/slock & sleep 1 && pgrep -x slock"' \
+			"$(SLOCK_BINARY) & sleep 1 && pgrep -x slock"' \
 		'KillMode=none' \
 		'[Install]' \
 		'WantedBy=sleep.target' \
@@ -165,6 +168,24 @@ $(HOME)/.terminfo/t/tmux: terminfo/tmux.info
 	  *$(@F)*enabled*) systemctl daemon-reload ;; \
 	  *)               systemctl enable $(@F) ;; \
 	esac
+
+/usr/lib/pm-utils/sleep.d/00lock-screen-on-suspend:
+	echo "- $@"
+	if [ -z "$(SUDO_USER)" ]; then \
+		echo "make: $@: SUDO_USER must be set to create file" >&2; \
+		exit 1; \
+	fi
+	printf '%s\n' \
+		'#!/bin/sh' \
+		'set -e -u' \
+		'case "$${1:-}" in' \
+		'  hibernate|suspend)' \
+		'    DISPLAY=:0 sudo -u $(SUDO_USER) $(SLOCK_BINARY) &' \
+		'    sleep 1' \
+		'    pgrep -x slock' \
+		'  ;;' \
+		'esac' \
+	  | sudo sh -c "touch $@ && chmod 755 $@ && cat > $@"
 
 linux-tmpfs-tmp:
 	if ! egrep -q "^\s*tmpfs\s+/tmp/?\s" /etc/fstab; then \

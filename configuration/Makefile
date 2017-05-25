@@ -96,6 +96,11 @@ clean:
 	echo "- $@"
 	basename="$(@F)" && ln -s "$$PWD/$${basename#.}" $@
 
+# When using "-B" with GNU Make, it attempts to create the target "Makefile"
+# when a .DEFAULT build rule is defined. This no-op build target eliminates
+# that behavior.
+Makefile:
+
 $(HOME)/bin:
 	mkdir $@
 

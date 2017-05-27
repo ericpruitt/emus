@@ -122,6 +122,8 @@ $(HOME)/.terminfo/t/tmux: terminfo/tmux.info
 /etc/modprobe.d/local.conf:
 	echo "- $@"
 	rm -f $@.tmp
+	# Disable internal speaker
+	echo "blacklist pcspkr" >> $@.tmp
 	# Disable floppy disk support since having this enabled can cause slow
 	# boot times on systems that support floppy disks but don't have a
 	# physical dive present.

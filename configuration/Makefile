@@ -22,8 +22,7 @@ USER_TARGETS = \
 
 HOST_TARGETS = \
 	/etc/modprobe.d/local.conf \
-	/etc/systemd/system/lock-on-suspend.service \
-	/usr/lib/pm-utils/sleep.d/00lock-screen-on-suspend \
+	linux-lock-on-suspend \
 	linux-tmpfs-tmp \
 
 SLOCK_BINARY = /usr/local/bin/slock
@@ -193,6 +192,14 @@ $(HOME)/.terminfo/t/tmux: terminfo/tmux.info
 		'  ;;' \
 		'esac' \
 	  | sudo sh -c "touch $@ && chmod 755 $@ && cat > $@"
+
+linux-lock-on-suspend:
+	if systemctl --version > /dev/null 2>&1; then \
+		target="/etc/systemd/system/lock-on-suspend.service"; \
+	else \
+		target="/usr/lib/pm-utils/sleep.d/00lock-screen-on-suspend"; \
+	fi; \
+	exec $(MAKE) $$target
 
 linux-tmpfs-tmp:
 	if ! egrep -q "^\s*tmpfs\s+/tmp/?\s" /etc/fstab; then \

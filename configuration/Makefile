@@ -45,7 +45,7 @@ host:
 	for target in $(HOST_TARGETS); do \
 		case "$$target" in \
 		  linux-*) uname | grep -iq linux || continue ;; \
-		  *) test -d "$$(dirname -- $$target)" || contnue ;; \
+		  *) test -d "$$(dirname -- $$target)" || continue ;; \
 		esac; \
 		targets="$$targets $$target"; \
 	done; \

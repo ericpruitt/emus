@@ -851,7 +851,7 @@ vim: $(VIM)/src/xxd/xxd $(VIM)/src/vim
 
 $(BIN)/vim: $(VIM)/src/vim
 	test -e $(VIM)/vimruntime || ln -s -f runtime $(VIM)/vimruntime; \
-	target_regex=$$(printf '/%s\\>/,/^$$/p;' $(VIM_RUNTIME_TARGETS)); \
+	target_regex=$$(printf '/^%s =/,/^$$/p;' $(VIM_RUNTIME_TARGETS)); \
 	(cd $(VIM) && \
 	ls $$(sed -n "$$target_regex" Filelist) $(VIM_RUNTIME_EXTRAS) \
 	  2>/dev/null \

@@ -29,6 +29,7 @@ if ! pgrep -x statusline; then
     esac
 fi
 
+"$where/scripts/hid-monitor" &
 "$where/scripts/media-control" acpi-mode &
 
 until PATH="$where/scripts:$PATH" dwm; do :; sleep 1; done

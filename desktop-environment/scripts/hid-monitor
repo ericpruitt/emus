@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# This script is used to detect which of two hosts has control over a shared
+# mouse and keyboard and toggles the displays accordingly. To determine which
+# display to activate, the script checks to see if a keyboard and mouse are
+# plugged into the system running the script. It was designed to be used with
+# displays that have ability to automatically switch between multiple input
+# sources based and USB switching devices to create a pseudo KVM switch.
+#
+# Environment Variables:
+# - **SECONDARY_HID_TARGET_SSH_ACCOUNT**: This variable should be set to an SSH
+#   account that can log into the other host that will share human interface
+#   devices (HIDs) with the host running this script. When this variable is not
+#   set, the script will not run.
+set -u
+shopt -s extglob
+shopt -s nullglob
+
+# Print a message to standard output prefixed with a timestamp.
+#
+# Arguments:
+# - $*: message to display.
+#
+function log()
+{
+    printf '%(%Y-%m-%dT%H:%M:%S%z)T: %s\n' -1 "$*"
+}
+
+# Turn a display on or off. This currently supports Linux and macOS.
+#
+# Arguments:
+# - mode: "on" or "off" representing the desired state of the display.
+#
+function display()
+{
+    local mode="$1"
+
+    case "$(uname)-$mode" in
+      Linux-on)
+        setxkbmap -layout us
+        xmodmap \
+            -e "remove mod4 = Hyper_L" \
+            -e "remove Lock = Caps_Lock" \
+            -e "keysym Caps_Lock = Hyper_L" \
+            -e "add mod3 = Hyper_L"
+        xset dpms force on
+        xset s off -dpms
+      ;;
+
+      Linux-off)
+        xset dpms force off
+      ;;
+
+      Darwin-on)
+        caffeinate -u -t 5
+      ;;
+
+      Darwin-off)
+        pmset displaysleepnow
+      ;;
+
+      *)
+        echo "$(hostname): not sure how to set display to $mode" >&2
+        return 1
+      ;;
+    esac
+}
+
+function main()
+{
+    local devices
+    local event
+    local keyboard
+    local mode
+    local mouse
+
+    devices=(/dev/input/by-id/*-{kbd,mouse})
+    test "$devices" && mode="primary" || mode="secondary"
+    log "input monitoring started in $mode mode"
+
+    # XXX: Without the redirection for SSH below, the event loop will stop
+    # working. Something leads to Bash's "read" builtin to fail repeatedly with
+    # "read: read error: 0: Resource temporarily unavailable," but I have not
+    # dug into the problem enough to figure out what exactly is happening.
+    inotifywait -q -m -r -e create,delete /dev/input/ | while read event; do
+        case "$event-$mode" in
+          *DELETE*-@(kbd|mouse)-primary)
+            devices=(/dev/input/by-id/*-{kbd,mouse})
+            test -z "${devices:-}" || continue
+
+            mode="secondary"
+            log "no input devices on primary; switching to $mode"
+            display off
+            ssh "$SECONDARY_HID_TARGET_SSH_ACCOUNT" \
+                "$(declare -f display) && display on" < /dev/null
+          ;;
+
+          *CREATE*-@(kbd|mouse)-secondary)
+            log "new input device: $event"
+
+            keyboard=(/dev/input/by-id/*-kbd)
+            mouse=(/dev/input/by-id/*-mouse)
+            test "${keyboard:-}" -a "${mouse:-}" || continue
+
+            mode="primary"
+            log "detected mouse and keyboard; switching to $mode"
+            display on
+            ssh "$SECONDARY_HID_TARGET_SSH_ACCOUNT" \
+                "$(declare -f display) && display off" < /dev/null
+
+          ;;
+        esac
+    done
+}
+
+test -z "${SECONDARY_HID_TARGET_SSH_ACCOUNT:-}" || main "$@"

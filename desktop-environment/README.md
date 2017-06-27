@@ -445,3 +445,21 @@ the patch has been modified slightly from the original to remove "static" from
 the definition `static const char base64_tbl` to eliminate the compiler warning
 "‘base64_tbl’ is static but used in inline function ‘chrpos’ which is not
 static."
+
+### Underscore Ascent Scale ###
+
+**File:** st-01-underscore-ascent-scale.diff
+
+With certain font configurations, underscores are drawn outside the character
+cell clipping area in st, a problem that also plagues other terminal emulators
+that use Xft:
+
+- <https://bbs.archlinux.org/viewtopic.php?id=125749>
+- <https://www.linuxquestions.org/questions/slackware-14/underline-_-in-xterm-invisible-4175434364/>
+- <http://invisible-island.net/xterm/xterm.log.html#xterm_276>
+
+To work around this problem, this patch adds a new variable, `static float
+underscoreascentscale`, a scaling factor for `font->ascent` when a glyph is an
+underscore.
+
+This patch depends on "st-00-font-array-support.diff".

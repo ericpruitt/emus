@@ -5,12 +5,7 @@
  * as fallbacks when preceding fonts are missing a specific glyph.
  */
 static const char *fonts[] = {
-    // The default style of DejaVu Sans Mono does not contain glyphs like "├"
-    // and "─", so the "Book" style is specified as a fallback since it does
-    // contain them.
     "DejaVu Sans Mono:pixelsize=14",
-    "DejaVu Sans Mono:pixelsize=14:style=Book",
-
     "VL Gothic:pixelsize=14",
     "WenQuanYi Micro Hei:pixelsize=14",
 };
@@ -34,7 +29,10 @@ static char vtiden[] = "\033[?6c";
 
 /* Kerning / character bounding-box multipliers */
 static float cwscale = 1.0;
-static float chscale = 1.000001;
+static float chscale = 1.0;
+
+/* Scaling factor for font->ascent when glyph is an underscore. */
+static float underscoreascentscale = 0.99;
 
 /*
  * word delimiter string

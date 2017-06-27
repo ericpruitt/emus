@@ -1,0 +1,56 @@
+Title: Underscore Ascent Scale
+Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+With certain font configurations, underscores are drawn outside the character
+cell clipping area in st, a problem that also plagues other terminal emulators
+that use Xft:
+
+- <https://bbs.archlinux.org/viewtopic.php?id=125749>
+- <https://www.linuxquestions.org/questions/slackware-14/underline-_-in-xterm-invisible-4175434364/>
+- <http://invisible-island.net/xterm/xterm.log.html#xterm_276>
+
+To work around this problem, this patch adds a new variable, `static float
+underscoreascentscale`, a scaling factor for `font->ascent` when a glyph is an
+underscore.
+
+This patch depends on "st-00-font-array-support.diff".
+
+diff --git st.c st.c
+index 86bfbea..f5da8fc 100644
+--- st.c
++++ st.c
+@@ -3715,7 +3715,7 @@ xinit(void)
+ int
+ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x, int y)
+ {
+-	float winx = borderpx + x * xw.cw, winy = borderpx + y * xw.ch, xp;
++	float winx = borderpx + x * xw.cw, winy = borderpx + y * xw.ch, xp, ascentscale;
+ 	ushort mode;
+ 	Font *font, *reference = NULL;
+ 	int frcflags = FRC_NORMAL;
+@@ -3732,6 +3732,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+ 		/* Fetch rune and mode for current glyph. */
+ 		rune = glyphs[i].u;
+ 		mode = glyphs[i].mode;
++		ascentscale = (rune == '_' ? underscoreascentscale : 1.0);
+ 
+ 		/* Skip dummy wide-character spacing. */
+ 		if (mode == ATTR_WDUMMY)
+@@ -3763,7 +3764,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+ 			specs[numspecs].font = font->match;
+ 			specs[numspecs].glyph = glyphidx;
+ 			specs[numspecs].x = (short)xp;
+-			specs[numspecs].y = (short) (winy + font->ascent);
++			specs[numspecs].y = (short) (winy + font->ascent * ascentscale);
+ 			xp += runewidth;
+ 			numspecs++;
+ 			continue;
+@@ -3839,7 +3840,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+ 		specs[numspecs].font = frc[f].font;
+ 		specs[numspecs].glyph = glyphidx;
+ 		specs[numspecs].x = (short)xp;
+-		specs[numspecs].y = (short) (winy + frc[f].font->ascent);
++		specs[numspecs].y = (short) (winy + frc[f].font->ascent * ascentscale);
+ 		xp += runewidth;
+ 		numspecs++;
+ 	}

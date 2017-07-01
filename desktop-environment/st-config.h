@@ -5,7 +5,15 @@
  * as fallbacks when preceding fonts are missing a specific glyph.
  */
 static const char *fonts[] = {
+    // On Debian 8 and the current release of Goobuntu, the VT100 box-drawing
+    // characters are not found in "DejaVu Sans Mono" by the fontconfig library
+    // functions unless "style=Book" is set, but that also causes the
+    // appearance of other characters to change for reasons beyond my
+    // knowledge. Both font definitions here appear here to address those
+    // issues.
     "DejaVu Sans Mono:pixelsize=14",
+    "DejaVu Sans Mono:pixelsize=14:style=Book",
+
     "VL Gothic:pixelsize=14",
     "WenQuanYi Micro Hei:pixelsize=14",
 };

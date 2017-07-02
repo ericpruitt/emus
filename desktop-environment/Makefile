@@ -123,6 +123,7 @@ install: all
 deps:
 	if [ -e /etc/debian_version ]; then \
 		apt-get install \
+			acpid \
 			compton \
 			fonts-dejavu \
 			fonts-vlgothic \

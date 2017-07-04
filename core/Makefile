@@ -3,8 +3,8 @@
 .POSIX:
 
 COMMON_PREFIX = $(PWD)/common
-CFLAGS = -I$(COMMON_PREFIX)/include -O1
-LDFLAGS = -L$(COMMON_PREFIX)/lib -static
+CFLAGS = -I$(COMMON_PREFIX)/include -O1 -no-pie
+LDFLAGS = -L$(COMMON_PREFIX)/lib -static -no-pie
 DEFAULT_TERMINFO_DIR = /etc/terminfo:/lib/terminfo:/usr/share/terminfo
 DIST_BIN = ~/.local/bin
 DIST_MAN = ~/.local/share/man
@@ -68,10 +68,12 @@ DIRNAME = $(@D)
 PATCHES = $(PWD)/patches/$$(echo $@ | cut -d/ -f1)-*
 TARGET = $$(echo "$@" | grep "^/" || echo "$(PWD)/$@")
 
+FINDUTILS_SHA256 = \
+	ded4c9f73731cd48fec3b6bdaccce896473b6d8e337e9612e16cf1431bb1169d
 GNUPGHOME = gnupghome
 GPG = gpg --homedir="$(GNUPGHOME)"
 MAN1 = $(MAN)/man1
-PUBRING = $(GNUPGHOME)/pubring.gpg
+PUBRING = $(GNUPGHOME)/pubring.kbx
 WGET = wget --no-use-server-timestamps -nv
 OS = $$( \
 	if [ -e /etc/debian_version ]; then \
@@ -265,6 +267,7 @@ deps:
 		echo "Detected Debian-based Linux: running apt-get..."; \
 		apt-get install \
 			automake \
+			bison \
 			build-essential \
 			pkg-config \
 		; \
@@ -366,15 +369,11 @@ purge: clean
 binaries: bash coreutils findutils gawk grep less tmux vim
 
 $(PUBRING):
-	weak_key_flag="--allow-weak-digest-algos"; \
-	gpg $$weak_key_flag -h > /dev/null 2>&1 || weak_key_flag=""; \
 	rm -rf "$(DIRNAME).tmp"; \
 	mkdir -m 700 $(DIRNAME).tmp; \
 	for key in public-keys/*; do \
 		test ! -h "$$key" || continue; \
-		flag="$$weak_key_flag"; \
-		test "$${key##*/}" = "findutils-james-youngman.asc" || flag=""; \
-		$(GPG) $$flag --homedir="$(DIRNAME).tmp" --import < "$$key"; \
+		$(GPG) --homedir="$(DIRNAME).tmp" --import < "$$key"; \
 	done; \
 	mv $(DIRNAME).tmp $(DIRNAME); \
 
@@ -480,6 +479,7 @@ $(NCURSES_BUILT): $(NCURSES_FOLDER)
 	if ! [ -e Makefile ]; then \
 		./configure -C \
 			CFLAGS="$(CFLAGS)" \
+			CPPFLAGS="$(CPPFLAGS) -P" \
 			--disable-db-install \
 			--enable-static \
 			--prefix="$(COMMON_PREFIX)" \
@@ -563,11 +563,12 @@ $(BASH)/bash: $(BASH_FOLDER) $(READLINE_BUILT)
 			CFLAGS="$(CFLAGS)" \
 			LDFLAGS="$(LDFLAGS)" \
 			--disable-nls \
+			--enable-static-link \
 			--with-installed-readline="$(COMMON_PREFIX)" \
 			--without-bash-malloc \
 		; \
 	fi; \
-	$(MAKE) -S; \
+	$(MAKE) LOCAL_LDFLAGS= -S; \
 
 bash: $(BASH)/bash
 
@@ -590,22 +591,15 @@ $(COREUTILS_FOLDER): $(COREUTILS).tar.xz $(COREUTILS).tar.xz.sig $(PUBRING)
 
 $(COREUTILS)/src/coreutils: $(COREUTILS_FOLDER) $(GMP_BUILT)
 	cd $(COREUTILS); \
-	LDFLAGS="$(LDFLAGS)"; \
 	test -e Makefile || ./configure \
 		CFLAGS="$(CFLAGS) -std=c99" \
-		LDFLAGS="$$LDFLAGS" \
+		LDFLAGS="$(LDFLAGS)" \
 		--disable-dependency-tracking \
 		--disable-nls \
 		--enable-no-install-program=stdbuf \
 		--enable-single-binary=shebangs \
 	; \
-	grep -q "^_cc:" Makefile || echo '_cc:; @echo CC=$$(CC)' >> Makefile; \
-	eval "$$($(MAKE) _cc | grep CC)"; \
-	for flag in -no-pie -nopie; do \
-		$$CC -dumpspecs | grep -q -e "$$flag" && break; \
-		flag=""; \
-	done; \
-	$(MAKE) -S LDFLAGS="$$LDFLAGS $$flag"; \
+	$(MAKE) -S; \
 
 coreutils: $(COREUTILS)/src/coreutils
 
@@ -624,11 +618,15 @@ $(BIN)/coreutils: $(COREUTILS)/src/coreutils
 	fi; \
 	cp -f $? $(TARGET); \
 
-$(FINDUTILS).tar.gz $(FINDUTILS).tar.gz.sig:
+$(FINDUTILS).tar.gz:
 	$(WGET) -nc https://ftp.gnu.org/gnu/findutils/$@; \
 
-$(FINDUTILS_FOLDER): $(FINDUTILS).tar.gz $(FINDUTILS).tar.gz.sig $(PUBRING)
-	$(GPG) --verify $(FINDUTILS).tar.gz.sig; \
+$(FINDUTILS_FOLDER): $(FINDUTILS).tar.gz
+	if ! (openssl dgst -sha256 $? || sha256 $? || sha256sum $?) \
+	  | fgrep -q -e $(FINDUTILS_SHA256); then \
+		echo "make: could not validate hash of $?" >&2; \
+		exit 1; \
+	fi
 	tar -x -z -f $(FINDUTILS).tar.gz; \
 	touch $(TARGET); \
 
@@ -683,24 +681,18 @@ $(GAWK_FOLDER): $(GAWK).tar.xz $(GAWK).tar.xz.sig $(PUBRING)
 # in the future.
 $(GAWK)/gawk: $(GAWK_FOLDER) $(GMP_BUILT) $(MPFR_BUILT) $(READLINE_BUILT)
 	cd $(GAWK); \
-	LDFLAGS="$(LDFLAGS)"; \
 	if ! [ -e Makefile ]; then \
 		test -e configh.in; \
 		echo "/**/ #define HAVE_MKTIME 1" >> configh.in; \
 		./configure \
 			CFLAGS="$(CFLAGS) -DREALLYMEAN" \
-			LDFLAGS="$$LDFLAGS" \
+			LDFLAGS="$(LDFLAGS)" \
 			--disable-dependency-tracking \
+			--disable-extensions \
 			--disable-nls \
 		; \
 	fi; \
-	grep -q "^_cc:" Makefile || echo '_cc:; @echo CC=$$(CC)' >> Makefile; \
-	eval "$$($(MAKE) _cc | grep CC)"; \
-	for flag in -no-pie -nopie; do \
-		$$CC -dumpspecs | grep -q -e "$$flag" && break; \
-		flag=""; \
-	done; \
-	$(MAKE) -S LDFLAGS="$$LDFLAGS $$flag"; \
+	$(MAKE) -S; \
 
 gawk: $(GAWK)/gawk
 

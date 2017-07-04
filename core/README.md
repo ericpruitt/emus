@@ -57,10 +57,6 @@ on those functions or by hybrid linking against both musl libc and glibc.
 Although this repository's build system supports GNU and BSD Make, GNU Make
 must be installed to compile musl.
 
-Position-Independent Executable (PIE) compilation is disabled for gawk and
-coreutils: when PIE is enabled, they will build successfully but segfault when
-executed.
-
   [musl]: https://www.musl-libc.org/
   [nss]: https://en.wikipedia.org/wiki/Name_Service_Switch
 
@@ -180,9 +176,6 @@ replacement keys easier if they are moved.
 - coreutils-pádraig-brady.asc
   - <https://savannah.gnu.org/forum/forum.php?forum_id=8445>
   - `gpg --keyserver keys.gnupg.net --recv-keys DF6FD971306037D9`
-- findutils-james-youngman.asc
-  - <https://www.gnu.org/software/findutils/>
-  - <https://savannah.gnu.org/users/jay>
 - gawk-arnold-robbins.asc
   - <https://savannah.gnu.org/project/memberlist.php?group=gawk>
   - <https://savannah.gnu.org/people/viewgpg.php?user_id=80653>

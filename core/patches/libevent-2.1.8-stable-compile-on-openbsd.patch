@@ -17,9 +17,9 @@ Original patch: https://github.com/ricardoquesada/Spidermonkey/blob/b56b8606bd44
  
  #ifdef __cplusplus
  }
---- evutil_rand.c	Fri Nov  1 18:18:57 2013
-+++ evutil_rand.c	Mon Oct 17 19:26:40 2016
-@@ -171,10 +171,11 @@
+--- evutil_rand.c	Wed Jul  5 01:24:01 2017
++++ evutil_rand.c	Wed Jul  5 01:24:09 2017
+@@ -192,12 +192,14 @@
  	ev_arc4random_buf(buf, n);
  }
  
@@ -30,5 +30,7 @@ Original patch: https://github.com/ricardoquesada/Spidermonkey/blob/b56b8606bd44
  	arc4random_addrandom((unsigned char*)buf,
  	    n>(size_t)INT_MAX ? INT_MAX : (int)n);
  }
--
 +#endif
+ 
+ void
+ evutil_free_secure_rng_globals_(void)

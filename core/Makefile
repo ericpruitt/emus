@@ -10,19 +10,19 @@ DIST_BIN = ~/.local/bin
 DIST_MAN = ~/.local/share/man
 
 BASH_VERSION = 4.4
-COREUTILS_VERSION = 8.25
+COREUTILS_VERSION = 8.27
 FINDUTILS_VERSION = 4.6.0
 GAWK_VERSION = 4.1.4
-GMP_VERSION = 6.1.1
-GREP_VERSION = 2.26
-LESS_VERSION = 481
-LIBEVENT_VERSION = 2.0.22-stable
+GMP_VERSION = 6.1.2
+GREP_VERSION = 3.1
+LESS_VERSION = 487
+LIBEVENT_VERSION = 2.1.8-stable
 MPFR_VERSION = 3.1.5
 MUSL_VERSION = 1.1.16
 NCURSES_VERSION = 6.0
 READLINE_VERSION = 7.0
-TMUX_VERSION = 2.4
-VIM_VERSION = 8.0.0553
+TMUX_VERSION = 2.5
+VIM_VERSION = 8.0.0692
 
 BASH = bash-$(BASH_VERSION)
 BASH_PATCHES = $(BASH)-patches
@@ -38,6 +38,7 @@ MUSL = musl-$(MUSL_VERSION)
 MUSL_CC = $(MUSL)/bin/musl-gcc
 NCURSES = ncurses-$(NCURSES_VERSION)
 READLINE = readline-$(READLINE_VERSION)
+READLINE_PATCHES = $(READLINE)-patches
 TMUX = tmux-src
 VIM = vim-src
 
@@ -54,6 +55,7 @@ MPFR_FOLDER = $(MPFR)/.FOLDER
 MUSL_FOLDER = $(MUSL)/.FOLDER
 NCURSES_FOLDER = $(NCURSES)/.FOLDER
 READLINE_FOLDER = $(READLINE)/.FOLDER
+READLINE_PATCHES_FOLDER = $(READLINE_PATCHES)/.FOLDER
 TMUX_FOLDER = $(TMUX)/.git
 VIM_FOLDER = $(VIM)/.git
 
@@ -505,10 +507,13 @@ $(NCURSES_BUILT): $(NCURSES_FOLDER)
 $(READLINE).tar.gz $(READLINE).tar.gz.sig:
 	$(WGET) https://ftp.gnu.org/gnu/readline/$@; \
 
-$(READLINE_FOLDER): $(READLINE).tar.gz $(READLINE).tar.gz.sig $(PUBRING)
+$(READLINE_FOLDER): $(READLINE).tar.gz $(READLINE).tar.gz.sig $(READLINE_PATCHES_FOLDER) $(PUBRING)
 	$(GPG) --verify $(READLINE).tar.gz.sig; \
 	tar -x -z -f $(READLINE).tar.gz; \
-	(cat $(PATCHES) || echo) | (cd $(DIRNAME) && patch -p0); \
+	cd $(DIRNAME); \
+	for patch in $(PWD)/$(READLINE_PATCHES)/*[0-9] $(PATCHES); do \
+		test ! -e "$$patch" || patch -p0 < "$$patch"; \
+	done; \
 	touch $(TARGET); \
 
 $(READLINE_BUILT): $(READLINE_FOLDER) $(NCURSES_BUILT)
@@ -529,8 +534,10 @@ $(BASH).tar.gz $(BASH).tar.gz.sig:
 # error response.") is ignored under the assumption that the server failed to
 # find the folder because the Bash release is new enough that no patches have
 # been posted. The folder will still be created, but it will contain no files.
-$(BASH_PATCHES_FOLDER): $(PUBRING)
-	$(WGET) -P $(DIRNAME).tmp ftp://ftp.gnu.org/gnu/bash/$(BASH_PATCHES)/* || \
+$(BASH_PATCHES_FOLDER) $(READLINE_PATCHES_FOLDER): $(PUBRING)
+	ftpdir='$@'; \
+	ftpdir="$${ftpdir%-?*-?*}"; \
+	$(WGET) -P $(DIRNAME).tmp ftp://ftp.gnu.org/gnu/$$ftpdir/$(@D)/* || \
 	  test $$? -eq 8; \
 	mkdir -p $(DIRNAME).tmp; \
 	trap 'rm -f "$$$$.log"' EXIT; \

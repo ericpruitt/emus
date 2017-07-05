@@ -120,9 +120,6 @@ launched, is used as a fallback when "/proc/self/exe" cannot be read.
       character beyond the end of a string.
 - **Vim**
   - When `$VIMRUNTIME` is unset, it will default to "$EXEDIR/vimruntime".
-  - An older version of the internal Unicode character property table is used
-    because many fonts have not been updated to reflect the most recent changes
-    in character width.
   - If the tmux source code is available, a syntax file will be generated and
     added added to Vim's runtime folder as part of the installation process.
   - When closing Vim with ":x" after opening multiple files but only editing
@@ -188,14 +185,16 @@ replacement keys easier if they are moved.
 - less-mark-nudelman.asc
   - <http://www.greenwoodsoftware.com/less/download.html>
   - <http://www.greenwoodsoftware.com/less/pubkey.asc>
+- libevent-azat-khuzhin.asc
+  - <https://github.com/libevent/libevent/releases>
+  - <https://github.com/libevent/libevent/releases/tag/release-2.1.8-stable>
+  - `gpg --keyserver keys.gnupg.net --recv-keys B86086848EF8686D`
 - libevent-nick-mathewson.asc
-  - When using the key on <http://www.wangafu.net/~nickm/>, GPG warns "signing
-    subkey 8D29319A is not cross-certified." The maintainer stated the key on
-    his site was the most up-to-date version, but keys retrieved from earlier
-    revisions of the site via the [Wayback Machine][wayback-machine] produced
-    the same warning. Ultimately, a non-warning key was retrieved by running
-    `gpg --keyserver keys.gnupg.net --recv-keys 8D29319A` then dumping it with
-    `gpg --armor --export 8D29319A`.
+  - <http://www.wangafu.net/~nickm/>
+  - <http://www.wangafu.net/~nickm/public_key.asc>
+- libevent-niels-provos.asc
+  - <http://www.citi.umich.edu/u/provos/>
+  - <http://www.citi.umich.edu/u/provos/pgp.key>
 - mpfr-vincent-lefevre.asc:
   - <http://www.mpfr.org/mpfr-current/>
   - `gpg --keyserver keys.gnupg.net --recv-keys 07F3DBBECC1A39605078094D980C197698C3739D`

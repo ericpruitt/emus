@@ -396,6 +396,9 @@ $(MUSL_CC): $(MUSL_FOLDER)
 	; \
 	$(MAKE) -S install; \
 
+musl: $(MUSL_CC)
+	@echo $?
+
 $(GMP).tar.xz $(GMP).tar.xz.sig:
 	$(WGET) https://ftp.gnu.org/gnu/gmp/$@; \
 

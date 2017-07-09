@@ -30,7 +30,7 @@ if ! pgrep -x statusline; then
 fi
 
 "$where/scripts/hid-monitor" &
-"$where/scripts/media-control" acpi-mode &
+"$where/scripts/media-control" monitor &
 
 until PATH="$where/scripts:$PATH" dwm; do :; sleep 1; done
 kill -SIGHUP -$$

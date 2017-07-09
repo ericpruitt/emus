@@ -1,22 +1,37 @@
-#!/usr/bin/env bash
+#!/bin/sh
+# Usage: media-control ACTION
+#        media-control monitor [EVENT_LISTENER]
+#
+# Control media player and system audio. Underscores ("_") and dashes ("-") may
+# be used interchangeably in action names. If this script is run with an
+# invalid number of arguments or an unrecognized action, a list of available
+# actions will be displayed, and the will terminate with a non-zero exit
+# status.
+#
+# The script will terminate immediately after executing an action unless the
+# action is "monitor". The monitor action listens and responds to audio-related
+# ACPI events. It will only terminate if the event listener could not be run.
+# When no event listener is explicitly given, "acpi_listen" is used by default.
+#
+set -e -u
 
 # Increase system volume.
 #
-function volume-up()
+_volume_up()
 {
-    amixer set Master 5%+
+    amixer -q set Master 5%+
 }
 
 # Decrease system volume.
 #
-function volume-down()
+_volume_down()
 {
-    amixer set Master 5%-
+    amixer -q set Master 5%-
 }
 
 # Play the next track in the playlist.
 #
-function next-track()
+_next_track()
 {
     mocp -f
 }
@@ -25,19 +40,15 @@ function next-track()
 # the first 5 seconds of a track, the track will be replayed from the
 # beginning.
 #
-function previous-track()
+_previous_track()
 {
-    if [[ "$(mocp -i)" =~ CurrentTime:\ 00:0[0-5] ]]; then
-        mocp -r
-    else
-        mocp -k -99999
-    fi
+    test "$(mocp -Q %cs)" -gt 5 && mocp -k -99999 || mocp -r
 }
 
-# Stop cycling throug the playlist. This resets the playlist cursor, so the
+# Stop cycling through the playlist. This resets the playlist cursor, so the
 # next "play" command will start from the first track.
 #
-function stop-playlist()
+_stop_playlist()
 {
     mocp -s
 }
@@ -46,87 +57,76 @@ function stop-playlist()
 # from the first track. Otherwise, this function will toggle between the paused
 # and playing state of current track.
 #
-function pause-or-play()
+_pause_or_play()
 {
-    if [[ "$(mocp -i)" =~ State:\ STOP ]]; then
-        mocp -p
-    else
-        mocp -G
-    fi
+    test "$(mocp -i)" = "State: STOP" && mocp -p || mocp -G
 }
 
-# Toggle between muted and unmuted system audio.
+# Toggle system audio on and off.
 #
-function toggle-muted-audio()
+_toggle_muted_audio()
 {
-    # Since not all sound devices support a mute toggle, the unmuted volume is
-    # stored in and loaded from a local file.
-    if ! [[ "$(amixer get Master)" =~ \
-      Mono:\ Playback\ [0-9]+\ .([0-9]+) ]]; then
-        echo "Could not parse amixer output." >&2
+    amixer -q -D pulse set Master toggle || amixer -q set Master toggle
+}
+
+# Toggle the equalizer of an Audigy2 sound card. This a no-op if there is no
+# Audigy2 card installed.
+#
+_bass_toggle()
+{
+    amixer -q -c "Audigy2" set Tone playback toggle
+}
+
+# Monitor and react to media and audio-related ACPI events.
+#
+# Arguments:
+# - $1: Optional event listener command. When this argument is not set,
+#   "acpi_listen" is used by default.
+#
+_monitor()
+{
+    # Attempt to start MOC server but do not exit if the command fails.
+    mocp -S >/dev/null 2>&1 || :
+
+    "${1:-acpi_listen}" | while read -r event; do
+        case "$event" in
+          */volumeup*)      _volume_up          ;;
+          */volumedown*)    _volume_down        ;;
+          */play*)          _pause_or_play      ;;
+          */prev*)          _previous_track     ;;
+          */next*)          _next_track         ;;
+          */stop*)          _stop_playlist      ;;
+          */mute*)          _toggle_muted_audio ;;
+        esac || : # Ignore non-zero return codes from functions.
+    done
+
+    return 127
+}
+
+main()
+{
+    # If the argument given refers to an action function, run the corresponding
+    # function. Otherwise, display a list of supported actions. See
+    # http://pubs.opengroup.org/onlinepubs/9699919799/utilities/command.html
+    # for the POSIX specification of the behavior of "command -v."
+    fname="_${1:-UNDEFINED}"
+    test -n "${fname##*-*}" || fname="$(echo "$fname" | tr "-" "_")"
+    shift
+
+    if [ "$(command -v "$fname")" != "$fname" ]; then
+        sed -n '
+            /^# Usage:/,/^[^#]/ {
+                s/^[^#]*$/Action:/p
+                s/^#$//p
+                s/^# //p
+            }
+            y/_/-/
+            s/^-\(.*\)()$/- \1/p
+        ' "$0"
         return 1
     fi
 
-    current_volume=
-    if [[ "${BASH_REMATCH[1]}" -eq 0 ]]; then
-        if . ~/.media-control; then
-            amixer set Master "$unmuted_volume%"
-        else
-            amixer set Master "25%"
-        fi
-    else
-        echo "local unmuted_volume=${BASH_REMATCH[1]}" > ~/.media-control
-        amixer set Master "0%"
-    fi
+    "$fname" ${@:-}
 }
 
-# Switch between low and high bass.
-#
-function bass-toggle()
-{
-    if [[ "$(amixer get Bass)" = *25* ]]; then
-        amixer set Bass "75%"
-    else
-        amixer set Bass "25%"
-    fi
-}
-
-# Listen for and react to media-related ACPI events. This function should never
-# return.
-#
-function acpi-mode()
-{
-    local line
-
-    acpi_listen | while read line; do
-        case "$line" in
-          */volumeup*)      volume-up           ;;
-          */volumedown*)    volume-down         ;;
-          */play*)          pause-or-play       ;;
-          */prev*)          previous-track      ;;
-          */next*)          next-track          ;;
-          */stop*)          stop-playlist       ;;
-          */mute*)          toggle-muted-audio  ;;
-        esac
-    done
-}
-
-function main()
-{
-    set -e -u -o pipefail
-
-    if ! declare -f "${1:-}" >/dev/null; then
-        echo "Available commands:"
-        for entry in $(declare -F); do
-            if [[ "$entry" == "-f" ]] || [[ "$entry" == "declare" ]]; then
-                continue
-            fi
-            echo "- $entry"
-        done
-        exit 1
-    fi
-
-    "$1"
-}
-
-test "${BASH_SOURCE:-}" != "$0" || main "$@"
+main ${@:-}

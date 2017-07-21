@@ -34,33 +34,37 @@ Build System
 The build system has been tested on the following platforms and _make(1)_
 implementations though it most certainly works on others:
 
-- Debian Linux 8
+- Debian Linux 9
   - GNU Make
   - NetBSD Make
-- OpenBSD 6.0
+- OpenBSD 6.1
   - GNU Make
   - OpenBSD Make (NetBSD derivative forked c. 1995)
 - FreeBSD 11
   - GNU Make
   - NetBSD Make
-
-As of October 30th, 2016, `$(PWD)` evaluates to an empty string when using GNU
-Make on OpenBSD 6.0 which will cause various build recipes to fail. When using
-the default build target, "all," "PWD" will be set automatically if it is not
-already set, but it must be explicitly set when using any other targets, e.g.
-`gmake PWD="$PWD" bash`.
+- macOS 10.12 (Sierra)
+  - GNU Make
 
 On Linux, [musl libc][musl] is used instead of GNU libc (glibc) because many of
-glibc's functions support [Name Service Switch][nss] which makes it impossible
-to achieve full static linking without making changes to the code that depends
-on those functions or by hybrid linking against both musl libc and glibc.
-Although this repository's build system supports GNU and BSD Make, GNU Make
-must be installed to compile musl.
+glibc's functions support [Name Service Switch][nss] making it impossible to
+achieve full static linking without making changes to the code that depends on
+those functions or by hybrid linking against both musl libc and glibc. Although
+this repository's build system supports GNU and BSD Make, GNU Make must be
+installed to compile musl.
+
+On macOS, everything is compiled using using dynamic linking because building
+[statically linked binaries is not well supported][QA1118] on the platform.
 
   [musl]: https://www.musl-libc.org/
   [nss]: https://en.wikipedia.org/wiki/Name_Service_Switch
+  [QA1118]: https://developer.apple.com/library/content/qa/qa1118/_index.html
 
 ### Make Targets ###
+
+This repository includes a configuration script that will generate a Makfile
+targetting a specific platform. A typical build consists of `./configure &&
+make`.
 
 - **all:** Build every binary, then execute the "sanity" target. Intermediate
   build failures are temporarily ignored and reported later. This is the
@@ -86,16 +90,13 @@ must be installed to compile musl.
   all compiled programs, documentation and a Makefile for quick installation.
   The variables "DIST_BIN" and "DIST_MAN" control the default values of "BIN"
   and "MAN" used by the distributable's Makefile. The default value of
-  "DIST_BIN" is "~/.local/bin", and the default value of "DIST_MAN" is
-  "~/.local/share/man".
+  "DIST_BIN" is "\~/.local/bin", and the default value of "DIST_MAN" is
+  "\~/.local/share/man".
 - **clean:** Iterate over source code and build folders in this directory and,
   if a folder is a Git repository, restore it to a pristine state while other
   folders are deleted in their entirety. To clean a specific project's folder,
   use `clean-$PROJECT_NAME` e.g. "clean-bash," "clean-less," etc.
-- **purge:** Like clean but also delete Git repository folders, the local GPG
-  home directory, folders matching musl-\* and any files matching \*.tar.\*,
-  \*.sig, \*.asc or \*.log.
-- **binaries:** Attempt to build all available applications.
+- **pristine:** Like clean but deletes everything except musl.
 
 ### Patches ###
 
@@ -152,14 +153,14 @@ from its source repository, `$PROGRAM_NAME-src`. This folder is referred to as
 Official, upstream patches for a given application will be stored in a folder
 named `$PROGRAM_FOLDER-patches`. Other customizations are stored in "patches/"
 with names like `$PROGRAM_FOLDER-$DESCRIPTION`. Patches intended to be applied
-against source trees may have a revision indicator after `$PROGRAM_FOLDER`.
+against revision-controlled source trees may have a revision indicator after
+`$PROGRAM_FOLDER`.
 
 ### PGP / GPG Keys ###
 
-Public keys intended for use with [GPG][gpg] for cryptographic signature
-verification are stored in "public-keys/". The GPG home directory used to store
-the keys in their imported form is "gnupghome/" which will be created by the
-Makefile.
+Public keys used by [GPG][gpg] for cryptographic signature verification are
+stored in "public-keys/". The GPG home directory used to store the keys in
+their imported form is "gnupghome/" which will be created by the Makefile.
 
 Below is a list of the keys and where they were obtained. Each entry will
 typically have two sub-items: the first is the indirect location of a key (i.e.
@@ -176,10 +177,10 @@ replacement keys easier if they are moved.
 - gawk-arnold-robbins.asc
   - <https://savannah.gnu.org/project/memberlist.php?group=gawk>
   - <https://savannah.gnu.org/people/viewgpg.php?user_id=80653>
-- gmp-niels-möller.asc:
+- gmp-niels-möller.asc
   - <https://gmplib.org/>
   - `gpg --keyserver keys.gnupg.net --recv-keys 343C2FF0FBEE5EC2EDBEF399F3599FF828C67298`
-- grep-jim-meyering.asc:
+- grep-jim-meyering.asc
   - <https://savannah.gnu.org/users/meyering>
   - <https://savannah.gnu.org/people/viewgpg.php?user_id=133>
 - less-mark-nudelman.asc
@@ -195,7 +196,7 @@ replacement keys easier if they are moved.
 - libevent-niels-provos.asc
   - <http://www.citi.umich.edu/u/provos/>
   - <http://www.citi.umich.edu/u/provos/pgp.key>
-- mpfr-vincent-lefevre.asc:
+- mpfr-vincent-lefevre.asc
   - <http://www.mpfr.org/mpfr-current/>
   - `gpg --keyserver keys.gnupg.net --recv-keys 07F3DBBECC1A39605078094D980C197698C3739D`
 - musl.asc
@@ -206,4 +207,3 @@ replacement keys easier if they are moved.
   - <http://invisible-island.net/public/dickey-invisible-island.txt>
 
   [gpg]: https://www.gnupg.org/ "GNU Privacy Guard"
-  [wayback-machine]: https://archive.org/web/ "Internet Archive: Wayback Machine"

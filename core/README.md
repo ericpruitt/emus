@@ -28,6 +28,25 @@ programs are currently supported:
   [tmux]: https://tmux.github.io/
   [vim]: http://www.vim.org/
 
+Dependency Graph
+----------------
+
+    findutils
+
+              ,-> coreutils
+    (GMP) ---|
+      |       `-> (MPFR) -----------,+-> GAWK
+       `-------->------------------/ ^
+                                     |
+                                     ,
+                 ,-> (libreadline) -+--> Bash
+    (ncurses) --|
+                 `-> Less, tmux, Vim
+                            ^
+                            |
+                            ,
+    (libevent) ------------'
+
 Build System
 -------------
 

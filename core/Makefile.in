@@ -251,7 +251,8 @@ openbsd-deps:
 	| xargs pkg_add
 
 deps:
-	case "$$($(MAKE) platform)" in \
+	platform="$$($(MAKE) platform)" && \
+	 case "$$platform" in \
 	  debian-*) \
 		$(MAKE) debian-deps; \
 	  ;; \
@@ -263,6 +264,11 @@ deps:
 	  ;; \
 	  macos-*) \
 		$(MAKE) macos-deps; \
+	  ;; \
+	  *) \
+		echo "$$platform: build dependency installation is not" \
+		     "supported on this platform" >&2; \
+		exit 1; \
 	  ;; \
 	esac
 

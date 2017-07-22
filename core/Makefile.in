@@ -34,6 +34,7 @@ MPFR = mpfr-3.1.5
 MUSL = musl-1.1.16
 NCURSES = ncurses-6.0
 READLINE = readline-7.0
+SED = sed-4.4
 
 TMUX = tmux-src
 TMUX_VERSION = 2.5
@@ -59,6 +60,7 @@ FOLDER_CLEAN_TARGETS = \
 	clean-musl \
 	clean-ncurses \
 	clean-readline \
+	clean-sed \
 
 GIT_CLEAN_TARGETS = \
 	clean-tmux \
@@ -78,6 +80,7 @@ TAR_XZ_SIGNATURES = \
 	$(GMP).tar.xz.sig \
 	$(GREP).tar.xz.sig \
 	$(MPFR).tar.xz.sig \
+	$(SED).tar.xz.sig \
 
 SIGNED_ARCHIVE_FOLDERS = \
 	$(TAR_GZ_SIGNATURES:.tar.gz.sig=/.TAR_GZ_FOLDER) \
@@ -115,6 +118,7 @@ BINARIES = \
 	$(LESS)/lessecho \
 	$(LESS)/lesskey \
 	$(TMUX)/tmux \
+	$(SED)/sed/sed \
 	$(VIM)/src/vim \
 	$(VIM)/src/xxd/xxd \
 
@@ -736,6 +740,21 @@ $(BIN)/tmux: $(TMUX)/tmux
 		cp -f "$$OLDPWD"/tmux.1.* "$(MAN)/man1/tmux.1"; \
 	fi
 	cp -f $? $@
+
+$(SED)/Makefile: $(SED)/.FOLDER
+	(cd $(@D) && \
+	./configure \
+		CC="$(CC)" \
+		CFLAGS="$(CFLAGS)" \
+		LDFLAGS="$(LDFLAGS)" \
+		--disable-dependency-tracking \
+		--disable-nls \
+	)
+
+$(SED)/sed/sed: $(SED)/Makefile
+	(cd $(?D) && $(MAKE) -S)
+
+sed: $(SED)/sed/sed
 
 $(VIM_GIT):
 	git clone -b v$(VIM_VERSION) https://github.com/vim/vim.git $(VIM)

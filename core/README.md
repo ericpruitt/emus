@@ -12,6 +12,7 @@ programs are currently supported:
 - _find(1)_ and _xargs(1)_ from [GNU Find Utilities][findutils]
 - [GNU Awk][gawk] with GMP and [MPFR][mpfr] support
 - [GNU Grep][grep]
+- [GNU sed][sed]
 - [Less][less]
 - [tmux][tmux]
 - [Vim][vim]
@@ -24,6 +25,7 @@ programs are currently supported:
   [gmp]: https://gmplib.org/ "GNU Multiple Precision Bignum Library"
   [mpfr]: http://www.mpfr.org/ "GNU Multiple Precision Floating-point Library"
   [grep]: https://www.gnu.org/software/grep/
+  [sed]: https://www.gnu.org/software/sed/
   [less]: http://www.greenwoodsoftware.com/less/
   [tmux]: https://tmux.github.io/
   [vim]: http://www.vim.org/
@@ -32,6 +34,8 @@ Dependency Graph
 ----------------
 
     findutils
+
+    sed
 
               ,-> coreutils
     (GMP) ---|
@@ -199,7 +203,7 @@ replacement keys easier if they are moved.
 - gmp-niels-möller.asc
   - <https://gmplib.org/>
   - `gpg --keyserver keys.gnupg.net --recv-keys 343C2FF0FBEE5EC2EDBEF399F3599FF828C67298`
-- grep-jim-meyering.asc
+- grep-jim-meyering.asc (a.k.a. sed-jim-meyering.asc)
   - <https://savannah.gnu.org/users/meyering>
   - <https://savannah.gnu.org/people/viewgpg.php?user_id=133>
 - less-mark-nudelman.asc

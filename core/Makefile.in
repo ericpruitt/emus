@@ -331,7 +331,7 @@ $(DEFAULT):
 	case '$@' in \
 	  *.tar.gz|*.tar.xz|*.sig) \
 		echo '$@' \
-		| sed 's|\(\(.*\)-.*\)|ftp://ftp.gnu.org/gnu/\2/\1|' \
+		| sed 's|\(\(.*\)-.*\)|http://ftpmirror.gnu.org/\2/\1|' \
 		| $(WGET) -c -i -; \
 	  ;; \
 	  *) \

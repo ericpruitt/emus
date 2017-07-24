@@ -15,6 +15,7 @@ programs are currently supported:
 - [GNU sed][sed]
 - [Less][less]
 - [tmux][tmux]
+- [Tree][tree]
 - [Vim][vim]
 
   [bsd-2-clause]: http://opensource.org/licenses/BSD-2-Clause
@@ -28,6 +29,7 @@ programs are currently supported:
   [sed]: https://www.gnu.org/software/sed/
   [less]: http://www.greenwoodsoftware.com/less/
   [tmux]: https://tmux.github.io/
+  [tree]: http://mama.indstate.edu/users/ice/tree/index.html
   [vim]: http://www.vim.org/
 
 Dependency Graph
@@ -36,6 +38,8 @@ Dependency Graph
     findutils
 
     sed
+
+    tree
 
               ,-> coreutils
     (GMP) ---|

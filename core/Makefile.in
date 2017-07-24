@@ -35,6 +35,7 @@ MUSL = musl-1.1.16
 NCURSES = ncurses-6.0
 READLINE = readline-7.0
 SED = sed-4.4
+TREE = tree-1.7.0
 
 TMUX = tmux-src
 TMUX_VERSION = 2.5
@@ -46,6 +47,8 @@ VIM_GIT = $(VIM)/.git
 
 FINDUTILS_SHA256 = \
 	ded4c9f73731cd48fec3b6bdaccce896473b6d8e337e9612e16cf1431bb1169d
+TREE_SHA256 = \
+	6957c20e82561ac4231638996e74f4cfa4e6faabc5a2f511f0b4e3940e8f7b12
 
 FOLDER_CLEAN_TARGETS = \
 	clean-bash \
@@ -61,6 +64,7 @@ FOLDER_CLEAN_TARGETS = \
 	clean-ncurses \
 	clean-readline \
 	clean-sed \
+	clean-tree \
 
 GIT_CLEAN_TARGETS = \
 	clean-tmux \
@@ -119,6 +123,7 @@ BINARIES = \
 	$(LESS)/lesskey \
 	$(TMUX)/tmux \
 	$(SED)/sed/sed \
+	$(TREE)/tree \
 	$(VIM)/src/vim \
 	$(VIM)/src/xxd/xxd \
 
@@ -760,6 +765,30 @@ $(SED)/sed/sed: $(SED)/Makefile
 	(cd $(?D) && $(MAKE) -S)
 
 sed: $(SED)/sed/sed
+
+$(TREE).tar.gz:
+	$(WGET) -O $@ -nc ftp://mama.indstate.edu/linux/tree/$(@:.tar.gz=.tgz)
+
+$(TREE)/.FOLDER: $(TREE).tar.gz
+	if ! (openssl dgst -sha256 $? || sha256 $? || sha256sum $?) \
+	  | grep -F -q -e $(TREE_SHA256); then \
+		echo "make: could not validate hash of $?" >&2; \
+		exit 1; \
+	fi
+	tar -x -z -f $?
+	touch $@
+
+$(TREE)/tree: $(TREE)/.FOLDER
+	$(CC) $(CFLAGS) -o $@ $(TREE)/*.c
+
+tree: $(TREE)/tree
+
+$(BIN)/tree: $(TREE)/tree
+	if [ -n "$(MAN)" ]; then \
+		sed 's/^ \.TP$$/.TP/' $(TREE)/doc/tree.1 \
+		  > "$(MAN)/man1/tree.1"; \
+	fi
+	cp -f $? $@
 
 $(VIM_GIT):
 	git clone -b v$(VIM_VERSION) https://github.com/vim/vim.git $(VIM)

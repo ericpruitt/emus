@@ -2,7 +2,7 @@
 # License: 2-Clause BSD (http://opensource.org/licenses/BSD-2-Clause)
 .POSIX:
 .SILENT:
-.SUFFIXES: .asc .sig .FOLDER .TAR_GZ_FOLDER .TAR_XZ_FOLDER
+.SUFFIXES: .asc .sig .unverified .FOLDER .TAR_GZ_FOLDER .TAR_XZ_FOLDER
 
 # Build flags:
 # CC =
@@ -12,6 +12,8 @@
 # Make implementations:
 # GMAKE =
 # MAKE =
+# Miscellaneous programs:
+# SHA256 =
 
 DEFAULT_TERMINFO_DIR = /etc/terminfo:/lib/terminfo:/usr/share/terminfo
 DIST_BIN = ~/.local/bin
@@ -45,10 +47,11 @@ VIM = vim-src
 VIM_VERSION = 8.0.0692
 VIM_GIT = $(VIM)/.git
 
-FINDUTILS_SHA256 = \
-	ded4c9f73731cd48fec3b6bdaccce896473b6d8e337e9612e16cf1431bb1169d
-TREE_SHA256 = \
-	6957c20e82561ac4231638996e74f4cfa4e6faabc5a2f511f0b4e3940e8f7b12
+SHA_HASHES = \
+	"findutils-4.6.0" \
+	ded4c9f73731cd48fec3b6bdaccce896473b6d8e337e9612e16cf1431bb1169d \
+	"tree-1.7.0" \
+	6957c20e82561ac4231638996e74f4cfa4e6faabc5a2f511f0b4e3940e8f7b12 \
 
 FOLDER_CLEAN_TARGETS = \
 	clean-bash \
@@ -349,6 +352,13 @@ $(DEFAULT):
 	  ;; \
 	esac
 
+.unverified:
+	if ! $(SHA256) < $< | grep -q "$$(printf '%s\n' $(SHA_HASHES))"; then \
+		echo "make: $?: hash not recognized" >&2; \
+		exit 1; \
+	fi
+	ln -f $< $@
+
 .asc.sig:
 	mv $< $@
 
@@ -575,13 +585,11 @@ $(BIN)/coreutils: $(COREUTILS)/src/coreutils
 	ln -f -s ginstall "$(BIN)/install"
 	cp -f $? $@
 
+$(FINDUTILS).tar.gz.unverified:
+	$(WGET) -O $@ http://ftpmirror.gnu.org/findutils/$(FINDUTILS).tar.gz
+
 $(FINDUTILS)/.FOLDER: $(FINDUTILS).tar.gz
-	if ! (openssl dgst -sha256 $? || sha256 $? || sha256sum $?) \
-	  | grep -F -q -e $(FINDUTILS_SHA256); then \
-		echo "make: could not validate hash of $?" >&2; \
-		exit 1; \
-	fi
-	tar -x -z -f $(FINDUTILS).tar.gz
+	tar -x -z -f $?
 	touch $@
 
 $(FINDUTILS)/Makefile: $(FINDUTILS)/.FOLDER
@@ -766,15 +774,10 @@ $(SED)/sed/sed: $(SED)/Makefile
 
 sed: $(SED)/sed/sed
 
-$(TREE).tar.gz:
-	$(WGET) -O $@ -nc ftp://mama.indstate.edu/linux/tree/$(@:.tar.gz=.tgz)
+$(TREE).tar.gz.unverified:
+	$(WGET) -O $@ -nc ftp://mama.indstate.edu/linux/tree/$(TREE).tgz
 
 $(TREE)/.FOLDER: $(TREE).tar.gz
-	if ! (openssl dgst -sha256 $? || sha256 $? || sha256sum $?) \
-	  | grep -F -q -e $(TREE_SHA256); then \
-		echo "make: could not validate hash of $?" >&2; \
-		exit 1; \
-	fi
 	tar -x -z -f $?
 	touch $@
 

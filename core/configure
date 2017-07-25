@@ -12,6 +12,21 @@ die()
     echo "$SELF: $1" >&2 && return 1
 }
 
+configure_sha256()
+{
+    test -z "${SHA256:=}" || return 0
+
+    if command -v openssl >/dev/null 2>&1; then
+        SHA256="openssl dgst -sha256"
+    elif command -v sha256 >/dev/null 2>&1; then
+        SHA256="sha256"
+    elif command -v sha256sum >/dev/null 2>&1; then
+        SHA256="sha256sum --tag"
+    else
+        die "unable to find command for SHA-256 hashing"
+    fi
+}
+
 configure_make()
 {
     # Check to see if "-B" is needed to make recipes execute each statement in
@@ -124,6 +139,7 @@ usage()
     echo "  GMAKE       GNU Make command"
     echo "  MAKE        POSIX-compatible Make command"
     echo "  QUIRKS      List of platform-specific portability quirks"
+    echo "  SHA256      SHA-256 hashing command"
     echo
     echo "Environment Variables:"
     echo "  If any configurable variables are defined in the environment as"
@@ -136,7 +152,8 @@ main()
 {
     for argument in "$@"; do
         case "$argument" in
-          CC=*|CCOPTFLAGS=*|CFLAGS=*|GMAKE=*|LDFLAGS=*|MAKE=*|QUIRKS=*)
+          CC=*|CCOPTFLAGS=*|CFLAGS=*|GMAKE=*|LDFLAGS=*|MAKE=*|QUIRKS=*|\
+          SHA256=*)
             # The space after "}" makes it possible to null a value using
             # parameter assignment as documented in the script usage.
             eval "${argument%%=*}=\"\${argument#*=} \""
@@ -161,11 +178,12 @@ main()
     test -n "$PLATFORM"
 
     configure_make
+    configure_sha256
     configure_cc
     configure_cflags_ldflags
     configure_quirks
 
-    for var in CC CFLAGS LDFLAGS GMAKE MAKE QUIRKS; do
+    for var in CC CFLAGS LDFLAGS GMAKE MAKE QUIRKS SHA256; do
         eval "export $var; test -z \"\$$var\" || echo $var = \$$var"
     done
 

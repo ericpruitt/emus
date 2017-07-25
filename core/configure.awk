@@ -27,7 +27,7 @@ macos && /^\t+--enable-static/ {
 }
 
 {
-    if (/^#[ \t]*[A-Z_][A-Z_]*[ \t]*=$/) {
+    if (/^#[ \t]*[A-Z0-9_][A-Z0-9_]*[ \t]*=$/) {
         gsub("#", "")
         if (length(ENVIRON[$1])) {
             print $1, "=", ENVIRON[$1]

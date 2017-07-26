@@ -633,21 +633,18 @@ $(BIN)/xargs: $(FINDUTILS)/xargs/xargs
 	test -z "$(MAN)" || cp -f $?.1 "$(MAN)/man1"
 	cp -f $? $@
 
-# The autotools configuration script fails to detect mktime on FreeBSD, but
-# since mktime is a POSIX function, it will be present on all of the platforms
-# I care about. This recipe appends "#define HAVE_MKTIME 1" to the end of the
-# configuration template regardless of whether or not autoconf defines it.
+# For whatever reason, autotools considers FreeBSD's mktime(3) implementation
+# buggy, so "ac_cv_func_working_mktime=yes" must be used to force the build
+# system to use the host's mktime(3). See
+# https://lists.gnu.org/archive/html/bug-gawk/2017-07/msg00024.html for more
+# information.
 $(GAWK)/Makefile: $(GAWK)/.FOLDER $(GMP_BUILT) $(MPFR_BUILT) $(READLINE_BUILT)
-	if ! [ -e $(@D)/configh.in ]; then \
-		echo "cannot patch configh.in: file not found" >&2; \
-		exit 1; \
-	fi
-	echo "/**/ #define HAVE_MKTIME 1" >> $(@D)/configh.in
 	(cd $(@D) && \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -DREALLYMEAN" \
 		LDFLAGS="$(LDFLAGS)" \
+		ac_cv_func_working_mktime="yes" \
 		--disable-dependency-tracking \
 		--disable-extensions \
 		--disable-nls \

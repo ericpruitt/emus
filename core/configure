@@ -31,27 +31,27 @@ configure_make()
 {
     # Check to see if "-B" is needed to make recipes execute each statement in
     # a separate shell.
-    make="${MAKE:-make}"
-    if [ -n "$(echo "$ONE_SHELL_TEST_RECIPE" | $make -s -j2 -f -)" ] &&
-       [ -z "$(echo "$ONE_SHELL_TEST_RECIPE" | $make -s -j2 -f - -B)" ]; then
-       MAKE="$make -B"
+    MAKE="${MAKE:-make}"
+    if [ -n "$(echo "$ONE_SHELL_TEST_RECIPE" | $MAKE -s -j2 -f -)" ] &&
+       [ -z "$(echo "$ONE_SHELL_TEST_RECIPE" | $MAKE -s -j2 -f - -B)" ]; then
+       MAKE="$MAKE -B"
     fi
 
-    : "${MAKE:=}"
-    test "${GMAKE:=}" = " " && GMAKE="" && return
-
-    # If GMAKE is set, verify that it's actually GNU Make.
-    if [ -n "$GMAKE" ]; then
+    if [ "${GMAKE:=}" = " " ]; then
+        # If GMAKE is a space, that means the user explicitly unset it.
+        GMAKE=""
+    elif [ -n "$GMAKE" ]; then
+        # If GMAKE is set, verify that it's actually GNU Make.
         $GMAKE -v 2>&1 | grep -q "GNU Make" || die "GMAKE is not GNU Make"
-        return
+    else
+        # If GMAKE is not set, try to find GNU Make.
+        for GMAKE in "$MAKE" make gmake ""; do
+            $GMAKE -v 2>&1 | grep -q "GNU Make" && break
+        done
     fi
 
-    # If GMAKE is not set, try to find GNU Make.
-    for gmake in "$MAKE" make gmake ""; do
-        $gmake -v 2>&1 | grep -q "GNU Make" && break
-    done
-
-    test "$gmake" = "make" && GMAKE='$(MAKE)' || GMAKE="$gmake"
+    test "$MAKE" != "make" || MAKE=""
+    test -n "$MAKE" -o "$GMAKE" != "make" || GMAKE='$(MAKE)'
 }
 
 configure_cc()
@@ -61,7 +61,7 @@ configure_cc()
 
     case "$PLATFORM" in
       linux*)
-        CC="$PWD/$($make -s -f "$MAKEFILE_TEMPLATE" musl-cc)"
+        CC="$PWD/$(make -s -f "$MAKEFILE_TEMPLATE" musl-cc)"
 
         test ! -e "$CC" -a -z "$DRY_RUN" || return 0
         test -n "$GMAKE" || die "GNU Make needed for musl; set GMAKE or MAKE"
@@ -77,9 +77,7 @@ configure_cflags_ldflags()
 {
     if [ -z "${CFLAGS:-}" ] || [ -z "${LDFLAGS:-}" ]; then
         case "$PLATFORM: $(exec 2>&1; $CC -dumpspecs || $CC -v)" in
-          darwin*)
-            # Static compilation is not well-supported on macOS, so no
-            # additional linker or compiler flags are added.
+          macos*)
             _CFLAGS=""
             _LDFLAGS=""
           ;;
@@ -110,15 +108,49 @@ configure_cflags_ldflags()
     LDFLAGS="-L\$(COMMON_PREFIX)/lib ${LDFLAGS:-$_LDFLAGS}"
 }
 
-configure_quirks()
+generate_makefile()
 {
-    test -z "${QUIRKS:-}" || return 0
+    # GNU Make treats "$TARGET" and "./$TARGET" as references to a single
+    # target while some BSD Make variants treat them as two distinct targets.
+    # If GNU Make is installed, it will be used in place of BSD Make where BSD
+    # Make might otherwise fail. If GNU Make is not installed, a shim is used
+    # to emulate GNU Make's behavior.
+    if [ -z "$GMAKE" ]; then
+        GMAKE='$(MAKE) MAKE="$(MAKE) -f Makefile -f $(PWD)/fake-gmake.mk"'
+    fi
 
-    QUIRKS="$(
-        test "$(uname)" != "Darwin" || echo macos
-        test -n "$GMAKE" || echo no_gmake
-        test "$(echo 'x:.;echo $(?D)' | ${MAKE:-make} -s -f-)" || echo no_qmd
-    )"
+    while IFS="" read -r line; do
+        case "$line" in
+          # The "D" directory part modifier is specified by POSIX, but
+          # OpenBSD's Make does not support it when used with $? and thus
+          # requires a shim.
+          .POSIX:)
+            if [ -z "$(echo 'x:.;echo $(?D)' | ${MAKE:-make} -s -f -)" ]; then
+                line="$(printf "%s\n%s" "$line" '?D = ${?:H}')"
+            fi
+          ;;
+
+          # Static linking on macOS is not well supported, so the corresponding
+          # configuration flags must be removed.
+          [!#]*--enable-static*)
+            case "$PLATFORM" in
+              macos-*)
+                continue
+              ;;
+            esac
+          ;;
+
+          # Replace commented variables with their proper values or delete them
+          # if they are explicitly defined.
+          [#]*=)
+            set -- $line
+            variable="$2" && eval "value=\"\${$variable:-}\""
+            test -z "$value" || echo $variable = $value && continue
+          ;;
+        esac
+
+        printf "%s\n" "$line"
+    done < "$MAKEFILE_TEMPLATE"
 }
 
 usage()
@@ -138,7 +170,6 @@ usage()
     echo
     echo "  GMAKE       GNU Make command"
     echo "  MAKE        POSIX-compatible Make command"
-    echo "  QUIRKS      List of platform-specific portability quirks"
     echo "  SHA256      SHA-256 hashing command"
     echo
     echo "Environment Variables:"
@@ -152,8 +183,7 @@ main()
 {
     for argument in "$@"; do
         case "$argument" in
-          CC=*|CCOPTFLAGS=*|CFLAGS=*|GMAKE=*|LDFLAGS=*|MAKE=*|QUIRKS=*|\
-          SHA256=*)
+          CC=*|CCOPTFLAGS=*|CFLAGS=*|GMAKE=*|LDFLAGS=*|MAKE=*|SHA256=*)
             # The space after "}" makes it possible to null a value using
             # parameter assignment as documented in the script usage.
             eval "${argument%%=*}=\"\${argument#*=} \""
@@ -174,30 +204,32 @@ main()
         esac
     done
 
-    PLATFORM="$(echo $(uname)-$(uname -r) | tr A-Z a-z)"
+    PLATFORM="$(make -f "$MAKEFILE_TEMPLATE" platform)"
     test -n "$PLATFORM"
 
     configure_make
     configure_sha256
     configure_cc
     configure_cflags_ldflags
-    configure_quirks
 
-    for var in CC CFLAGS LDFLAGS GMAKE MAKE QUIRKS SHA256; do
-        eval "export $var; test -z \"\$$var\" || echo $var = \$$var"
+    for var in CC CFLAGS LDFLAGS GMAKE MAKE SHA256; do
+        eval "test -z \"\$$var\" || echo $var = \$$var"
     done
 
     test -z "$DRY_RUN" || return 0
 
-    rm -f "$MAKEFILE"
+    generate_makefile > "$MAKEFILE.new"
 
-    awk -f configure.awk \
-        $(for quirk in $QUIRKS; do echo "-v $quirk=1"; done) \
-        "$MAKEFILE_TEMPLATE" > "$MAKEFILE"
-
-    chmod 400 "$MAKEFILE"
-    echo "--"
-    echo "$SELF: configuration written to $MAKEFILE"
+    if [ -e "$MAKEFILE" ] && diff -u "$MAKEFILE" "$MAKEFILE.new"; then
+        echo
+        echo "$SELF: Makefile contents unchanged"
+        rm -f "$MAKEFILE.new"
+    else
+        mv -f "$MAKEFILE.new" "$MAKEFILE"
+        chmod 400 "$MAKEFILE"
+        echo "--"
+        echo "$SELF: configuration written to $MAKEFILE"
+    fi
 }
 
 main "$@"

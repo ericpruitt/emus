@@ -4,11 +4,25 @@ set -e -u
 DRY_RUN=""
 SELF="${0##*/}"
 
+# Write a message prefixed with the command name to standard error and return a
+# non-zero exit status.
+#
+# Arguments:
+# - $1: Message to display.
+#
 die()
 {
     echo "$SELF: $1" >&2 && return 1
 }
 
+# Configure the value of SHA256.
+#
+# Variables:
+# - SHA256: Command that computes the SHA-256 hash of a file. If this value is
+#   unset, the script will check to see if several common commands are
+#   available, returning a non-zero exit status if not suitable command is
+#   found.
+#
 configure_sha256()
 {
     test -z "${SHA256:=}" || return 0
@@ -24,6 +38,15 @@ configure_sha256()
     fi
 }
 
+# Configure the value of MAKE and GMAKE.
+#
+# Variables:
+# - MAKE: POSIX-compatible Make command.
+# - GMAKE: GNU Make command. If this value is already set, the function will
+#   verify that the command actually invokes GNU Make and return a non-zero
+#   exit status if the command is not GNU Make. If this value is unset, the
+#   function will attempt to find GNU Make and set the value accordingly.
+#
 configure_make()
 {
     MAKE="${MAKE:-make}"
@@ -45,6 +68,14 @@ configure_make()
     test -n "$MAKE" -o "$GMAKE" != "make" || GMAKE='$(MAKE)'
 }
 
+# Configure the value of CC.
+#
+# Variables:
+# - CC: C compiler command. The default value is "cc" on all platforms except
+#   Linux. On Linux, this defaults to the path of the musl libc compiler
+#   wrapper. If the configuration script is not in dry-run mode, the wrapper
+#   will be configured automatically.
+#
 configure_cc()
 {
     test -z "${CC:-}" || return 0
@@ -64,6 +95,16 @@ configure_cc()
     esac
 }
 
+# Configure the values of CFLAGS and LDFLAGS.
+#
+# Variables:
+# - CFLAGS: C compiler flags. When this is unset, this function will use a
+#   platform-specific value.
+# - LDFLAGS: Object file linker flags. When this is unset, this function will
+#   use a platform-specific value.
+# - CCOPTFLAGS: Compiler optimization flags that are prepended to CFLAGS. This
+#   defaults to "-O3".
+#
 configure_cflags_ldflags()
 {
     if [ -z "${CFLAGS:-}" ] || [ -z "${LDFLAGS:-}" ]; then
@@ -99,6 +140,16 @@ configure_cflags_ldflags()
     LDFLAGS="-L\$(COMMON_PREFIX)/lib ${LDFLAGS:-$_LDFLAGS}"
 }
 
+# Test whether or not a Make implementation executes all commands for a given
+# recipe in one shell. The exit status of the function is 0 if one shell is
+# used, and a non-zero value otherwise. This function produces no output.
+#
+# Variables:
+# - MAKE: Command used to run Make. This defaults to "make".
+#
+# Arguments:
+# - $@: Any arguments passed to the function are appended to the Make command.
+#
 uses_one_shell()
 {
     echo 'uses-one-shell:
@@ -107,6 +158,9 @@ uses_one_shell()
     | env -i ${MAKE:-make} "$@" -f - >/dev/null 2>&1
 }
 
+# Edit the Makefile template and insert configured variables as needed. The
+# generated Makefile is written to standard output.
+#
 generate_makefile()
 {
     # GNU Make treats "$TARGET" and "./$TARGET" as references to a single
@@ -161,6 +215,8 @@ generate_makefile()
     done < Makefile.in
 }
 
+# Write configuration script documentation to standard output.
+#
 usage()
 {
     echo "Usage: $SELF [OPTION] [VARIABLE=[VALUE]]..."

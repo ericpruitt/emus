@@ -21,13 +21,15 @@ die()
 # - SHA256: Command that computes the SHA-256 hash of a file. If this value is
 #   unset, the script will check to see if several common commands are
 #   available, returning a non-zero exit status if not suitable command is
-#   found.
+#   found. Once this variable has been set be it automatically or by the user,
+#   a sanity check if performed using a test vector with a known hash. The
+#   function will finish with a non-zero return code if the sanity check fails.
 #
 configure_sha256()
 {
-    test -z "${SHA256:=}" || return 0
-
-    if command -v openssl >/dev/null 2>&1; then
+    if [ -n "${SHA256:=}" ]; then
+        :
+    elif command -v openssl >/dev/null 2>&1; then
         SHA256="openssl dgst -sha256"
     elif command -v sha256 >/dev/null 2>&1; then
         SHA256="sha256"
@@ -35,6 +37,11 @@ configure_sha256()
         SHA256="sha256sum --tag"
     else
         die "unable to find command for SHA-256 hashing"
+    fi
+
+    if ! printf x | $SHA256 | grep -q \
+      "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"; then
+        die "${SHA256% }: sanity test failed; output did not match test vector"
     fi
 }
 

@@ -297,7 +297,7 @@ main()
         rm -f Makefile.new
     else
         mv -f Makefile.new Makefile
-        chmod 400 Makefile
+        chmod u-w+rx Makefile
         echo "--"
         echo "$SELF: configuration written to Makefile"
     fi

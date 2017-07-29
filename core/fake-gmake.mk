@@ -1,3 +1,4 @@
+#!/usr/bin/make -f
 # Resolve build problems caused by "$TARGET" and "./$TARGET" being treated as
 # distinct goals.
 .DEFAULT:

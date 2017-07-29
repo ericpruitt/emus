@@ -1,3 +1,4 @@
+#!/usr/bin/make -f
 # https://github.com/ericpruitt/static-unix-userland
 # https://www.codevat.com/
 .POSIX:

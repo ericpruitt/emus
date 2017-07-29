@@ -1,3 +1,4 @@
+#!/usr/bin/make -f
 # Author: Eric Pruitt (https://www.codevat.com)
 # License: 2-Clause BSD (http://opensource.org/licenses/BSD-2-Clause)
 .POSIX:
@@ -330,6 +331,7 @@ dist.tar.xz: $(BINARIES) dist.mk
 		-e 's:<BIN>:$(DIST_BIN):g' \
 		-e 's:<MAN>:$(DIST_MAN):g' \
 		-e "s:<PLATFORM>:$$($(MAKE) platform):g"
+	chmod +x dist.tmp/Makefile
 	$(MAKE) -s BIN=dist.tmp/bin MAN=dist.tmp/man install
 	printf "\n%s\n" "Compressing..."
 	tar -c -f - dist.tmp | xz -9 -e -c - > "$@.tmp"

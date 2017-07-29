@@ -4,7 +4,6 @@ set -e -u
 DRY_RUN=""
 MAKEFILE="Makefile"
 MAKEFILE_TEMPLATE="$MAKEFILE.in"
-ONE_SHELL_TEST_RECIPE="$(printf "x:\n\tX=X\n\techo \$\$X\n")"
 SELF="${0##*/}"
 
 die()
@@ -29,13 +28,7 @@ configure_sha256()
 
 configure_make()
 {
-    # Check to see if "-B" is needed to make recipes execute each statement in
-    # a separate shell.
     MAKE="${MAKE:-make}"
-    if [ -n "$(echo "$ONE_SHELL_TEST_RECIPE" | $MAKE -s -j2 -f -)" ] &&
-       [ -z "$(echo "$ONE_SHELL_TEST_RECIPE" | $MAKE -s -j2 -f - -B)" ]; then
-       MAKE="$MAKE -B"
-    fi
 
     if [ "${GMAKE:=}" = " " ]; then
         # If GMAKE is a space, that means the user explicitly unset it.
@@ -108,6 +101,14 @@ configure_cflags_ldflags()
     LDFLAGS="-L\$(COMMON_PREFIX)/lib ${LDFLAGS:-$_LDFLAGS}"
 }
 
+uses_one_shell()
+{
+    echo 'uses-one-shell:
+			uses_one_shell=true
+			$${uses_one_shell:-false}' \
+    | env -i ${MAKE:-make} "$@" -f - >/dev/null 2>&1
+}
+
 generate_makefile()
 {
     # GNU Make treats "$TARGET" and "./$TARGET" as references to a single
@@ -118,6 +119,15 @@ generate_makefile()
     if [ -z "$GMAKE" ]; then
         GMAKE='$(MAKE) MAKE="$(MAKE) -f Makefile -f $(PWD)/fake-gmake.mk"'
     fi
+
+    # BSD Make implementations that support parallel recipe execution disable
+    # POSIX compatibility mode when the non-POSIX option "-j" is used. When
+    # compatibility mode is disabled, one shell is used for all commands in a
+    # recipe which causes problems when recipes contain commands like "cd" that
+    # modify the environment. Compatibility mode can be re-enabled with "-B",
+    # and this logic detects the aforementioned behavior and adds "-B" to MAKE
+    # as needed.
+    uses_one_shell -j2 && ! uses_one_shell -j2 -B && MAKE="${MAKE:-make} -B"
 
     while IFS="" read -r line; do
         case "$line" in

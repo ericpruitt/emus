@@ -2,8 +2,6 @@
 set -e -u
 
 DRY_RUN=""
-MAKEFILE="Makefile"
-MAKEFILE_TEMPLATE="$MAKEFILE.in"
 SELF="${0##*/}"
 
 die()
@@ -54,14 +52,14 @@ configure_cc()
 
     case "$PLATFORM" in
       linux*)
-        CC="$PWD/$(make -s -f "$MAKEFILE_TEMPLATE" musl-cc)"
+        CC="$PWD/$(make -s -f Makefile.in musl-cc)"
 
         test ! -e "$CC" -a -z "$DRY_RUN" || return 0
         test -n "$GMAKE" || die "GNU Make needed for musl; set GMAKE or MAKE"
         test "$GMAKE" = '$(MAKE)' && make="make" || make="$GMAKE"
 
         echo "Building musl-cc..."
-        $make -s -f "$MAKEFILE_TEMPLATE" CC="cc" musl
+        $make -s -f Makefile.in CC="cc" musl
       ;;
     esac
 }
@@ -160,7 +158,7 @@ generate_makefile()
         esac
 
         printf "%s\n" "$line"
-    done < "$MAKEFILE_TEMPLATE"
+    done < Makefile.in
 }
 
 usage()
@@ -214,7 +212,7 @@ main()
         esac
     done
 
-    PLATFORM="$(make -f "$MAKEFILE_TEMPLATE" platform)"
+    PLATFORM="$(make -f Makefile.in platform)"
     test -n "$PLATFORM"
 
     configure_make
@@ -228,17 +226,17 @@ main()
 
     test -z "$DRY_RUN" || return 0
 
-    generate_makefile > "$MAKEFILE.new"
+    generate_makefile > Makefile.new
 
-    if [ -e "$MAKEFILE" ] && diff -u "$MAKEFILE" "$MAKEFILE.new"; then
+    if [ -e Makefile ] && diff -u Makefile Makefile.new; then
         echo
         echo "$SELF: Makefile contents unchanged"
-        rm -f "$MAKEFILE.new"
+        rm -f Makefile.new
     else
-        mv -f "$MAKEFILE.new" "$MAKEFILE"
-        chmod 400 "$MAKEFILE"
+        mv -f Makefile.new Makefile
+        chmod 400 Makefile
         echo "--"
-        echo "$SELF: configuration written to $MAKEFILE"
+        echo "$SELF: configuration written to Makefile"
     fi
 }
 

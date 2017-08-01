@@ -796,7 +796,9 @@ $(VIM_GIT):
 	git clone -b v$(VIM_VERSION) https://github.com/vim/vim.git $(VIM)
 
 $(VIM)/src/auto/config.h: $(VIM_GIT) $(NCURSES_BUILT)
-	grep -F -q "/**/" $@.in || $(PRINT_AUTOCONF_UNDEFS) >> $@.in
+	if ! grep -F -q "/**/" $(VIM)/src/config.h.in; then \
+		$(PRINT_AUTOCONF_UNDEFS) >> $(VIM)/src/config.h.in; \
+	fi
 	if [ -z "$$(find $(VIM) -name '*.orig')" ]; then \
 		(cat patches/vim-src-* || echo) | (cd $(VIM) && patch -p0); \
 	fi

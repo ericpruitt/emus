@@ -773,6 +773,10 @@ $(SED)/sed/sed: $(SED)/Makefile
 
 sed: $(SED)/sed/sed
 
+$(BIN)/sed: $(SED)/sed/sed
+	test -z "$(MAN)" || cp -f "$(SED)/doc/sed.1" "$(MAN)/man1"
+	cp -f $? $@
+
 $(TREE).tar.gz.unverified:
 	$(WGET) -O $@ -nc ftp://mama.indstate.edu/linux/tree/$(TREE).tgz
 

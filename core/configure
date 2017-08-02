@@ -89,7 +89,7 @@ configure_cc()
     CC="cc"
 
     case "$PLATFORM" in
-      linux*)
+      *-linux-*)
         CC="$PWD/$(make -s -f Makefile.in musl-cc)"
 
         test ! -e "$CC" -a -z "$DRY_RUN" || return 0

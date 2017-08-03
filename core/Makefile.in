@@ -335,6 +335,7 @@ dist.tar.xz: $(BINARIES) dist.mk
 	$(MAKE) -s BIN=dist.tmp/bin MAN=dist.tmp/man install
 	printf "\n%s\n" "Compressing..."
 	tar -c -f - dist.tmp | xz -9 -e -c - > "$@.tmp"
+	rm -f -r dist.tmp
 	mv "$@.tmp" "$@"
 
 dist: dist.tar.xz

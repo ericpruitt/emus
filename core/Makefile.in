@@ -314,7 +314,7 @@ install:
 		exit 1; \
 	fi
 	mkdir -p "$(BIN)"
-	test -z "$(MAN)" || mkdir -p "$(MAN)/man1"
+	test -z "$(MAN)" || mkdir -p "$(MAN)/man1/"
 	for binary in $$(ls $(BINARIES) 2>/dev/null); do \
 		echo "- $$binary"; \
 		$(MAKE) BIN="$(BIN)" MAN="$(MAN)" "$(BIN)/$${binary##*/}"; \
@@ -552,8 +552,8 @@ bash: $(BASH)/bash
 
 $(BIN)/bash: $(BASH)/bash
 	if [ -n "$(MAN)" ]; then \
-		cp -f "$(BASH)/doc/bash.1" "$(MAN)/man1"; \
-		cp -f "$(BASH)/doc/rbash.1" "$(MAN)/man1"; \
+		cp -f "$(BASH)/doc/bash.1" "$(MAN)/man1/"; \
+		cp -f "$(BASH)/doc/rbash.1" "$(MAN)/man1/"; \
 	fi
 	ln -f -s bash "$(BIN)/rbash"
 	cp -f $? $@
@@ -582,7 +582,7 @@ $(BIN)/coreutils: $(COREUTILS)/src/coreutils
 		($? --help | grep cp && echo install) \
 		| xargs printf "$(COREUTILS)/man/%s.1\n" \
 		| xargs ls -1 2>/dev/null \
-		| xargs sh -c "cp \"\$$@\" $(MAN)/man1"; \
+		| xargs sh -c "cp \"\$$@\" $(MAN)/man1/"; \
 	fi
 	$? --help | grep cp | (cd "$(BIN)" && xargs -n1 ln -f -s coreutils)
 	ln -f -s ginstall "$(BIN)/install"
@@ -629,11 +629,11 @@ $(FINDUTILS)/find/find $(FINDUTILS)/xargs/xargs: $(FINDUTILS)/lib/libfind.a
 findutils: $(FINDUTILS)/find/find $(FINDUTILS)/xargs/xargs
 
 $(BIN)/find: $(FINDUTILS)/find/find
-	test -z "$(MAN)" || cp -f $?.1 "$(MAN)/man1"
+	test -z "$(MAN)" || cp -f $?.1 "$(MAN)/man1/"
 	cp -f $? $@
 
 $(BIN)/xargs: $(FINDUTILS)/xargs/xargs
-	test -z "$(MAN)" || cp -f $?.1 "$(MAN)/man1"
+	test -z "$(MAN)" || cp -f $?.1 "$(MAN)/man1/"
 	cp -f $? $@
 
 # For whatever reason, autotools considers FreeBSD's mktime(3) implementation
@@ -661,8 +661,8 @@ gawk: $(GAWK)/gawk
 $(BIN)/gawk: $(GAWK)/gawk
 	if [ -n "$(MAN)" ]; then \
 		ln -f -s gawk.1 "$(MAN)/man1/awk.1"; \
-		cp -f $(GAWK)/doc/gawk.1 "$(MAN)/man1"; \
-		cp -f $(GAWK)/doc/igawk.1 "$(MAN)/man1"; \
+		cp -f $(GAWK)/doc/gawk.1 "$(MAN)/man1/"; \
+		cp -f $(GAWK)/doc/igawk.1 "$(MAN)/man1/"; \
 	fi
 	cp -f -r $(GAWK)/awklib/eg/lib/ "$(BIN)/awklib"
 	cp -f $(GAWK)/awklib/igawk "$(BIN)"
@@ -687,7 +687,7 @@ grep: $(GREP)/src/grep
 
 $(BIN)/grep: $(GREP)/src/grep
 	if [ -n "$(MAN)" ]; then \
-		cp -f $(GREP)/doc/grep.1 "$(MAN)/man1"; \
+		cp -f $(GREP)/doc/grep.1 "$(MAN)/man1/"; \
 		ln -f -s grep.1 "$(MAN)/man1/egrep.1"; \
 		ln -f -s grep.1 "$(MAN)/man1/fgrep.1"; \
 	fi
@@ -775,7 +775,7 @@ $(SED)/sed/sed: $(SED)/Makefile
 sed: $(SED)/sed/sed
 
 $(BIN)/sed: $(SED)/sed/sed
-	test -z "$(MAN)" || cp -f "$(SED)/doc/sed.1" "$(MAN)/man1"
+	test -z "$(MAN)" || cp -f "$(SED)/doc/sed.1" "$(MAN)/man1/"
 	cp -f $? $@
 
 $(TREE).tar.gz.unverified:
@@ -851,11 +851,11 @@ $(BIN)/vimruntime: $(VIM)/runtime-files
 $(BIN)/vim: $(BIN)/vimruntime $(VIM)/src/vim
 	if [ -n "$(MAN)" ]; then \
 		ln -f -s vim.1 "$(MAN)/man1/vi.1"; \
-		cp -f "$(VIM)/runtime/doc/vim.1" "$(MAN)/man1"; \
+		cp -f "$(VIM)/runtime/doc/vim.1" "$(MAN)/man1/"; \
 	fi
 	ln -f -s vim "$(BIN)/vi"
 	cp -f $(VIM)/src/vim $@
 
 $(BIN)/xxd: $(VIM)/src/vim
-	test -z "$(MAN)" || cp -f "$(VIM)/runtime/doc/xxd.1" "$(MAN)/man1"
+	test -z "$(MAN)" || cp -f "$(VIM)/runtime/doc/xxd.1" "$(MAN)/man1/"
 	cp -f $? $@

@@ -16,15 +16,7 @@
 # Miscellaneous programs:
 # SHA256 =
 
-DEFAULT_TERMINFO_DIR = /etc/terminfo:/lib/terminfo:/usr/share/terminfo
-DIST_BIN = ~/.local/bin
-DIST_MAN = ~/.local/share/man
-
-DEBIAN_BUILD_DEPS = automake bison build-essential pkg-config
-FREEBSD_BUILD_DEPS = automake git gnupg1 pkgconf wget
-MACOS_BUILD_DEPS = automake gnupg wget xz
-OPENBSD_BUILD_DEPS = "automake->=1.15" git "gnupg->=2.1" wget xz
-
+# Packages:
 BASH = bash-4.4
 COREUTILS = coreutils-8.27
 FINDUTILS = findutils-4.6.0
@@ -38,21 +30,54 @@ MUSL = musl-1.1.16
 NCURSES = ncurses-6.0
 READLINE = readline-7.0
 SED = sed-4.4
-TREE = tree-1.7.0
-
 TMUX = tmux-src
-TMUX_VERSION = 2.5
-TMUX_GIT = $(TMUX)/.git
-
+TREE = tree-1.7.0
 VIM = vim-src
-VIM_VERSION = 8.0.0692
-VIM_GIT = $(VIM)/.git
 
+# Revision-controlled package versions:
+TMUX_VERSION = 2.5
+VIM_VERSION = 8.0.0692
+
+# Hashes of unsigned files:
 SHA_HASHES = \
 	"findutils-4.6.0" \
 	ded4c9f73731cd48fec3b6bdaccce896473b6d8e337e9612e16cf1431bb1169d \
 	"tree-1.7.0" \
 	6957c20e82561ac4231638996e74f4cfa4e6faabc5a2f511f0b4e3940e8f7b12 \
+
+# Build dependencies:
+DEBIAN_BUILD_DEPS = automake bison build-essential pkg-config
+FREEBSD_BUILD_DEPS = automake git gnupg1 pkgconf wget
+MACOS_BUILD_DEPS = automake gnupg wget xz
+OPENBSD_BUILD_DEPS = "automake->=1.15" git "gnupg->=2.1" wget xz
+
+# Build targets:
+LIBRARIES = \
+	$(GMP) \
+	$(LIBEVENT) \
+	$(MPFR) \
+	$(NCURSES) \
+	$(READLINE) \
+
+BINARIES = \
+	$(BASH)/bash \
+	$(COREUTILS)/src/coreutils \
+	$(FINDUTILS)/find/find \
+	$(FINDUTILS)/xargs/xargs \
+	$(GAWK)/gawk \
+	$(GREP)/src/grep \
+	$(LESS)/less \
+	$(LESS)/lessecho \
+	$(LESS)/lesskey \
+	$(TMUX)/tmux \
+	$(SED)/sed/sed \
+	$(TREE)/tree \
+	$(VIM)/src/vim \
+	$(VIM)/src/xxd/xxd \
+
+# Distributable archive installation defaults:
+DIST_BIN = ~/.local/bin
+DIST_MAN = ~/.local/share/man
 
 FOLDER_CLEAN_TARGETS = \
 	clean-bash \
@@ -102,34 +127,12 @@ READLINE_BUILT = common/$(READLINE)
 
 COMMON_PREFIX = $(PWD)/common
 DEFAULT = .DEFAULT
+DEFAULT_TERMINFO_DIR = /etc/terminfo:/lib/terminfo:/usr/share/terminfo
 GNUPGHOME = gnupghome
 GPG = $$(which gpg2 || which gpgv2 || echo gpg) --homedir="$(GNUPGHOME)"
 MUSL_CC = $(MUSL)/bin/musl-cc
 PUBRING = $(GNUPGHOME)/pubring.kbx
 WGET = wget --no-use-server-timestamps -nv
-
-LIBRARIES = \
-	$(GMP) \
-	$(LIBEVENT) \
-	$(MPFR) \
-	$(NCURSES) \
-	$(READLINE) \
-
-BINARIES = \
-	$(BASH)/bash \
-	$(COREUTILS)/src/coreutils \
-	$(FINDUTILS)/find/find \
-	$(FINDUTILS)/xargs/xargs \
-	$(GAWK)/gawk \
-	$(GREP)/src/grep \
-	$(LESS)/less \
-	$(LESS)/lessecho \
-	$(LESS)/lesskey \
-	$(TMUX)/tmux \
-	$(SED)/sed/sed \
-	$(TREE)/tree \
-	$(VIM)/src/vim \
-	$(VIM)/src/xxd/xxd \
 
 FOLDERS = $$(echo $(BINARIES) $(LIBRARIES) | xargs -n1 | cut -d/ -f1 | sort -u)
 
@@ -723,11 +726,10 @@ $(BIN)/lesskey: $(LESS)/lesskey
 	test -z "$(MAN)" || cp -f $?.nro "$(MAN)/man1/$(@F).1"
 	cp -f $? $@
 
-$(TMUX_GIT):
+$(TMUX)/.git:
 	git clone -b $(TMUX_VERSION) https://github.com/tmux/tmux.git $(TMUX)
 
-
-$(TMUX)/configure: $(LIBEVENT_BUILT) $(TMUX_GIT) $(NCURSES_BUILT)
+$(TMUX)/configure: $(LIBEVENT_BUILT) $(TMUX)/.git $(NCURSES_BUILT)
 	(cd $(@D) && ./autogen.sh)
 
 $(TMUX)/Makefile: $(TMUX)/configure
@@ -797,7 +799,7 @@ $(BIN)/tree: $(TREE)/tree
 	fi
 	cp -f $? $@
 
-$(VIM_GIT):
+$(VIM)/.git:
 	git clone -b v$(VIM_VERSION) https://github.com/vim/vim.git $(VIM)
 
 $(VIM)/src/auto/config.h: $(VIM_GIT) $(NCURSES_BUILT)
@@ -834,7 +836,7 @@ $(VIM)/src/vim $(VIM)/src/xxd/xxd: $(VIM)/src/auto/config.h
 
 vim: $(VIM)/src/vim $(VIM)/src/xxd/xxd
 
-$(VIM)/runtime-files: $(VIM_GIT)
+$(VIM)/runtime-files: $(VIM)/.git
 	(cd $(@D) && \
 	printf '%s\n' $(VIM_RUNTIME_EXTRAS) > $(@F) && \
 	printf '/^%s =/,/^$$/p;' $(VIM_RUNTIME_TARGETS) \

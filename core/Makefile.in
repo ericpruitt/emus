@@ -342,7 +342,7 @@ dist.tar.xz: $(BINARIES) dist.mk
 	mv "$@.tmp" "$@"
 
 dist: dist.tar.xz
-	echo "Distributible archive:"
+	echo "Distributable archive:"
 	ls -h -l $?
 
 $(DEFAULT):

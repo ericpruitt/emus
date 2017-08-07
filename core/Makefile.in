@@ -151,37 +151,6 @@ VIM_RUNTIME_TARGETS = \
 VIM_RUNTIME_EXTRAS = \
 	runtime/doc/tags \
 
-# These features are known to be incompatible with static linking on certain
-# platforms with various libc implementation. Although the list was generated
-# based on compiler warnings from glibc on Linux, I have verified that
-# dlopen(3) does not work in FreeBSD static binaries, and documentation for
-# other platforms indicates this list at least partially applies to other
-# systems; the NOTES section from nsswitch.conf(4) for SunOS 5.8 reads:
-#
-#   Programs that use the getXXbyYY() functions cannot be linked statically
-#   since the implementation of these functions requires dynamic linker
-#   functionality to access the shared objects /usr/lib/nss_SSS.so.1 at run
-#   time.
-#
-# The "/**/" ensures that autoconf will not modify these lines since they will
-# no longer match the regular expression it uses to find preprocessor
-# definitions (/^[\t ]*#[\t ]*(define|undef)[\t ]+.../ in the files reviewed).
-#
-# Detection of the __DATE__ and __TIME__ macros is also disabled (DATE_TIME) so
-# the compiled binaries are independent of the current time.
-PRINT_AUTOCONF_UNDEFS = printf "/**/ \#undef HAVE_%s\n" \
-	DATE_TIME \
-	DLOPEN \
-	GETADDRINFO \
-	GETHOSTBYNAME \
-	GETPROTOBYNUMBER \
-	GETPWENT \
-	GETPWNAM \
-	GETPWUID \
-	GETSERVBYNAME \
-	GETSERVENT \
-	GRP_H \
-
 all:
 	if ! $(MAKE) -k $(BINARIES); then \
 		echo "Incomplete build:"; \
@@ -470,7 +439,6 @@ $(LIBEVENT).tar.gz $(LIBEVENT).tar.gz.asc:
 	$(WGET) -nc https://github.com/libevent/libevent/releases/download/release-$$release/$@
 
 $(LIBEVENT)/Makefile: $(LIBEVENT)/.FOLDER
-	$(PRINT_AUTOCONF_UNDEFS) >> $(@D)/config.h.in
 	(cd $(@D) && \
 	./configure \
 		CC="$(CC)" \
@@ -505,6 +473,7 @@ $(NCURSES)/Makefile: $(NCURSES)/.FOLDER
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
 		CPPFLAGS="$(CPPFLAGS) -P" \
+		ac_cv_header_dlfcn_h="no" \
 		--disable-db-install \
 		--enable-static \
 		--prefix="$(COMMON_PREFIX)" \
@@ -534,12 +503,12 @@ $(READLINE_BUILT): $(READLINE)/Makefile
 	(cd $(?D) && $(MAKE) -S install) && touch $@
 
 $(BASH)/Makefile: $(BASH)/.FOLDER $(READLINE_BUILT)
-	$(PRINT_AUTOCONF_UNDEFS) >> $(@D)/config.h.in
 	(cd $(@D) && \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
 		LDFLAGS="$(LDFLAGS)" \
+		ac_cv_header_dlfcn_h="no" \
 		--disable-nls \
 		--enable-static-link \
 		--with-installed-readline="$(COMMON_PREFIX)" \
@@ -651,6 +620,7 @@ $(GAWK)/Makefile: $(GAWK)/.FOLDER $(GMP_BUILT) $(MPFR_BUILT) $(READLINE_BUILT)
 		CFLAGS="$(CFLAGS) -DREALLYMEAN" \
 		LDFLAGS="$(LDFLAGS)" \
 		ac_cv_func_working_mktime="yes" \
+		ac_cv_header_dlfcn_h="no" \
 		--disable-dependency-tracking \
 		--disable-extensions \
 		--disable-nls \
@@ -802,18 +772,14 @@ $(BIN)/tree: $(TREE)/tree
 $(VIM)/.git:
 	git clone -b v$(VIM_VERSION) https://github.com/vim/vim.git $(VIM)
 
-$(VIM)/src/auto/config.h: $(VIM_GIT) $(NCURSES_BUILT)
-	if ! grep -F -q "/**/" $(VIM)/src/config.h.in; then \
-		$(PRINT_AUTOCONF_UNDEFS) >> $(VIM)/src/config.h.in; \
-	fi
-	if [ -z "$$(find $(VIM) -name '*.orig')" ]; then \
-		(cat patches/vim-src-* || echo) | (cd $(VIM) && patch -p0); \
-	fi
+$(VIM)/src/auto/config.h: $(VIM)/.git $(NCURSES_BUILT)
 	(cd $(VIM) && \
+	(git diff --quiet && cat $(PWD)/patches/$(VIM)-*) | patch -p0 && \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -DFEAT_CONCEAL -DFEAT_TERMGUICOLORS" \
 		LDFLAGS="$(LDFLAGS)" \
+		ac_cv_header_dlfcn_h="no" \
 		--disable-channel \
 		--disable-gpm \
 		--disable-gtktest \

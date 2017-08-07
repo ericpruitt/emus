@@ -1,0 +1,13 @@
+diff --git src/version.c src/version.c
+index 917eaa85d..3148004a7 100644
+--- src/version.c
++++ src/version.c
+@@ -31,7 +31,7 @@
+ char		*Version = VIM_VERSION_SHORT;
+ static char	*mediumVersion = VIM_VERSION_MEDIUM;
+ 
+-#if defined(HAVE_DATE_TIME) || defined(PROTO)
++#if 0
+ # if (defined(VMS) && defined(VAXC)) || defined(PROTO)
+ char	longVersion[sizeof(VIM_VERSION_LONG_DATE) + sizeof(__DATE__)
+ 						      + sizeof(__TIME__) + 3];

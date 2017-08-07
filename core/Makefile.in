@@ -376,17 +376,13 @@ $(SIGNED_ARCHIVE_FOLDERS): $(PUBRING)
 		$(GPG) $(@D).tar.xz.sig && xzcat $(@D).tar.xz | tar -x -f -; \
 	  ;; \
 	esac
-	if $(MAKE) DEFAULT= -n \
-	  $(@D)-patches/.FOLDER >/dev/null 2>&1; then \
+	case '$@' in \
+	  $(BASH)/*|$(READLINE)/*) \
 		$(MAKE) $(@D)-patches/.FOLDER; \
-		for path in $(@D)-patches/*[0-9]; do \
-			test -e "$$path" || break; \
-			echo "- $$path"; \
-			(cd $(@D) && patch -p0) < "$$path"; \
-		done; \
-	fi
-	for path in "$$PWD/patches/$(@D)"-*; do \
-		case "$$path" in *-[*]) break ;; esac; \
+	  ;; \
+	esac
+	for path in patches/$(@D)-* $(@D)-patches/*; do \
+		case "$$path" in *.sig|*[*]*) continue ;; esac; \
 		echo "- $$path"; \
 		(cd $(@D) && patch -p0) < "$$path"; \
 	done

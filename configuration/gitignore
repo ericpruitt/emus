@@ -27,6 +27,7 @@
 *.sqlite3
 *.swp
 *.tar
+*.untracked
 *.zip
 *~
 .DS_Store?

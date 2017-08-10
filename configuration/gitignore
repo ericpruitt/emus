@@ -1,41 +1,66 @@
-*.7z
-*.class
-*.com
-*.db
-*.db
-*.dll
-*.dmg
-*.exe
-*.gz
+# User-friendly Ignored File Extensions
 *.ignore
-*.iso
-*.jar
-*.log
 *.no-revision-control
 *.no-version-control
 *.norcs
 *.novcs
-*.o
-*.orig
+*.secret
+*.untracked
+
+# Compressed Archives
+*.7z
+*.gz
+*.rar
+*.tar
+*.tar.*
+*.zip
+
+# Windows
+*.dll
+*.exe
+ehthumbs.db
+Thumbs.db
+
+# Visual Studio
+.coverage
+
+# Backups (UNIX)
+*~
+
+# Java
+*.class
+*.com
+*.jar
+
+# Databases
+*.db
+*.sqlite3
+
+# Python
 *.pyc
 *.pywc
-*.rar
-*.rej
-*.save
-*.secret
-*.so
-*.sqlite3
-*.swp
-*.tar
-*.untracked
-*.zip
-*~
-.DS_Store?
-.coverage
-.hidden
-.netrwhist
-Icon?
-Thumbs.db
 __pycache__
-ehthumbs.db
+
+# Compiled Objects
+*.o
+*.so
+
+# diff(1)
+*.orig
+*.rej
+
+# macOS
+*.dmg
+*.iso
+*.log
+*.save
+.DS_Store?
+.hidden
+Icon?
+
+# Vim
+*.swp
+.netrwhist
+
+# PHP
 error_log

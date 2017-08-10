@@ -135,6 +135,72 @@ function git-status()
       | sed -e 's/(use "git.*//g' -e '/^[ \t]\+$/d' -e '/^On branch/d'
 }
 
+# Display a colorized git-blame.
+#
+# Options:
+# - -m, --margin=COLS: Set the width of the commit summary margin.
+# - -s, --short: Show commit summaries using one line instead of two.
+# - -u, --utc: Display commit times in UTC.
+# - -z, --tz=TIMEZONE: Set the time zone used when displaying commits.
+#
+# **Note:** Short options cannot be combined with one another.
+#
+# The terms "who", "what" (default) and "when" can be used to change the type
+# of commit summary shown. If there is a file with the same name as the
+# argument used, the summary type must be the first argument. Otherwise, it can
+# appear anywhere options may be used.
+#
+# If standard output is not a TTY, the traditional output of git-blame is used.
+#
+function git-blame()
+{
+    local argument
+    local blame_args
+
+    local awk_args=()
+    local -i index=0
+    local next=""
+
+    for argument in "$@"; do
+        let ++index
+
+        if [[ -n "$next" ]]; then
+            eval "next=''; awk_args+=('-v' \"$next=\$argument\")"
+        elif [[ "$argument" = @(who|what|when) ]] && [[ "$index" -eq 1 ||
+          ! -e "$argument" ]]; then
+            awk_args+=("-v" "HIGHLIGHT=$argument")
+        elif [[ "$argument" = @(-u|--utc) ]]; then
+            awk_args+=("-v" "OUTPUT_TIMEZONE=utc")
+        elif [[ "$argument" = @(-s|--short) ]]; then
+            awk_args+=("-v" "VERBOSE=0")
+        elif [[ "$argument" = @(-z*|--tz?(=*)) ]]; then
+            next="OUTPUT_TIMEZONE"
+        elif [[ "$argument" = @(-m*|--margin=*) ]]; then
+            next="MARGIN_WIDTH"
+        elif [[ "$argument" = "--" ]]; then
+            blame_args+=("${@:$index}")
+            break
+        else
+            blame_args+=("$argument")
+            continue
+        fi
+
+        if [[ "$next" ]] && [[ "$argument" = @(-??*|--?*=) ]]; then
+            eval "next=''; awk_args+=('-v' \"$next=\${argument#@(-?|--*=)}\")"
+        fi
+    done
+
+    if [[ -t 1 ]]; then
+        git blame --porcelain "${blame_args[@]}" \
+        | git-blame-colorizer "${awk_args[@]}" \
+        | $(git config --get "core.pager" || echo ${PAGER:-less})
+
+        return "${PIPESTATUS[0]}"
+    fi
+
+    git blame "${blame_args[@]}"
+}
+
 # Stand-in function that calls the canonical Git binary to eliminate infinite
 # loops.
 #

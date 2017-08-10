@@ -1,0 +1,401 @@
+#!/usr/bin/awk -f
+
+# This is a POSIX-compliant* Awk script that can be used to generate colored
+# output from "git blame --porcelain $FILENAME". Review the comments in the
+# BEGIN section for configuration options. Depending on the host's locale
+# configuration and the Awk implementation used, margin truncation may cause
+# multi-byte text sequences to be split, and padding calculations may use
+# incorrect values for the width of certain characters.
+#
+# * Although the syntax and features of the script itself are POSIX-complient,
+#   _date(1)_ is invoked with the "%z" which is specified for _strftime(3)_
+#   but unfortunately not _date(1)_.
+
+BEGIN {
+    # Optional Variables (`awk -v ...`)
+    # ---------------------------------
+
+    # - Width of the margin on the left that shows messages and hashes.
+    if (!length(MARGIN_WIDTH)) {
+        MARGIN_WIDTH = -1
+    }
+
+    # - Set to a non-zero value to show line numbers in the output.
+    if (!length(LINE_NUMBERS)) {
+        LINE_NUMBERS = 1
+    }
+
+    # - Timezone to use when displaying dates. This can be "host" to indicate
+    #   that dates should be displayed using the host's timezone, "author" to
+    #   indicate that dates should be shown in the author's time zone or "utc"
+    #   to indicate that dates should be shown using UTC.
+    if (!length(OUTPUT_TIMEZONE)) {
+        OUTPUT_TIMEZONE = "host"
+    }
+
+    # - Type of information commits to highlight for commits. This can be
+    #   "who", "what" or "when".
+    if (!length(HIGHLIGHT)) {
+        HIGHLIGHT = "what"
+    }
+
+    # - When this value is non-zero, two lines of information will be displayed
+    #   for each commit where possible instead of one.
+    if (!length(VERBOSE)) {
+        VERBOSE = 1
+    }
+
+    # Other Settings
+    # --------------
+
+    # - When this value is non-zero, adaptive coloring is enabled. Adaptive
+    #   coloring attempts to pick colors in a way that optimizes for visual
+    #   distinctiveness. When this value is set to 0, colors are selected by
+    #   monotonically cycling through one member of "BLAME_COLORS" for each
+    #   group of concurrent lines from a single commit. Lines from the boundary
+    #   commit and uncommitted lines have no impact on color selection for
+    #   other lines.
+    ADAPTIVE_COLORING = 1
+
+    # - These numbers represent terminal colors (theoretically the same as
+    #   `tput setaf`) used for the output. Empty strings can be used for
+    #   "BOUNDARY_COMMIT_COLOR" and "UNCOMMITTED_COLOR" to indicate that the
+    #   color used should be the terminal's default text color.
+    BOUNDARY_COMMIT_COLOR = "7"
+    UNCOMMITTED_COLOR = "241"
+    BLAME_COLORS = "9 10 11 12 13 14"  # "2 3 5 6" works well for 8-color TTYs.
+
+    # - This number is used as the maximum width of individual expanded tabs.
+    TAB_SIZE = 8
+
+    #                                 ---
+
+    BOUNDARY_COMMIT_COLOR = setaf(BOUNDARY_COMMIT_COLOR)
+    COLOR_COUNT = split(BLAME_COLORS, _)
+    COLOR_RESET = "\033[m"
+    HASH_OF_UNCOMMITTED_BLOCK = "0000000000000000000000000000000000000000"
+    SHOW_TIMEZONE = 0
+    UNCOMMITTED_COLOR = setaf(UNCOMMITTED_COLOR)
+    MULTIBYTE_SAFE = length("宽") == 1
+
+    split(BLAME_COLORS, COLORS)
+    for (i in COLORS) {
+        line_of_last_use[COLORS[i]] = -999999
+        COLORS[i] = setaf(COLORS[i])
+    }
+
+    if (HIGHLIGHT == "who") {
+        MARGIN_WIDTH = MARGIN_WIDTH == -1 ? 25 : MARGIN_WIDTH
+    } else if (HIGHLIGHT == "what") {
+        MARGIN_WIDTH = MARGIN_WIDTH == -1 ? 50 : MARGIN_WIDTH
+    } else if (HIGHLIGHT == "when") {
+        if (MARGIN_WIDTH == -1) {
+            MARGIN_WIDTH = SHOW_TIMEZONE ? 22 : 16
+        }
+    } else {
+        print "unrecognized style: " HIGHLIGHT >> "/dev/fd/2"
+        close("/dev/fd/2")
+        exit_status = 1
+        exit
+    }
+
+    if (OUTPUT_TIMEZONE == "host") {
+        command = "date +%z"
+        command | getline OUTPUT_TIMEZONE
+        close(command)
+    } else if (OUTPUT_TIMEZONE == "utc") {
+        OUTPUT_TIMEZONE = "0000"
+    } else if (OUTPUT_TIMEZONE == "author") {
+        SHOW_TIMEZONE = 1
+        OUTPUT_TIMEZONE = ""
+    } else {
+        print "unrecognized date timezone: " OUTPUT_TIMEZONE >> "/dev/fd/2"
+        close("/dev/fd/2")
+        exit_status = 1
+        exit
+    }
+
+    if ("LINES" in ENVIRON) {
+        LINES = ENVIRON["LINES"] + 0
+    } else {
+        command = "tput lines"
+        command | getline LINES
+        close(command)
+        LINES = LINES + 0 ? LINES + 0 : 24
+    }
+
+    MARGIN_FORMAT = "%-" MARGIN_WIDTH "s"
+    FORMAT = "%s" MARGIN_FORMAT "%s%s"
+    color_index = 0
+    exit_status = 0
+    expecting_hash = 1
+    overflow = 0
+    previous_hash = "X"
+}
+
+# Return ANSI or XTerm-compatible escape sequence for displaying a color with
+# the given index. If an empty string is passed as an argument to this
+# function, the escape sequence for the default terminal color is returned.
+# Although it would be more portable to use _tput(1)_ here, hard-coded
+# sequences are used for performance reasons since they rarely vary on modern
+# emulators.
+#
+# Arguments:
+# - n: Color index.
+#
+# Return: Terminal escape sequence string.
+#
+function setaf(n)
+{
+    if (!length(n)) {
+        # Sequence representing default color.
+        return "\033[39m"
+    }
+
+    n = int(n + 0)
+
+    if (n < 8) {
+        return "\033[" (n + 30) "m"
+    } else if (n < 16) {
+        return "\033[" (n + 82) "m"
+    } else {
+        return "\033[38;5;" n "m"
+    }
+}
+
+# Convert a Unix timestamp into an ISO 8601-formatted date and time.
+#
+# Arguments:
+# - unixtime: Unix timestamp representing the time to be displayed.
+# - tz: Offset from UTC of the time to be displayed. This should be in the form
+#   of `/[+-]H?H:MM/`.
+# - showtz: When this value is non-zero, the UTC offset is included in the
+#   returned string.
+#
+# Returns: A string formatted as specified by ISO 8601.
+#
+function unix2iso(unixtime, tz, showtz,   leap, day, y_end, n, D, HH, M, MM, Y)
+{
+    unixtime += 3600 * int(tz / 100) + 60 * (tz % 100)
+    tz = showtz ? (int(tz) ? " " tz : " (UTC)") : ""
+
+    Y = 1970
+    for (day = leap = y_end = 0; unixtime > y_end; Y += (y_end <= unixtime)) {
+        day = int((unixtime - y_end) / 86400) + 1
+        leap = (!(Y % 4) && (Y % 100)) || !(Y % 400)
+        y_end += (365 + leap) * 86400
+    }
+
+    # The value of "n" is the day of the year on which a month ends.
+    M = day > (n = 335 + leap) ? 12 : \
+        day > (n = 305 + leap) ? 11 : \
+        day > (n = 274 + leap) ? 10 : \
+        day > (n = 244 + leap) ?  9 : \
+        day > (n = 213 + leap) ?  8 : \
+        day > (n = 182 + leap) ?  7 : \
+        day > (n = 152 + leap) ?  6 : \
+        day > (n = 121 + leap) ?  5 : \
+        day > (n =  91 + leap) ?  4 : \
+        day > (n =  60 + leap) ?  3 : \
+        day > (n =  31       ) ?  2 : \
+              (n =   0       ) +  1
+
+    D = day - n + 1
+    HH = int((unixtime % 86400) / 3600)
+    MM = int((unixtime % 3600) / 60)
+
+    return sprintf("%4s-%02d-%02d %02d:%02d", Y, M, D, HH, MM) tz
+}
+
+# Abbreviate text so that it contains no more than "width" characters.
+#
+# Arguments:
+# - text: To to abbrevate.
+# - width: Maximum number of characters allowed in output.
+#
+# Returns: String or abbreviated version of the string.
+#
+function abbrev(text, width)
+{
+    gsub(/[\t ]+$/, "", text)
+
+    if (length(text) <= width) {
+        return text
+    } else if (MULTIBYTE_SAFE) {
+        text = substr(text, 1, width - 1)
+        gsub(/[\t ]+$/, "", text)
+        return text "…"
+    } else {
+        text = substr(text, 1, width - 3)
+        gsub(/[\t ]+$/, "", text)
+        return text "..."
+    }
+}
+
+!/^\t/ {
+    if (expecting_hash) {
+        expecting_hash = 0
+        hash = $1
+        source_line = $3
+        if (NF == 4) {
+            diff_length = $4
+        }
+        if (!(hash in commits)) {
+            commits[hash] = 1
+            commits[hash, "boundary"] = 0
+            commits[hash, "last_color"] = color_index
+        }
+    } else if (NF == 1) {
+        commits[hash, $1] = 1
+    } else {
+        # Strip the field name to get actual value.
+        field = $1
+        $1 = ""
+        value = substr($0, 2)
+
+        # Expand tabs to simplify visible width calculations.
+        while ((i = index(value, "\t"))) {
+            spaces = sprintf("%*s", (TAB_SIZE - ((i - 1) % TAB_SIZE)), "")
+            sub(/\t/, spaces, value)
+        }
+
+        commits[hash, field] = value
+    }
+}
+
+/^\t/ {
+    expecting_hash = 1
+    blank_line = !NF
+    boundary_commit = commits[hash, "boundary"]
+    committed = hash != HASH_OF_UNCOMMITTED_BLOCK
+    annotated = !boundary_commit && committed
+
+    $0 = (LINE_NUMBERS ? sprintf("%5d  ", source_line) : "  ") substr($0, 2)
+
+    if (boundary_commit || blank_line) {
+        color = BOUNDARY_COMMIT_COLOR
+    } else {
+        color = UNCOMMITTED_COLOR
+    }
+
+    if (overflow) {
+        overflow = 0
+
+        if (blank_line || !annotated) {
+            print highlight
+            print auxiliary color $0
+            next
+        }
+
+        print condensed
+    }
+
+    margin = ""
+
+    if (annotated && hash == previous_hash) {
+        color = COLORS[color_index]
+        line_of_last_use[color_index] = source_line
+        commits[hash, "last_line"] = source_line
+        diff_line += diff_line > 0
+        if (diff_line == 2) {
+            margin = auxiliary
+        }
+
+    } else if (annotated && (diff_length > 1 || !blank_line)) {
+        previous_hash = hash
+        adjacent_color = color_index
+        color_index = (color_index % COLOR_COUNT) + 1
+
+        if (ADAPTIVE_COLORING) {
+            last_color = commits[hash, "last_color"]
+            last_line_with_this_color = line_of_last_use[last_color]
+            top_edge = source_line - LINES
+
+            if (last_color != adjacent_color &&
+                ((commits[hash, "last_line"] == last_line_with_this_color) ||
+                 (last_line_with_this_color < top_edge))) {
+                color_index = last_color
+            } else {
+                furthest_distance = 0
+                for (i = 1; i <= COLOR_COUNT; i++) {
+                    distance = source_line - line_of_last_use[i]
+                    if (i != adjacent_color && distance > furthest_distance) {
+                        furthest_distance = distance
+                        color_index = i
+                    }
+                }
+            }
+
+            commits[hash, "last_color"] = color_index
+            line_of_last_use[color_index] = source_line
+        }
+
+        color = COLORS[color_index]
+        offset = OUTPUT_TIMEZONE ? OUTPUT_TIMEZONE : commits[hash, "author-tz"]
+        clock = unix2iso(commits[hash, "author-time"], offset, SHOW_TIMEZONE)
+
+        if (!(name = commits[hash, "author"]) &&
+            (!(name = commits[hash, "author-mail"]) || (name == "<>"))) {
+            name = "Unknown"
+        }
+
+        if (HIGHLIGHT == "who") {
+            date = substr(clock, 1, 10)
+            highlight = name
+            condensed = abbrev(name, MARGIN_WIDTH - 13) " (" date ")"
+            auxiliary = date ": " commits[hash, "summary"]
+        } else if (HIGHLIGHT == "what") {
+            highlight = commits[hash, "summary"]
+            short_hash = substr(hash, 1, 7)
+            if ((space = MARGIN_WIDTH - length(highlight) - 10) > 0) {
+                while (space-- > 0 && highlight = highlight " ");
+                highlight = highlight " (" short_hash ")"
+                condensed = highlight
+                auxiliary = clock " - " name
+            } else {
+                condensed = abbrev(highlight, MARGIN_WIDTH - 10)
+                space = MARGIN_WIDTH - 10 - length(condensed)
+                while (space-- > 0 && condensed = condensed " ");
+                condensed = condensed " (" short_hash ")"
+                auxiliary = clock " - " substr(hash, 1, 13)
+            }
+        } else if (HIGHLIGHT == "when") {
+            if (length(clock) > MARGIN_WIDTH) {
+                clock = substr(clock, 1, MARGIN_WIDTH)
+            }
+            highlight = clock
+            condensed = highlight
+            auxiliary = ""
+        }
+
+        if (VERBOSE) {
+            highlight = abbrev(highlight, MARGIN_WIDTH)
+            auxiliary = abbrev(auxiliary, MARGIN_WIDTH)
+        } else {
+            highlight = condensed
+            auxiliary = ""
+        }
+
+        if ((overflow = diff_length == 1)) {
+            highlight = sprintf(FORMAT, color, highlight, $0, COLOR_RESET)
+            condensed = sprintf(FORMAT, color, condensed, $0, COLOR_RESET)
+            auxiliary = color sprintf(MARGIN_FORMAT, auxiliary) COLOR_RESET
+            commits[hash, "last_line"] = source_line
+            next
+        }
+
+        diff_line = 1
+        margin = highlight
+    }
+
+    commits[hash, "last_line"] = source_line
+    printf FORMAT, color, margin, $0, COLOR_RESET "\n"
+}
+
+END {
+    if (exit_status) {
+        exit exit_status
+    } else if (overflow) {
+        print condensed
+    }
+}

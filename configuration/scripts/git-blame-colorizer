@@ -45,6 +45,56 @@ BEGIN {
         VERBOSE = 1
     }
 
+    # ### Predefined Color Palettes
+    if (!length(PALETTE)) {
+        PALETTE = "vivid"
+    }
+
+    # - vivd: Very saturated colors of varying hues.
+    if (PALETTE == "vivid") {
+        BLAME_COLORS = "9 10 11 12 13 14 40 57 88 94 157 166 214 226"
+
+    # - table: Alternates between a soft purple and gray similar to colors
+    #   often used for alternating rows in textbook tables.
+    } else if (PALETTE == "table") {
+        BLAME_COLORS = "104 245"
+
+    # - mode4: Low-intensity yellow, magenta, green and cyan reminiscent of
+    #   early 8-bit hardware color palettes.
+    } else if (PALETTE == "mode4") {
+        BLAME_COLORS = "2 3 5 6"
+
+    # These color palettes are designed for various types of color perception
+    # deficiencies. The names are variations of "RGB" where "x" represents
+    # weak-perception of the color it replaces while the deletion of a
+    # character represents blindness.
+    #
+    # - xgb: palette optimized for red-weak vision.
+    } else if (PALETTE == "xgb") {
+        BLAME_COLORS = "1 3 5 9 10 13 14 196 219"
+    # - rxb: palette optimized for green-weak vision.
+    } else if (PALETTE == "rxb") {
+        BLAME_COLORS = "1 3 9 10 13 14 196 219"
+    # - rgx: palette optimized for blue-weak vision.
+    } else if (PALETTE == "rgx") {
+        BLAME_COLORS = "9 10 11 13 14 52"
+    # - gb: palette optimized for red-blind vision.
+    } else if (PALETTE == "gb") {
+        BLAME_COLORS = "5 10 13 124"
+    # - rb: palette optimized for green-blind vision.
+    } else if (PALETTE == "rb") {
+        BLAME_COLORS = "3 14 33 58"
+    # - rg: palette optimized for blue-blind vision.
+    } else if (PALETTE == "rg") {
+        BLAME_COLORS = "5 6 9 10 52"
+
+    } else {
+        print "unrecognized color palette: " PALETTE >> "/dev/fd/2"
+        close("/dev/fd/2")
+        exit_status = 1
+        exit
+    }
+
     # Other Settings
     # --------------
 
@@ -62,8 +112,7 @@ BEGIN {
     #   "BOUNDARY_COMMIT_COLOR" and "UNCOMMITTED_COLOR" to indicate that the
     #   color used should be the terminal's default text color.
     BOUNDARY_COMMIT_COLOR = "7"
-    UNCOMMITTED_COLOR = "241"
-    BLAME_COLORS = "9 10 11 12 13 14"  # "2 3 5 6" works well for 8-color TTYs.
+    UNCOMMITTED_COLOR = "239"
 
     # - This number is used as the maximum width of individual expanded tabs.
     TAB_SIZE = 8

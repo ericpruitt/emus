@@ -177,6 +177,8 @@ function git-blame()
             next="OUTPUT_TIMEZONE"
         elif [[ "$argument" = @(-m*|--margin?(=*)) ]]; then
             next="MARGIN_WIDTH"
+        elif [[ "$argument" = --palette?(=*) ]]; then
+            next="PALETTE"
         elif [[ "$argument" = "--" ]]; then
             blame_args+=("${@:$index}")
             break

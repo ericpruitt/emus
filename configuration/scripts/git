@@ -117,24 +117,6 @@ function git-commit()
     git commit --untracked-files=no --verbose "$@"
 }
 
-# This function works mostly like the regular status command, but when no
-# arguments are supplied, the default output shows branch information and
-# removes usage hints.
-#
-function git-status()
-{
-    if [[ "$#" -gt 0 ]] || ! [[ -t 1 ]]; then
-        git "$@"
-        return
-    fi
-
-    echo "Branches:"
-    git branch -a -v
-    echo
-    git -c color.status=always status \
-      | sed -e 's/(use "git.*//g' -e '/^[ \t]\+$/d' -e '/^On branch/d'
-}
-
 # Display a colorized git-blame.
 #
 # Options:

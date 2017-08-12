@@ -27,3 +27,6 @@
 
 [commit]
 	verbose = true
+
+[advice]
+	statusHints = false

@@ -794,7 +794,7 @@ $(VIM)/src/auto/config.h: $(VIM)/.git $(NCURSES_BUILT)
 	)
 
 $(VIM)/src/vim $(VIM)/src/xxd/xxd: $(VIM)/src/auto/config.h
-	(cd $(@D) && $(MAKE) -S $(@F))
+	(cd $(VIM)/src && $(MAKE) -S $(@F:xxd=xxd/xxd))
 
 vim: $(VIM)/src/vim $(VIM)/src/xxd/xxd
 
@@ -820,6 +820,6 @@ $(BIN)/vim: $(BIN)/vimruntime $(VIM)/src/vim
 	ln -f -s vim "$(BIN)/vi"
 	cp -f $(VIM)/src/vim $@
 
-$(BIN)/xxd: $(VIM)/src/vim
+$(BIN)/xxd: $(VIM)/src/xxd/xxd
 	test -z "$(MAN)" || cp -f "$(VIM)/runtime/doc/xxd.1" "$(MAN)/man1/"
 	cp -f $? $@

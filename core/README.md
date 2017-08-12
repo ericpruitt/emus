@@ -155,6 +155,9 @@ launched, is used as a fallback when "/proc/self/exe" cannot be read.
 - **GNU Core Utilities**
   - When using _ls(1)_ to list the contents of a directory, "-A" is implicit
     for every directory except `$HOME`.
+  - If the current user's information cannot be queried from the password
+    database, the environment variables "LOGNAME" and "USER" act as fallbacks
+    for `pwent->pw_name`.
 - **Bash**
   - When running commands interactively, the terminal attributes are modified
     so the suspend character is interpreted as literal sequence at the prompt

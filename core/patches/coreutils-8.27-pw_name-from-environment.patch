@@ -1,0 +1,15 @@
+--- lib/idcache.c	2017-08-11 17:46:08.431487368 -0700
++++ lib/idcache.c	2017-08-11 17:50:40.360215651 -0700
+@@ -83,7 +83,11 @@
+   if (match == NULL)
+     {
+       struct passwd *pwent = getpwuid (uid);
+-      char const *name = pwent ? pwent->pw_name : "";
++      char const *name = pwent ? pwent->pw_name : NULL;
++      if (!name && (uid != getuid() || !(name = getenv("LOGNAME")) || !(name = getenv("USER"))))
++        {
++          name = "";
++        }
+       match = xmalloc (FLEXSIZEOF (struct userid, name, strlen (name) + 1));
+       match->id.u = uid;
+       strcpy (match->name, name);

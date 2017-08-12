@@ -175,7 +175,7 @@ function git-blame()
             awk_args+=("-v" "VERBOSE=0")
         elif [[ "$argument" = @(-z*|--tz?(=*)) ]]; then
             next="OUTPUT_TIMEZONE"
-        elif [[ "$argument" = @(-m*|--margin=*) ]]; then
+        elif [[ "$argument" = @(-m*|--margin?(=*)) ]]; then
             next="MARGIN_WIDTH"
         elif [[ "$argument" = "--" ]]; then
             blame_args+=("${@:$index}")
@@ -185,8 +185,8 @@ function git-blame()
             continue
         fi
 
-        if [[ "$next" ]] && [[ "$argument" = @(-??*|--?*=) ]]; then
-            eval "next=''; awk_args+=('-v' \"$next=\${argument#@(-?|--*=)}\")"
+        if [[ "$next" ]] && [[ "$argument" = @(-[!-]?*|--*=*) ]]; then
+            eval "next=''; awk_args+=(\"-v$next=\${argument#@(-[!-]|--*=)}\")"
         fi
     done
 

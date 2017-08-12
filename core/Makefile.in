@@ -119,12 +119,6 @@ SIGNED_ARCHIVE_FOLDERS = \
 	$(TAR_GZ_SIGNATURES:.tar.gz.sig=/.TAR_GZ_FOLDER) \
 	$(TAR_XZ_SIGNATURES:.tar.xz.sig=/.TAR_XZ_FOLDER) \
 
-GMP_BUILT = common/$(GMP)
-LIBEVENT_BUILT = common/$(LIBEVENT)
-MPFR_BUILT = common/$(MPFR)
-NCURSES_BUILT = common/$(NCURSES)
-READLINE_BUILT = common/$(READLINE)
-
 COMMON_PREFIX = $(PWD)/common
 DEFAULT = .DEFAULT
 DEFAULT_TERMINFO_DIR = /etc/terminfo:/lib/terminfo:/usr/share/terminfo
@@ -425,7 +419,7 @@ $(GMP)/Makefile: $(GMP)/.FOLDER
 		--prefix="$(COMMON_PREFIX)" \
 	)
 
-$(GMP_BUILT): $(GMP)/Makefile
+$(GMP)/.BUILT: $(GMP)/Makefile
 	(cd $(?D) && $(MAKE) -S install) && touch $@
 
 $(LIBEVENT).tar.gz $(LIBEVENT).tar.gz.asc:
@@ -446,10 +440,10 @@ $(LIBEVENT)/Makefile: $(LIBEVENT)/.FOLDER
 		--prefix="$(COMMON_PREFIX)" \
 	)
 
-$(LIBEVENT_BUILT): $(LIBEVENT)/Makefile
+$(LIBEVENT)/.BUILT: $(LIBEVENT)/Makefile
 	(cd $(?D) && $(MAKE) -S install) && touch $@
 
-$(MPFR)/Makefile: $(MPFR)/.FOLDER $(GMP_BUILT)
+$(MPFR)/Makefile: $(MPFR)/.FOLDER $(GMP)/.BUILT
 	(cd $(@D) && \
 	./configure -C \
 		CC="$(CC)" \
@@ -460,7 +454,7 @@ $(MPFR)/Makefile: $(MPFR)/.FOLDER $(GMP_BUILT)
 		--prefix="$(COMMON_PREFIX)" \
 	)
 
-$(MPFR_BUILT): $(MPFR)/Makefile
+$(MPFR)/.BUILT: $(MPFR)/Makefile
 	(cd $(?D) && $(MAKE) -S install) && touch $@
 
 $(NCURSES)/Makefile: $(NCURSES)/.FOLDER
@@ -482,10 +476,10 @@ $(NCURSES)/Makefile: $(NCURSES)/.FOLDER
 		--without-tests \
 	)
 
-$(NCURSES_BUILT): $(NCURSES)/Makefile
+$(NCURSES)/.BUILT: $(NCURSES)/Makefile
 	(cd $(?D) && $(GMAKE) -S install) && touch $@
 
-$(READLINE)/Makefile: $(READLINE)/.FOLDER $(NCURSES_BUILT)
+$(READLINE)/Makefile: $(READLINE)/.FOLDER $(NCURSES)/.BUILT
 	(cd $(@D) && \
 	./configure -C \
 		CC="$(CC)" \
@@ -495,10 +489,10 @@ $(READLINE)/Makefile: $(READLINE)/.FOLDER $(NCURSES_BUILT)
 		--with-curses \
 	)
 
-$(READLINE_BUILT): $(READLINE)/Makefile
+$(READLINE)/.BUILT: $(READLINE)/Makefile
 	(cd $(?D) && $(MAKE) -S install) && touch $@
 
-$(BASH)/Makefile: $(BASH)/.FOLDER $(READLINE_BUILT)
+$(BASH)/Makefile: $(BASH)/.FOLDER $(READLINE)/.BUILT
 	(cd $(@D) && \
 	./configure \
 		CC="$(CC)" \
@@ -526,7 +520,7 @@ $(BIN)/bash: $(BASH)/bash
 	ln -f -s bash "$(BIN)/rbash"
 	cp -f $? $@
 
-$(COREUTILS)/Makefile: $(COREUTILS)/.FOLDER $(GMP_BUILT)
+$(COREUTILS)/Makefile: $(COREUTILS)/.FOLDER $(GMP)/.BUILT
 	(cd $(@D) && \
 	./configure \
 		CC="$(CC)" \
@@ -609,7 +603,7 @@ $(BIN)/xargs: $(FINDUTILS)/xargs/xargs
 # system to use the host's mktime(3). See
 # https://lists.gnu.org/archive/html/bug-gawk/2017-07/msg00024.html for more
 # information.
-$(GAWK)/Makefile: $(GAWK)/.FOLDER $(GMP_BUILT) $(MPFR_BUILT) $(READLINE_BUILT)
+$(GAWK)/Makefile: $(GAWK)/.FOLDER $(GMP)/.BUILT $(MPFR)/.BUILT $(READLINE)/.BUILT
 	(cd $(@D) && \
 	./configure \
 		CC="$(CC)" \
@@ -667,7 +661,7 @@ $(BIN)/grep: $(GREP)/src/grep
 $(LESS).tar.gz $(LESS).tar.gz.sig:
 	$(WGET) -nc http://www.greenwoodsoftware.com/less/$@
 
-$(LESS)/Makefile: $(LESS)/.FOLDER $(NCURSES_BUILT)
+$(LESS)/Makefile: $(LESS)/.FOLDER $(NCURSES)/.BUILT
 	(cd $(@D) && \
 	./configure \
 		CC="$(CC)" \
@@ -695,7 +689,7 @@ $(BIN)/lesskey: $(LESS)/lesskey
 $(TMUX)/.git:
 	git clone -b $(TMUX_VERSION) https://github.com/tmux/tmux.git $(TMUX)
 
-$(TMUX)/configure: $(LIBEVENT_BUILT) $(TMUX)/.git $(NCURSES_BUILT)
+$(TMUX)/configure: $(LIBEVENT)/.BUILT $(TMUX)/.git $(NCURSES)/.BUILT
 	(cd $(@D) && ./autogen.sh)
 
 $(TMUX)/Makefile: $(TMUX)/configure
@@ -768,7 +762,7 @@ $(BIN)/tree: $(TREE)/tree
 $(VIM)/.git:
 	git clone -b v$(VIM_VERSION) https://github.com/vim/vim.git $(VIM)
 
-$(VIM)/src/auto/config.h: $(VIM)/.git $(NCURSES_BUILT)
+$(VIM)/src/auto/config.h: $(VIM)/.git $(NCURSES)/.BUILT
 	(cd $(VIM) && \
 	(git diff --quiet && cat $(PWD)/patches/$(VIM)-*) | patch -p0 && \
 	./configure \

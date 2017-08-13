@@ -144,7 +144,7 @@ BEGIN {
 
     split(BLAME_COLORS, COLORS)
     for (i in COLORS) {
-        line_of_last_use[COLORS[i]] = -999999
+        line_of_last_use[i] = -999999
         COLORS[i] = setaf(COLORS[i])
     }
 

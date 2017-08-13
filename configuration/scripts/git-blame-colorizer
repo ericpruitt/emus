@@ -10,6 +10,8 @@
 #   -m, --margin=COLUMNS
 #                   Set the width of the commit summary margin.
 #   -N              Hide working-copy line numbers.
+#   -n, --show-number
+#                   Show line numbers from the original commit.
 #   --palette=NAME  Set the color palette. For a list of palettes, search for
 #                   "Predefined Color Palettes" in the AWK script source.
 #   -s, --short     Show summaries using one line instead of two.
@@ -38,9 +40,14 @@ BEGIN {
         MARGIN_WIDTH = -1
     }
 
-    # - Set to a non-zero value to show line numbers in the output.
+    # - Set to a non-zero value to show working-copy line numbers.
     if (!length(LINE_NUMBERS)) {
         LINE_NUMBERS = 1
+    }
+
+    # - Set to a non-zero value to show line numbers from the original commit.
+    if (!length(ORIGINAL_LINE_NUMBERS)) {
+        ORIGINAL_LINE_NUMBERS = 0
     }
 
     # - Timezone to use when displaying dates. This can be "host" to indicate
@@ -255,6 +262,8 @@ function parseopts(    argument, git, optind0)
             MARGIN_WIDTH = optarg()
         } else if (argument ~ /^-N/) {
             LINE_NUMBERS = 0
+        } else if (argument ~ /^-(n|-show-number$)/) {
+            ORIGINAL_LINE_NUMBERS = 1
         } else if (argument ~ /^--palette(=|$)/) {
             PALETTE = optarg()
         } else if (argument ~ /^-(s|-short$)/) {
@@ -392,6 +401,7 @@ function parse_metadata()
     if (expecting_hash) {
         expecting_hash = 0
         hash = $1
+        original_line = $2
         source_line = $3
         if (NF == 4) {
             diff_length = $4
@@ -430,7 +440,17 @@ function format_line()
     committed = hash != HASH_OF_UNCOMMITTED_BLOCK
     annotated = !boundary_commit && committed
 
-    $0 = (LINE_NUMBERS ? sprintf("%5d  ", source_line) : "  ") substr($0, 2)
+    if (LINE_NUMBERS && ORIGINAL_LINE_NUMBERS) {
+        prefix = sprintf("%5d  %5d  ", original_line, source_line)
+    } else if (LINE_NUMBERS) {
+        prefix = sprintf("%5d  ", source_line)
+    } else if (ORIGINAL_LINE_NUMBERS) {
+        prefix = sprintf("%5d  ", original_line)
+    } else {
+        prefix = "  "
+    }
+
+    $0 = prefix substr($0, 2)
 
     if (boundary_commit || blank_line) {
         color = BOUNDARY_COMMIT_COLOR

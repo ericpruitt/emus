@@ -79,7 +79,7 @@ BEGIN {
     #
     # - vivd: Very saturated colors of varying hues.
     if (PALETTE == "vivid") {
-        BLAME_COLORS = "9 10 11 12 13 14 40 57 88 94 157 166 214 226"
+        BLAME_COLORS = "9 10 11 12 13 14 57 157 166 214"
     # - table: Alternates between a soft purple and gray similar to colors
     #   often used for alternating rows in textbook tables.
     } else if (PALETTE == "table") {

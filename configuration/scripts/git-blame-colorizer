@@ -1,17 +1,34 @@
 #!/usr/bin/awk -f
 
-# This is a POSIX-compliant* Awk script that can be used to generate colored
-# output from "git blame --porcelain $FILENAME". Review the comments in the
-# BEGIN section for configuration options. Depending on the host's locale
-# configuration and the Awk implementation used, margin truncation may cause
-# multi-byte text sequences to be split, and padding calculations may use
-# incorrect values for the width of certain characters.
+# Usage: git blame-colorizer [MODE] [OPTIONS] FILE
 #
-# * Although the syntax and features of the script itself are POSIX-complient,
-#   _date(1)_ is invoked with the "%z" which is specified for _strftime(3)_
-#   but unfortunately not _date(1)_.
+# The mode can be "who", "what" (default) or "when", and it controls what
+# information is displayed in the margin. When this is used with "--short", the
+# line shown will only include information explicitly associated with the mode.
+#
+# Options:
+#   -m, --margin=COLUMNS
+#                   Set the width of the commit summary margin.
+#   --palette=NAME  Set the color palette. For a list of palettes, search for
+#                   "Predefined Color Palettes" in the AWK script source.
+#   -s, --short     Show summaries using one line instead of two.
+#   -u, --utc       Display commit times in UTC.
+#   -z, --tz=ZONE   Set the time zone used when displaying times. This can be
+#                   "host" to indicate that dates should be displayed using the
+#                   host's timezone, "author" to indicate that dates should be
+#                   shown in the author's time zone or "utc" to indicate that
+#                   dates should be shown using UTC.
+#
+# Any unrecognized arguments will be passed to git-blame.
+#
+# Portability:
+#   Although the syntax and features of the script itself are POSIX-compliant,
+#   date(1) is invoked with the "%z" which is specified for strftime(3) but
+#   unfortunately not date(1).
 
 BEGIN {
+    GIT_COMMAND = parseopts() "; echo '$?='$?"
+
     # Optional Variables (`awk -v ...`)
     # ---------------------------------
 
@@ -45,54 +62,44 @@ BEGIN {
         VERBOSE = 1
     }
 
-    # ### Predefined Color Palettes
+    # - Controls which color palette is used for commits.
     if (!length(PALETTE)) {
         PALETTE = "vivid"
     }
 
+    # ### Predefined Color Palettes ###
+    #
     # - vivd: Very saturated colors of varying hues.
     if (PALETTE == "vivid") {
         BLAME_COLORS = "9 10 11 12 13 14 40 57 88 94 157 166 214 226"
-
     # - table: Alternates between a soft purple and gray similar to colors
     #   often used for alternating rows in textbook tables.
     } else if (PALETTE == "table") {
         BLAME_COLORS = "104 245"
-
     # - mode4: Low-intensity yellow, magenta, green and cyan reminiscent of
     #   early 8-bit hardware color palettes.
     } else if (PALETTE == "mode4") {
         BLAME_COLORS = "2 3 5 6"
-
-    # These color palettes are designed for various types of color perception
-    # deficiencies. The names are variations of "RGB" where "x" represents
-    # weak-perception of the color it replaces while the deletion of a
-    # character represents blindness.
-    #
-    # - xgb: palette optimized for red-weak vision.
-    } else if (PALETTE == "xgb") {
+    # - red-weak: Palette optimized for red-weak vision.
+    } else if (PALETTE == "red-weak") {
         BLAME_COLORS = "1 3 5 9 10 13 14 196 219"
-    # - rxb: palette optimized for green-weak vision.
-    } else if (PALETTE == "rxb") {
+    # - green-weak: Palette optimized for green-weak vision.
+    } else if (PALETTE == "green-weak") {
         BLAME_COLORS = "1 3 9 10 13 14 196 219"
-    # - rgx: palette optimized for blue-weak vision.
-    } else if (PALETTE == "rgx") {
+    # - blue-weak: Palette optimized for blue-weak vision.
+    } else if (PALETTE == "blue-weak") {
         BLAME_COLORS = "9 10 11 13 14 52"
-    # - gb: palette optimized for red-blind vision.
-    } else if (PALETTE == "gb") {
+    # - red-blind: Palette optimized for red-blind vision.
+    } else if (PALETTE == "red-blind") {
         BLAME_COLORS = "5 10 13 124"
-    # - rb: palette optimized for green-blind vision.
-    } else if (PALETTE == "rb") {
+    # - green-blind: Palette optimized for green-blind vision.
+    } else if (PALETTE == "green-blind") {
         BLAME_COLORS = "3 14 33 58"
-    # - rg: palette optimized for blue-blind vision.
-    } else if (PALETTE == "rg") {
+    # - blue-blind: Palette optimized for blue-blind vision.
+    } else if (PALETTE == "blue-blind") {
         BLAME_COLORS = "5 6 9 10 52"
-
     } else {
-        print "unrecognized color palette: " PALETTE >> "/dev/fd/2"
-        close("/dev/fd/2")
-        exit_status = 1
-        exit
+        abort("unrecognized color palette: " PALETTE)
     }
 
     # Other Settings
@@ -142,10 +149,7 @@ BEGIN {
             MARGIN_WIDTH = SHOW_TIMEZONE ? 22 : 16
         }
     } else {
-        print "unrecognized style: " HIGHLIGHT >> "/dev/fd/2"
-        close("/dev/fd/2")
-        exit_status = 1
-        exit
+        abort("unrecognized style: " HIGHLIGHT)
     }
 
     if (OUTPUT_TIMEZONE == "host") {
@@ -158,10 +162,7 @@ BEGIN {
         SHOW_TIMEZONE = 1
         OUTPUT_TIMEZONE = ""
     } else {
-        print "unrecognized date timezone: " OUTPUT_TIMEZONE >> "/dev/fd/2"
-        close("/dev/fd/2")
-        exit_status = 1
-        exit
+        abort("unrecognized date timezone: " OUTPUT_TIMEZONE)
     }
 
     if ("LINES" in ENVIRON) {
@@ -176,10 +177,110 @@ BEGIN {
     MARGIN_FORMAT = "%-" MARGIN_WIDTH "s"
     FORMAT = "%s" MARGIN_FORMAT "%s%s"
     color_index = 0
-    exit_status = 0
     expecting_hash = 1
     overflow = 0
     previous_hash = "X"
+
+    while ((GIT_COMMAND | getline)) {
+        if (/^\$\?=[0-9]+$/) {
+            if (overflow) {
+                print condensed
+            }
+            close(GIT_COMMAND)
+            exit substr($0, 4)
+        } else if (/^\t/) {
+            format_line()
+        } else {
+            parse_metadata()
+        }
+    }
+}
+
+# Write a message to standard error and exit with a non-zero status.
+#
+# Arguments:
+# - text: Message to write to standard error.
+#
+function abort(text)
+{
+    print "colorizer:", text > "/dev/fd/2"
+    close("/dev/fd/2")
+    exit 1
+}
+
+# Escape text so it is interpreted as a literal value by POSIX shells.
+#
+# Arguments:
+# - text: Text to escape.
+#
+# Returns: Escaped text.
+#
+function shell_escape(text)
+{
+    gsub(/'/, "'\"'\"'", text)
+    return "'" text "'"
+}
+
+# Get the value of command line flag and advance OPTIND to the next parameter.
+#
+# Returns: Value associated with a flag.
+#
+function optarg()
+{
+    if (ARGV[OPTIND] ~ /^-[^-]./) {
+        return substr(ARGV[OPTIND++], 3)
+    } else if (match(ARGV[OPTIND], "^--[^=]+=")) {
+        return substr(ARGV[OPTIND++], RLENGTH + 1)
+    } else if ((OPTIND + 1) >= ARGC) {
+        abort("missing arg for'" ARGV[OPTIND] "'")
+    }
+
+    OPTIND++
+    return ARGV[OPTIND++]
+}
+
+# Parse parameters in ARGV and set the corresponding AWK variables.
+#
+# Returns: Git command that outputs porcelain blame data.
+#
+function parseopts(    argument, git, optind0)
+{
+    git = "git blame --porcelain"
+
+    for (OPTIND = 1; (optind0 = OPTIND) < ARGC; ) {
+        if ((argument = ARGV[OPTIND]) == "--") {
+            for (; OPTIND < ARGC; git = git " " shell_escape(ARGV[OPTIND++]));
+        } else if (argument ~ /^-(m|-margin(=|$))/) {
+            MARGIN_WIDTH = optarg()
+        } else if (argument ~ /^--palette(=|$)/) {
+            PALETTE = optarg()
+        } else if (argument ~ /^-(s|-short$)/) {
+            VERBOSE = 0
+        } else if (argument ~ /^-(u|-utc$)/) {
+            OUTPUT_TIMEZONE = "utc"
+        } else if (argument ~ /^-(z|-tz(=|$))/) {
+            OUTPUT_TIMEZONE = optarg()
+        } else if (argument ~ /^(who|what|when)$/) {
+            HIGHLIGHT = ARGV[OPTIND]
+
+        # Parse and forward Git short flags that accept arguments so they can
+        # be combined with this script's short flags.
+        } else if (argument ~ /^-L/) {
+            git = git " -" substr(argument, 2, 1) " " shell_escape(optarg())
+
+        # Unrecognized options and positional parameters are forwarded to Git.
+        } else {
+            git = git " " shell_escape(argument)
+        }
+
+        if (OPTIND == optind0 && argument ~ /^-[^-]./) {
+            sub(/[^-]/, "", ARGV[OPTIND])
+        } else if (OPTIND == optind0) {
+            OPTIND++
+        }
+    }
+
+    return git
 }
 
 # Return ANSI or XTerm-compatible escape sequence for displaying a color with
@@ -281,7 +382,10 @@ function abbrev(text, width)
     }
 }
 
-!/^\t/ {
+# Parse a line containing metadata emitted by "git blame --porcelain".
+#
+function parse_metadata()
+{
     if (expecting_hash) {
         expecting_hash = 0
         hash = $1
@@ -312,7 +416,11 @@ function abbrev(text, width)
     }
 }
 
-/^\t/ {
+# Format, color and display a line of source code emitted by "git blame
+# --porcelain".
+#
+function format_line()
+{
     expecting_hash = 1
     blank_line = !NF
     boundary_commit = commits[hash, "boundary"]
@@ -333,7 +441,7 @@ function abbrev(text, width)
         if (blank_line || !annotated) {
             print highlight
             print auxiliary color $0
-            next
+            return
         }
 
         print condensed
@@ -430,7 +538,7 @@ function abbrev(text, width)
             condensed = sprintf(FORMAT, color, condensed, $0, COLOR_RESET)
             auxiliary = color sprintf(MARGIN_FORMAT, auxiliary) COLOR_RESET
             commits[hash, "last_line"] = source_line
-            next
+            return
         }
 
         diff_line = 1
@@ -439,12 +547,4 @@ function abbrev(text, width)
 
     commits[hash, "last_line"] = source_line
     printf FORMAT, color, margin, $0, COLOR_RESET "\n"
-}
-
-END {
-    if (exit_status) {
-        exit exit_status
-    } else if (overflow) {
-        print condensed
-    }
 }

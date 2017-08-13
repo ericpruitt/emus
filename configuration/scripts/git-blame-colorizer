@@ -9,6 +9,7 @@
 # Options:
 #   -m, --margin=COLUMNS
 #                   Set the width of the commit summary margin.
+#   -N              Hide working-copy line numbers.
 #   --palette=NAME  Set the color palette. For a list of palettes, search for
 #                   "Predefined Color Palettes" in the AWK script source.
 #   -s, --short     Show summaries using one line instead of two.
@@ -252,6 +253,8 @@ function parseopts(    argument, git, optind0)
             for (; OPTIND < ARGC; git = git " " shell_escape(ARGV[OPTIND++]));
         } else if (argument ~ /^-(m|-margin(=|$))/) {
             MARGIN_WIDTH = optarg()
+        } else if (argument ~ /^-N/) {
+            LINE_NUMBERS = 0
         } else if (argument ~ /^--palette(=|$)/) {
             PALETTE = optarg()
         } else if (argument ~ /^-(s|-short$)/) {

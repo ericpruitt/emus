@@ -1,10 +1,9 @@
 #!/usr/bin/awk -f
 
-# Usage: git blame-colorizer [MODE] [OPTIONS] FILE
+# Usage: git blame-colorizer [ANNOTATION_MODE] [OPTIONS] FILE
 #
-# The mode can be "who", "what" (default) or "when", and it controls what
-# information is displayed in the margin. When this is used with "--short", the
-# line shown will only include information explicitly associated with the mode.
+# The annotation mode controls what information is displayed in the margin. It
+# can be "who", "what" (default) or "when".
 #
 # Options:
 #   -m, --margin=COLUMNS
@@ -12,17 +11,26 @@
 #   -N              Hide working-copy line numbers.
 #   -n, --show-number
 #                   Show line numbers from the original commit.
+#   -p, --porcelain
+#                   Run "git blame --porcelain" without post-processing. Any
+#                   flags specific to this script are silently ignored while
+#                   any that mirror git-blame arguments are forwarded.
 #   --palette=NAME  Set the color palette. For a list of palettes, search for
 #                   "Predefined Color Palettes" in the AWK script source.
 #   -s, --short     Show summaries using one line instead of two.
 #   -u, --utc       Display commit times in UTC.
-#   -z, --tz=ZONE   Set the time zone used when displaying times. This can be
-#                   "host" to indicate that dates should be displayed using the
-#                   host's timezone, "author" to indicate that dates should be
-#                   shown in the author's time zone or "utc" to indicate that
-#                   dates should be shown using UTC.
+#   -y, --time=TYPE
+#                   Controls how dates and times are displayed. This can be
+#                   "host" (default) to indicate they should be displayed using
+#                   the host's timezone, "author" for the author's time zone or
+#                   "utc" for UTC.
 #
 # Any unrecognized arguments will be passed to git-blame.
+#
+# Bugs:
+#    The "host" option is not locale aware; the same offset will be used for
+#    every commit without regard to things that change the offset like daylight
+#    savings or changes by governing / regulatory organizations.
 #
 # Portability:
 #   Although the syntax and features of the script itself are POSIX-compliant,
@@ -30,53 +38,55 @@
 #   unfortunately not date(1).
 
 BEGIN {
-    GIT_COMMAND = parseopts() "; echo '$?='$?"
+    # Width of the margin on the left that shows messages and hashes. When this
+    # is 0, the width is chosen automatically based on the annotation mode.
+    MARGIN_WIDTH = 0
 
-    # Optional Variables (`awk -v ...`)
-    # ---------------------------------
+    # Controls whether or not line numbers from the working-copy are shown.
+    LINE_NUMBERS = 1
 
-    # - Width of the margin on the left that shows messages and hashes.
-    if (!length(MARGIN_WIDTH)) {
-        MARGIN_WIDTH = -1
-    }
+    # Controls whether or not line numbers from the original file are shown.
+    ORIGINAL_LINE_NUMBERS = 0
 
-    # - Set to a non-zero value to show working-copy line numbers.
-    if (!length(LINE_NUMBERS)) {
-        LINE_NUMBERS = 1
-    }
+    # Timezone to use when displaying date and times:
+    # - host: Host's time zone. This is the default.
+    # - author: Commit authors time zone.
+    # - utc: UTC (+00:00).
+    DATETIME = "host"
 
-    # - Set to a non-zero value to show line numbers from the original commit.
-    if (!length(ORIGINAL_LINE_NUMBERS)) {
-        ORIGINAL_LINE_NUMBERS = 0
-    }
+    # Type of information highlighted in commit annotations. This can be "who",
+    # "what" or "when".
+    ANNOTATION = "what"
 
-    # - Timezone to use when displaying dates. This can be "host" to indicate
-    #   that dates should be displayed using the host's timezone, "author" to
-    #   indicate that dates should be shown in the author's time zone or "utc"
-    #   to indicate that dates should be shown using UTC.
-    if (!length(OUTPUT_TIMEZONE)) {
-        OUTPUT_TIMEZONE = "host"
-    }
+    # When verbose mode is enabled, 2 lines of annotations are shown for every
+    # commit (where possible) instead of 1.
+    VERBOSE = 1
 
-    # - Type of information commits to highlight for commits. This can be
-    #   "who", "what" or "when".
-    if (!length(HIGHLIGHT)) {
-        HIGHLIGHT = "what"
-    }
+    # Color palette. The list of palettes can be found under "Predefined Color
+    # Palettes."
+    PALETTE = "vivid"
 
-    # - When this value is non-zero, two lines of information will be displayed
-    #   for each commit where possible instead of one.
-    if (!length(VERBOSE)) {
-        VERBOSE = 1
-    }
+    # This number is used as the maximum width of individual expanded tabs.
+    TAB_SIZE = 8
 
-    # - Controls which color palette is used for commits.
-    if (!length(PALETTE)) {
-        PALETTE = "vivid"
-    }
+    # Color of lines from the boundary commit.
+    BOUNDARY_COMMIT_COLOR = "7"
 
-    # ### Predefined Color Palettes ###
-    #
+    # Color of lines that have not been committed.
+    UNCOMMITTED_COLOR = "239"
+
+    # This variable can be set to invoke "git blame --porcelain" without any
+    # post-processing.
+    PORCELAIN_PROXY = 0
+
+    # Controls whether time zone offsets are displayed.
+    SHOW_TIMEZONE = 0
+
+    # Set script variables and generate Git command.
+    GIT_COMMAND = getopts() "; echo '$?='$?"
+
+    # Predefined Color Palettes:
+
     # - vivd: Very saturated colors of varying hues.
     if (PALETTE == "vivid") {
         BLAME_COLORS = "9 10 11 12 13 14 57 157 166 214"
@@ -109,99 +119,6 @@ BEGIN {
     } else {
         abort("unrecognized color palette: " PALETTE)
     }
-
-    # Other Settings
-    # --------------
-
-    # - When this value is non-zero, adaptive coloring is enabled. Adaptive
-    #   coloring attempts to pick colors in a way that optimizes for visual
-    #   distinctiveness. When this value is set to 0, colors are selected by
-    #   monotonically cycling through one member of "BLAME_COLORS" for each
-    #   group of concurrent lines from a single commit. Lines from the boundary
-    #   commit and uncommitted lines have no impact on color selection for
-    #   other lines.
-    ADAPTIVE_COLORING = 1
-
-    # - These numbers represent terminal colors (theoretically the same as
-    #   `tput setaf`) used for the output. Empty strings can be used for
-    #   "BOUNDARY_COMMIT_COLOR" and "UNCOMMITTED_COLOR" to indicate that the
-    #   color used should be the terminal's default text color.
-    BOUNDARY_COMMIT_COLOR = "7"
-    UNCOMMITTED_COLOR = "239"
-
-    # - This number is used as the maximum width of individual expanded tabs.
-    TAB_SIZE = 8
-
-    #                                 ---
-
-    BOUNDARY_COMMIT_COLOR = setaf(BOUNDARY_COMMIT_COLOR)
-    COLOR_COUNT = split(BLAME_COLORS, _)
-    COLOR_RESET = "\033[m"
-    HASH_OF_UNCOMMITTED_BLOCK = "0000000000000000000000000000000000000000"
-    SHOW_TIMEZONE = 0
-    UNCOMMITTED_COLOR = setaf(UNCOMMITTED_COLOR)
-    MULTIBYTE_SAFE = length("宽") == 1
-
-    split(BLAME_COLORS, COLORS)
-    for (i in COLORS) {
-        line_of_last_use[i] = -999999
-        COLORS[i] = setaf(COLORS[i])
-    }
-
-    if (HIGHLIGHT == "who") {
-        MARGIN_WIDTH = MARGIN_WIDTH == -1 ? 25 : MARGIN_WIDTH
-    } else if (HIGHLIGHT == "what") {
-        MARGIN_WIDTH = MARGIN_WIDTH == -1 ? 50 : MARGIN_WIDTH
-    } else if (HIGHLIGHT == "when") {
-        if (MARGIN_WIDTH == -1) {
-            MARGIN_WIDTH = SHOW_TIMEZONE ? 22 : 16
-        }
-    } else {
-        abort("unrecognized style: " HIGHLIGHT)
-    }
-
-    if (OUTPUT_TIMEZONE == "host") {
-        command = "date +%z"
-        command | getline OUTPUT_TIMEZONE
-        close(command)
-    } else if (OUTPUT_TIMEZONE == "utc") {
-        OUTPUT_TIMEZONE = "0000"
-    } else if (OUTPUT_TIMEZONE == "author") {
-        SHOW_TIMEZONE = 1
-        OUTPUT_TIMEZONE = ""
-    } else {
-        abort("unrecognized date timezone: " OUTPUT_TIMEZONE)
-    }
-
-    if ("LINES" in ENVIRON) {
-        LINES = ENVIRON["LINES"] + 0
-    } else {
-        command = "tput lines"
-        command | getline LINES
-        close(command)
-        LINES = LINES + 0 ? LINES + 0 : 24
-    }
-
-    MARGIN_FORMAT = "%-" MARGIN_WIDTH "s"
-    FORMAT = "%s" MARGIN_FORMAT "%s%s"
-    color_index = 0
-    expecting_hash = 1
-    overflow = 0
-    previous_hash = "X"
-
-    while ((GIT_COMMAND | getline)) {
-        if (/^\$\?=[0-9]+$/) {
-            if (overflow) {
-                print condensed
-            }
-            close(GIT_COMMAND)
-            exit substr($0, 4)
-        } else if (/^\t/) {
-            format_line()
-        } else {
-            parse_metadata()
-        }
-    }
 }
 
 # Write a message to standard error and exit with a non-zero status.
@@ -229,9 +146,10 @@ function shell_escape(text)
     return "'" text "'"
 }
 
-# Get the value of command line flag and advance OPTIND to the next parameter.
+# Get the value of a command line option and advance OPTIND to the next
+# parameter.
 #
-# Returns: Value associated with a flag.
+# Returns: Value associated with an option.
 #
 function optarg()
 {
@@ -247,11 +165,12 @@ function optarg()
     return ARGV[OPTIND++]
 }
 
-# Parse parameters in ARGV and set the corresponding AWK variables.
+# Parse parameters in "ARGV" and set the corresponding AWK variables. Values in
+# "ARGV" are deleted after being read.
 #
 # Returns: Git command that outputs porcelain blame data.
 #
-function parseopts(    argument, git, optind0)
+function getopts(    argument, git, optind0)
 {
     git = "git blame --porcelain"
 
@@ -264,19 +183,22 @@ function parseopts(    argument, git, optind0)
             LINE_NUMBERS = 0
         } else if (argument ~ /^-(n|-show-number$)/) {
             ORIGINAL_LINE_NUMBERS = 1
+        } else if (argument ~ /^-(p|-porcelain)$/) {
+            PORCELAIN_PROXY = 1
         } else if (argument ~ /^--palette(=|$)/) {
             PALETTE = optarg()
         } else if (argument ~ /^-(s|-short$)/) {
             VERBOSE = 0
         } else if (argument ~ /^-(u|-utc$)/) {
-            OUTPUT_TIMEZONE = "utc"
-        } else if (argument ~ /^-(z|-tz(=|$))/) {
-            OUTPUT_TIMEZONE = optarg()
+            DATETIME = "utc"
+        } else if (argument ~ /^-(y|-time(=|$))/) {
+            DATETIME = optarg()
         } else if (argument ~ /^(who|what|when)$/) {
-            HIGHLIGHT = ARGV[OPTIND]
+            ANNOTATION = ARGV[OPTIND]
 
-        # Parse and forward Git short flags that accept arguments so they can
-        # be combined with this script's short flags.
+        # Forward Git-specific short flags that accept arguments. They are
+        # parsed by this wrapper so Git's short flags can be combined with this
+        # script's short flags.
         } else if (argument ~ /^-L/) {
             git = git " -" substr(argument, 2, 1) " " shell_escape(optarg())
 
@@ -285,8 +207,12 @@ function parseopts(    argument, git, optind0)
             git = git " " shell_escape(argument)
         }
 
+        # If the argument contains multiple short flags, delete the one that
+        # was just processed.
         if (OPTIND == optind0 && argument ~ /^-[^-]./) {
             sub(/[^-]/, "", ARGV[OPTIND])
+
+        # Otherwise, advance the cursor if it wasn't already moved by optarg.
         } else if (OPTIND == optind0) {
             OPTIND++
         }
@@ -303,17 +229,12 @@ function parseopts(    argument, git, optind0)
 # emulators.
 #
 # Arguments:
-# - n: Color index.
+# - n: Color number.
 #
-# Return: Terminal escape sequence string.
+# Return: Terminal escape sequence.
 #
 function setaf(n)
 {
-    if (!length(n)) {
-        # Sequence representing default color.
-        return "\033[39m"
-    }
-
     n = int(n + 0)
 
     if (n < 8) {
@@ -330,16 +251,15 @@ function setaf(n)
 # Arguments:
 # - unixtime: Unix timestamp representing the time to be displayed.
 # - tz: Offset from UTC of the time to be displayed. This should be in the form
-#   of `/[+-]H?H:MM/`.
-# - showtz: When this value is non-zero, the UTC offset is included in the
+#   of `/[+-]HHMM/`.
 #   returned string.
 #
 # Returns: A string formatted as specified by ISO 8601.
 #
-function unix2iso(unixtime, tz, showtz,   leap, day, y_end, n, D, HH, M, MM, Y)
+function unix2iso(unixtime, tz,   leap, day, y_end, n, D, HH, M, MM, Y)
 {
     unixtime += 3600 * int(tz / 100) + 60 * (tz % 100)
-    tz = showtz ? (int(tz) ? " " tz : " (UTC)") : ""
+    tz = SHOW_TIMEZONE ? (int(tz) ? tz : "±0000") : ""
 
     Y = 1970
     for (day = leap = y_end = 0; unixtime > y_end; Y += (y_end <= unixtime)) {
@@ -369,15 +289,15 @@ function unix2iso(unixtime, tz, showtz,   leap, day, y_end, n, D, HH, M, MM, Y)
     return sprintf("%4s-%02d-%02d %02d:%02d", Y, M, D, HH, MM) tz
 }
 
-# Abbreviate text so that it contains no more than "width" characters.
+# Truncate text so that it contains no more than "width" characters.
 #
 # Arguments:
-# - text: To to abbrevate.
+# - text: Text to truncate.
 # - width: Maximum number of characters allowed in output.
 #
 # Returns: String or abbreviated version of the string.
 #
-function abbrev(text, width)
+function truncate(text, width)
 {
     gsub(/[\t ]+$/, "", text)
 
@@ -396,178 +316,300 @@ function abbrev(text, width)
 
 # Parse a line containing metadata emitted by "git blame --porcelain".
 #
-function parse_metadata()
+function handle_metadata(    i, name, spaces, value)
 {
-    if (expecting_hash) {
-        expecting_hash = 0
+    # The length of column 1 is checked because mawk does not support length
+    # quantifier brackets ("...{X,Y}").
+    if (/^[0-9a-f]+ [0-9]+ [0-9]+( [0-9]+)?$/ && length($1) >= 40) {
+        continuation_of_group = hash == $1
         hash = $1
         original_line = $2
         source_line = $3
+
         if (NF == 4) {
-            diff_length = $4
+            group_length = $4
         }
+
         if (!(hash in commits)) {
             commits[hash] = 1
             commits[hash, "boundary"] = 0
-            commits[hash, "last_color"] = color_index
+            commits[hash, "color"] = color
         }
-    } else if (NF == 1) {
-        commits[hash, $1] = 1
     } else {
-        # Strip the field name to get actual value.
-        field = $1
-        $1 = ""
-        value = substr($0, 2)
+        name = $1
+        value = 1
 
-        # Expand tabs to simplify visible width calculations.
-        while ((i = index(value, "\t"))) {
-            spaces = sprintf("%*s", (TAB_SIZE - ((i - 1) % TAB_SIZE)), "")
-            sub(/\t/, spaces, value)
+        if (NF > 1) {
+            value = substr($0, length(name) + 2)
+            sub(/[ \t]+$/, "", value)
+
+            # Expand tabs to simplify visible width calculations.
+            while ((i = index(value, "\t"))) {
+                spaces = sprintf("%*s", (TAB_SIZE - ((i - 1) % TAB_SIZE)), "")
+                sub(/\t/, spaces, value)
+            }
         }
 
-        commits[hash, field] = value
+        if (name == "summary" && value == "(" hash ")") {
+            value = "No commit summary"
+        }
+
+        commits[hash, name] = value
     }
 }
 
-# Format, color and display a line of source code emitted by "git blame
-# --porcelain".
+# Format two strings as two columns with a maximum width of "MARGIN_WIDTH". If
+# the total length of both columns exceeds "MARGIN_WIDTH", the left column will
+# be truncated.
 #
-function format_line()
+# Arguments:
+# - left: Text in left column.
+# - right: Text in right column.
+#
+# Returns: Line of text formatted as two columns.
+#
+function format_columns(left, right,    n)
 {
-    expecting_hash = 1
-    blank_line = !NF
-    boundary_commit = commits[hash, "boundary"]
-    committed = hash != HASH_OF_UNCOMMITTED_BLOCK
-    annotated = !boundary_commit && committed
+    left = truncate(left, MARGIN_WIDTH - length(right))
+    for (n = MARGIN_WIDTH - length(left) - length(right); n > 0; n--) {
+        left = left " "
+    }
+
+    return left right
+}
+
+# Generate annotations for the current commit.
+#
+function annotate(    clock, date, name, offset, rightcol)
+{
+    name = commits[hash, "author"]
+    if (!length(name)) {
+        name = commits[hash, "author-mail"]
+    }
+
+    offset = OUTPUT_TIMEZONE
+    if (!length(offset)) {
+        offset = commits[hash, "author-tz"]
+    }
+
+    clock = unix2iso(commits[hash, "author-time"], offset)
+
+    # Line 1: Author name or email address.
+    # Line 2: Date and the commit summary.
+    # Brief: Author name (or email address) and the commit summary.
+    if (ANNOTATION == "who") {
+        date = substr(clock, 1, 10)
+        margins[1] = name
+        margins[2] = date ": " commits[hash, "summary"]
+        margins["brief"] = format_columns(name, " (" date ")")
+
+    # Line 1: Commit summary and the short hash if it fits on the same line.
+    # Line 2: Date & time and the author's name or a medium hash if the short
+    # hash was not displayed on the first line.
+    # Brief: Commit summary truncated as needed and the short hash.
+    } else if (ANNOTATION == "what") {
+        rightcol = " (" substr(hash, 1, 7) ")"
+        margins["brief"] = format_columns(commits[hash, "summary"], rightcol)
+
+        # If the summary is short enough, display it with the short hash on the
+        # first margin line then display the time and author on the second
+        # line.
+        if ((MARGIN_WIDTH - \
+          length(commits[hash, "summary"]) - length(rightcol)) >= 0) {
+            margins[1] = margins["brief"]
+            margins[2] = clock " - " name
+
+        # Otherwise, display a truncated commit summary on the first line
+        # then display the time and medium hash on the second line.
+        } else {
+            margins[1] = commits[hash, "summary"]
+            margins[2] = clock " - " substr(hash, 1, 13)
+        }
+
+    # Line 1 and brief: Date & time.
+    } else if (ANNOTATION == "when") {
+        margins["brief"] = substr(clock, 1, MARGIN_WIDTH)
+        margins[1] = margins["brief"]
+        margins[2] = ""
+    }
+
+    if (!VERBOSE) {
+        margins[1] = margins["brief"]
+        margins[2] = ""
+    }
+}
+
+# Display a line of source code emitted by "git blame --porcelain".
+#
+function handle_line(    c, furthest, lineno, margin, previous_color)
+{
+    margin = ""
 
     if (LINE_NUMBERS && ORIGINAL_LINE_NUMBERS) {
-        prefix = sprintf("%5d  %5d  ", original_line, source_line)
+        lineno = sprintf("%6d  %6d  ", original_line, source_line)
     } else if (LINE_NUMBERS) {
-        prefix = sprintf("%5d  ", source_line)
+        lineno = sprintf("%6d  ", source_line)
     } else if (ORIGINAL_LINE_NUMBERS) {
-        prefix = sprintf("%5d  ", original_line)
+        lineno = sprintf("%6d  ", original_line)
     } else {
-        prefix = "  "
+        lineno = "  "
     }
 
-    $0 = prefix substr($0, 2)
+    $0 = lineno substr($0, 2)
 
-    if (boundary_commit || blank_line) {
-        color = BOUNDARY_COMMIT_COLOR
-    } else {
-        color = UNCOMMITTED_COLOR
-    }
+    # The porcelain format treats discontinuities between line numbers in the
+    # original file as separate groups even if the lines all come from one
+    # commit; for example:
+    #
+    #   [...]
+    #   498b29f4a84bfb87192d0e5b736c1150feb2773b 130 130
+    #                   git blame "$@"
+    #   7c6a9aa87d265ad0460a29c1e14dc23911f76e49 199 131 1
+    #               fi
+    #   7c6a9aa87d265ad0460a29c1e14dc23911f76e49 202 132 2
+    #           }
+    #   7c6a9aa87d265ad0460a29c1e14dc23911f76e49 203 133
+    #   [...]
+    #
+    # Although lines 131 and 132 come from the same commit, Git treats them as
+    # different groups hence the 4th field on both lines and the reason for the
+    # "continuation_of_group" guarding the overflow logic.
+    if (length(overflow_buffer) && !continuation_of_group) {
+        # If there's a line in the overflow buffer and the current group does
+        # not have any annotations, the previous group's annotations are
+        # allowed to spill into the otherwise empty margins.
+        if (commits[hash, "boundary"] || hash == HASH_OF_UNCOMMITTED_BLOCK) {
+            printf FORMAT, COLORS[color], margins[1], overflow_buffer
+            printf FORMAT, COLORS[color], margins[2], ""
 
-    if (overflow) {
-        overflow = 0
+            color = commits[hash, "boundary"] ? "boundary" : "uncommitted"
 
-        if (blank_line || !annotated) {
-            print highlight
-            print auxiliary color $0
+            print COLORS[color] $0 COLORS["reset"]
+            overflow_buffer = ""
             return
         }
 
-        print condensed
+        # If the current group also has annotations, use the brief, one-line
+        # annotation for the previous group.
+        printf FORMAT, COLORS[color], margins["brief"], overflow_buffer
     }
 
-    margin = ""
+    if (commits[hash, "boundary"]) {
+        color = "boundary"
 
-    if (annotated && hash == previous_hash) {
-        color = COLORS[color_index]
-        line_of_last_use[color_index] = source_line
-        commits[hash, "last_line"] = source_line
-        diff_line += diff_line > 0
-        if (diff_line == 2) {
-            margin = auxiliary
+    } else if (hash == HASH_OF_UNCOMMITTED_BLOCK) {
+        color = "uncommitted"
+
+    } else if (continuation_of_group) {
+        if (length(overflow_buffer)) {
+            printf FORMAT, COLORS[color], margins[1], overflow_buffer
         }
 
-    } else if (annotated && (diff_length > 1 || !blank_line)) {
-        previous_hash = hash
-        adjacent_color = color_index
-        color_index = (color_index % COLOR_COUNT) + 1
+        color_locations[color] = source_line
+        margin = margins[2]
+        margins[2] = ""
 
-        if (ADAPTIVE_COLORING) {
-            last_color = commits[hash, "last_color"]
-            last_line_with_this_color = line_of_last_use[last_color]
-            top_edge = source_line - LINES
+    } else {
+        annotate()
+        margins[1] = truncate(margins[1], MARGIN_WIDTH)
+        margins[2] = truncate(margins[2], MARGIN_WIDTH)
 
-            if (last_color != adjacent_color &&
-                ((commits[hash, "last_line"] == last_line_with_this_color) ||
-                 (last_line_with_this_color < top_edge))) {
-                color_index = last_color
-            } else {
-                furthest_distance = 0
-                for (i = 1; i <= COLOR_COUNT; i++) {
-                    distance = source_line - line_of_last_use[i]
-                    if (i != adjacent_color && distance > furthest_distance) {
-                        furthest_distance = distance
-                        color_index = i
-                    }
+        # Reuse the most recently displayed color for the current hash if it
+        # has not been used by another hash in the mean time.
+        previous_color = commits[hash, "color"]
+        if (previous_color != color &&
+          commits[hash, "last_line"] == color_locations[previous_color]) {
+            color = previous_color
+
+        # Otherwise, pick whichever color was least-recently used.
+        } else {
+            furthest = INFINITY
+            for (c = 1; c <= COLOR_COUNT; c++) {
+                if (c != color && color_locations[c] < furthest) {
+                    furthest = color_locations[c]
+                    commits[hash, "color"] = color = c
                 }
             }
-
-            commits[hash, "last_color"] = color_index
-            line_of_last_use[color_index] = source_line
         }
 
-        color = COLORS[color_index]
-        offset = OUTPUT_TIMEZONE ? OUTPUT_TIMEZONE : commits[hash, "author-tz"]
-        clock = unix2iso(commits[hash, "author-time"], offset, SHOW_TIMEZONE)
+        color_locations[color] = source_line
 
-        if (!(name = commits[hash, "author"]) &&
-            (!(name = commits[hash, "author-mail"]) || (name == "<>"))) {
-            name = "Unknown"
-        }
-
-        if (HIGHLIGHT == "who") {
-            date = substr(clock, 1, 10)
-            highlight = name
-            condensed = abbrev(name, MARGIN_WIDTH - 13) " (" date ")"
-            auxiliary = date ": " commits[hash, "summary"]
-        } else if (HIGHLIGHT == "what") {
-            highlight = commits[hash, "summary"]
-            short_hash = substr(hash, 1, 7)
-            if ((space = MARGIN_WIDTH - length(highlight) - 10) > 0) {
-                while (space-- > 0 && highlight = highlight " ");
-                highlight = highlight " (" short_hash ")"
-                condensed = highlight
-                auxiliary = clock " - " name
-            } else {
-                condensed = abbrev(highlight, MARGIN_WIDTH - 10)
-                space = MARGIN_WIDTH - 10 - length(condensed)
-                while (space-- > 0 && condensed = condensed " ");
-                condensed = condensed " (" short_hash ")"
-                auxiliary = clock " - " substr(hash, 1, 13)
-            }
-        } else if (HIGHLIGHT == "when") {
-            if (length(clock) > MARGIN_WIDTH) {
-                clock = substr(clock, 1, MARGIN_WIDTH)
-            }
-            highlight = clock
-            condensed = highlight
-            auxiliary = ""
-        }
-
-        if (VERBOSE) {
-            highlight = abbrev(highlight, MARGIN_WIDTH)
-            auxiliary = abbrev(auxiliary, MARGIN_WIDTH)
-        } else {
-            highlight = condensed
-            auxiliary = ""
-        }
-
-        if ((overflow = diff_length == 1)) {
-            highlight = sprintf(FORMAT, color, highlight, $0, COLOR_RESET)
-            condensed = sprintf(FORMAT, color, condensed, $0, COLOR_RESET)
-            auxiliary = color sprintf(MARGIN_FORMAT, auxiliary) COLOR_RESET
+        # If the current group's annotation has two lines but the group is only
+        # one line long, add the would-be printed line to the overflow buffer.
+        if (length(margins[2]) && group_length == 1) {
+            overflow_buffer = $0 COLORS["reset"] "\n"
             commits[hash, "last_line"] = source_line
             return
         }
 
-        diff_line = 1
-        margin = highlight
+        margin = margins[1]
     }
 
+    overflow_buffer = ""
     commits[hash, "last_line"] = source_line
-    printf FORMAT, color, margin, $0, COLOR_RESET "\n"
+    printf FORMAT, COLORS[color], margin, $0 COLORS["reset"] "\n"
+}
+
+BEGIN {
+    if (PORCELAIN_PROXY) {
+        exit system(GIT_COMMAND)
+    }
+
+    if (DATETIME == "host") {
+        command = "date +%z"
+        command | getline OUTPUT_TIMEZONE
+        close(command)
+    } else if (DATETIME == "utc") {
+        OUTPUT_TIMEZONE = "0000"
+    } else if (DATETIME == "author") {
+        SHOW_TIMEZONE = 1
+        OUTPUT_TIMEZONE = ""
+    } else {
+        abort("unrecognized date timezone: " DATETIME)
+    }
+
+    if (ANNOTATION == "who") {
+        MARGIN_WIDTH = MARGIN_WIDTH > 0 ? MARGIN_WIDTH : 25
+    } else if (ANNOTATION == "what") {
+        MARGIN_WIDTH = MARGIN_WIDTH > 0 ? MARGIN_WIDTH : 50
+    } else if (ANNOTATION == "when") {
+        MARGIN_WIDTH = MARGIN_WIDTH > 0 ? MARGIN_WIDTH : length(unix2iso(0, 0))
+    } else {
+        abort("unrecognized annotation mode: " ANNOTATION)
+    }
+
+    HASH_OF_UNCOMMITTED_BLOCK = "0000000000000000000000000000000000000000"
+    INFINITY = 999999
+
+    COLOR_COUNT = split(BLAME_COLORS, COLORS)
+    COLORS["boundary"] = setaf(BOUNDARY_COMMIT_COLOR)
+    COLORS["uncommitted"] = setaf(UNCOMMITTED_COLOR)
+    COLORS["reset"] = "\033[m"
+    FORMAT = "%s%-" MARGIN_WIDTH "s%s"
+    MULTIBYTE_SAFE = length("宽") == 1
+
+    color = 1
+    hash = ""
+    overflow_buffer = ""
+
+    for (k = 1; k <= COLOR_COUNT; k++) {
+        color_locations[k] = -INFINITY
+        COLORS[k] = setaf(COLORS[k])
+    }
+
+    while ((GIT_COMMAND | getline)) {
+        if (/^\$\?=[0-9]+$/) {
+            if (length(overflow_buffer)) {
+                printf FORMAT, COLORS[color], margins["brief"], overflow_buffer
+            }
+            close(GIT_COMMAND)
+            exit substr($0, 4)
+        } else if (/^\t/) {
+            handle_line()
+        } else {
+            handle_metadata()
+        }
+    }
+
+    exit 1
 }

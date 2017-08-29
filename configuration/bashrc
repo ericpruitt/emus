@@ -195,6 +195,33 @@ function -paginate()
     "$command" "$@"
 }
 
+# Execute a command inside a folder. This command will expand aliases before
+# execution and is run in a subshell so "cd" will not change the working
+# directory of the parent shell.
+#
+# Arguments:
+# - $1: directory
+# - $@: command and command arguments
+#
+# Variables:
+# - FROM_CDPATH: the value of this variable is prepended to the existing value
+#   (if any) of "CDPATH" before the "cd" command is executed.
+#
+function from()
+{
+    if [[ -z "${1:-}" ]] || [[ "$#" -lt 2 ]]; then
+        echo "Usage: ${0##*/} FOLDER COMMAND [ARGUMENT...]"
+        return 1
+    fi
+
+    (
+        CDPATH="${FROM_CDPATH:-}:${CDPATH:-}" cd -- "$1" > /dev/null
+        shift
+        # The eval command is used here because "$@" will not expand aliases.
+        eval "$(printf " %q" "$@")"
+    )
+}
+
 # Launch a background command detached from the current terminal session.
 #
 #   $1  Command

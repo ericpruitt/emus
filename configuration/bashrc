@@ -67,7 +67,7 @@ function -define-aliases()
     alias make='gmake'
     alias mtr='mtr -t'
     alias otr='env HISTFILE=/dev/null bash'
-    alias paragrep='-paginate paragrep -T -B1 -n'
+    alias paragrep='-paginate paragrep -T -n'
     alias ps='-paginate ps --'
     alias pstree='-paginate pstree -- -a -p -s -U'
     alias readelf='-paginate readelf --'

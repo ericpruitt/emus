@@ -111,6 +111,9 @@ static const Rule rules[] = {
     { INSTANCE("google-chrome"),                                      TAG(2),  0,     0,       0   },
     { INSTANCE("chromium"),                                           TAG(3),  0,     0,       0   },
 
+    // All Wine applications should float by default.
+    { CLASS("Wine"),                                                  0,       1,     0,       0   },
+
     // Google Hangouts Chrome Extension; all Chrome extensions have instance
     // values of "crx_$EXTENSION_ID".
     { INSTANCE("crx_nckgahadagoaajjgafhacjanaoiihapd"),               TAG(9),  0,     0,       20  },

@@ -1,0 +1,219 @@
+--- src/grep.c	2017-07-02 10:41:41.000000000 -0700
++++ src/grep.c	2017-09-09 20:59:05.784140520 -0700
+@@ -26,6 +26,8 @@
+ #include <inttypes.h>
+ #include <stdarg.h>
+ #include <stdio.h>
++#include <stdlib.h>
++#include <unistd.h>
+ #include "system.h"
+ 
+ #include "argmatch.h"
+@@ -59,6 +61,11 @@
+   proper_name ("Mike Haertel"), \
+   _("others, see <http://git.sv.gnu.org/cgit/grep.git/tree/AUTHORS>")
+ 
++/* Notice (or warning depending on the context) shown when "-r" is implied. */
++#define IMPLICIT_RECURSE_NOTE \
++  "-r implied because standard input is a terminal, and no files were" \
++  " explicitly specified"
++
+ /* When stdout is connected to a regular file, save its stat
+    information here, so that we can automatically skip it, thus
+    avoiding a potential (racy) infinite loop.  */
+@@ -237,6 +244,7 @@
+ static const char *sep_color      = "36";	/* cyan */
+ static const char *selected_line_color = "";	/* default color pair */
+ static const char *context_line_color  = "";	/* default color pair */
++static const char *notice_color = "01";
+ 
+ /* Select Graphic Rendition (SGR, "\33[...m") strings.  */
+ /* Also Erase in Line (EL) to Right ("\33[K") by default.  */
+@@ -366,6 +374,7 @@
+     { "cx", &context_line_color,   NULL }, /* context lines */
+     { "rv", NULL,                  color_cap_rv_fct }, /* -v reverses sl/cx */
+     { "ne", NULL,                  color_cap_ne_fct }, /* no EL on SGR_* */
++    { "nt", &notice_color,         NULL },
+     { NULL, NULL,                  NULL }
+   };
+ 
+@@ -427,7 +436,8 @@
+   GROUP_SEPARATOR_OPTION,
+   INCLUDE_OPTION,
+   LINE_BUFFERED_OPTION,
+-  LABEL_OPTION
++  LABEL_OPTION,
++  ALWAYS_DELAY_RECURSE_OPTION,
+ };
+ 
+ /* Long options equivalences. */
+@@ -464,6 +474,8 @@
+   {"line-number", no_argument, NULL, 'n'},
+   {"line-regexp", no_argument, NULL, 'x'},
+   {"max-count", required_argument, NULL, 'm'},
++  {"always-delay-recurse", no_argument, NULL, ALWAYS_DELAY_RECURSE_OPTION},
++
+ 
+   {"no-filename", no_argument, NULL, 'h'},
+   {"no-group-separator", no_argument, NULL, GROUP_SEPARATOR_OPTION},
+@@ -2158,7 +2170,7 @@
+ }
+ 
+ /* Parse GREP_COLORS.  The default would look like:
+-     GREP_COLORS='ms=01;31:mc=01;31:sl=:cx=:fn=35:ln=32:bn=32:se=36'
++     GREP_COLORS='ms=01;31:mc=01;31:sl=:cx=:fn=35:ln=32:bn=32:se=36;nt=01'
+    with boolean capabilities (ne and rv) unset (i.e., omitted).
+    No character escaping is needed or supported.  */
+ static void
+@@ -2416,12 +2428,13 @@
+   char *keys = NULL;
+   size_t keycc = 0, oldcc, keyalloc = 0;
+   int matcher = -1;
+-  bool with_filenames = false;
++  bool with_filenames = false, always_delay_recurse = false;
+   size_t cc;
+   int opt, prepended;
+   int prev_optind, last_recursive;
+   int fread_errno;
+   intmax_t default_context;
++  int automatic_recurse_delay;
+   FILE *fp;
+   exit_failure = EXIT_TROUBLE;
+   initialize_main (&argc, &argv);
+@@ -2435,6 +2448,8 @@
+   out_after = out_before = -1;
+   /* Default before/after context: changed by -C/-NUM options */
+   default_context = -1;
++  /* Default value of GREP_AUTOMATIC_RECURSE_DELAY */
++  automatic_recurse_delay = 1;
+   /* Changed by -o option */
+   only_matching = false;
+ 
+@@ -2752,6 +2767,9 @@
+         label = optarg;
+         break;
+ 
++      case ALWAYS_DELAY_RECURSE_OPTION:
++        always_delay_recurse = true;
++
+       case 0:
+         /* long options */
+         break;
+@@ -2907,13 +2925,50 @@
+     devices = READ_DEVICES;
+ 
+   char *const *files;
++  bool tty_triggered_recursion = false;
+   if (optind < argc)
+     {
+       files = argv + optind;
+     }
+-  else if (directories == RECURSE_DIRECTORIES && prepended < last_recursive)
++  else if ((directories == RECURSE_DIRECTORIES && prepended < last_recursive)
++           || (tty_triggered_recursion = isatty(STDIN_FILENO)))
+     {
+       static char *const cwd_only[] = { (char *) ".", NULL };
++      static char *pause_env_var;
++
++      if (!tty_triggered_recursion)
++        {
++          automatic_recurse_delay = 0;
++      } else if ((pause_env_var = getenv ("GREP_AUTOMATIC_RECURSE_DELAY"))
++          && pause_env_var[0] != '\0')
++        automatic_recurse_delay = atoi(pause_env_var);
++
++      if (tty_triggered_recursion)
++        {
++          if (!isatty (STDOUT_FILENO) && !always_delay_recurse)
++            automatic_recurse_delay = 0;
++
++          if (automatic_recurse_delay < 0 || automatic_recurse_delay > 60)
++            die (EXIT_TROUBLE, 0, _("GREP_AUTOMATIC_RECURSE_DELAY must be an"
++                                    " integer 1 through 60, inclusive of both"
++                                    " values"));
++
++          if (color_option && should_colorize ())
++            fprintf(stderr, sgr_start, notice_color);
++
++          error (0, 0, automatic_recurse_delay ?
++                       _(IMPLICIT_RECURSE_NOTE "; waiting %i sec. to search") :
++                       _(IMPLICIT_RECURSE_NOTE),
++                 automatic_recurse_delay);
++
++          if (color_option && should_colorize ())
++            fprintf(stderr, sgr_end);
++
++          if (automatic_recurse_delay)
++            sleep(automatic_recurse_delay);
++        }
++
++      directories = RECURSE_DIRECTORIES;
+       files = cwd_only;
+       omit_dot_slash = true;
+     }
+--- doc/grep.in.1	2017-06-24 20:05:03.000000000 -0700
++++ doc/grep.in.1	2017-09-09 21:12:15.039373293 -0700
+@@ -552,10 +552,20 @@
+ .BR \-r ", " \-\^\-recursive
+ Read all files under each directory, recursively,
+ following symbolic links only if they are on the command line.
+-Note that if no file operand is given, grep searches the working directory.
+ This is equivalent to the
+ .B "\-d recurse"
+ option.
++Note that if no file operand is given:
++
++.RS
++-
++.B grep
++searches the working directory.
++.RE
++.RS
++-
++This option is implied is standard input is a terminal.
++.RE
+ .TP
+ .BR \-R ", " \-\^\-dereference\-recursive
+ Read all files under each directory, recursively.
+@@ -567,6 +577,11 @@
+ Use line buffering on output.
+ This can cause a performance penalty.
+ .TP
++.BR \-\^\-always\-delay\-recurse
++Always respect the value of
++.B GREP_AUTOMATIC_RECURSE_DELAY
++even if standard output is not a terminal.
++.TP
+ .BR \-U ", " \-\^\-binary
+ Treat the file(s) as binary.
+ By default, under MS-DOS and MS-Windows,
+@@ -1022,6 +1037,9 @@
+ when the chosen highlight colors do not affect the background,
+ or when EL is too slow or causes too much flicker.
+ The default is false (i.e., the capability is omitted).
++.TP
++.B nt
++Color used to display notices. The default is to simply make the text bold.
+ .PP
+ Note that boolean capabilities have no
+ .BR = ...
+@@ -1073,6 +1091,19 @@
+ .B 48;5;255
+ for 88-color and 256-color modes background colors.
+ .RE
++.TP
++.B GREP_AUTOMATIC_RECURSE_DELAY
++This value controls the number of seconds
++.B grep
++will wait before beginning its search when
++.B "\-r"
++is implied. The default value is 1, and valid values are all integers 0 through
++60, inclusive of both values. If standard output is
++.I not
++a terminal, there will be no delay regardless of this variable's value
++.I unless
++.B "\-\^\-always\-delay\-recurse"
++is set.
+ .TP
+ \fBLC_ALL\fP, \fBLC_COLLATE\fP, \fBLANG\fP
+ These variables specify the locale for the

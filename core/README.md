@@ -167,6 +167,12 @@ launched, is used as a fallback when "/proc/self/exe" cannot be read.
     are set.
   - The prompt will always be displayed on a clean line even if the output of
     the last program did not end with a newline.
+- **Grep**
+  - If standard input is a terminal, running _grep(1)_ without any files
+    specified as command line arguments implies "-r". A notice is written to
+    standard error, and the search is delayed if standard output is also a
+    terminal so the user has time to abort the search before the screen is
+    pollutted with potentially unwanted information.
 
 Repository Layout
 -----------------

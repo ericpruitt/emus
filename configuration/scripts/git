@@ -117,20 +117,6 @@ function git-commit()
     git commit --untracked-files=no --verbose "$@"
 }
 
-# Display a colorized git-blame if standard output a terminal. If standard
-# output is not a terminal, the regular "git blame" is invoked with all of the
-# arguments passed to this function.
-#
-function git-blame()
-{
-    if [[ -t 1 ]]; then
-        git-blame-colorizer -- "$@" \
-        | $(git config --get "core.pager" || echo ${PAGER:-less})
-    else
-        git blame "$@"
-    fi
-}
-
 # Stand-in function that calls the canonical Git binary to eliminate infinite
 # loops.
 #

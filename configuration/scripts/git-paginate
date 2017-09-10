@@ -1,0 +1,6 @@
+#!/bin/sh
+# This script invokes a command paginated with Git's configured pager when
+# standard output is a terminal. Otherwise, the command is invoked without
+# pagination.
+test -t 1 || exec "$@"
+eval "\"\$@\" | $(git config --get core.pager || echo less)"

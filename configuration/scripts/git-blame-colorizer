@@ -28,13 +28,13 @@
 # Any unrecognized arguments will be passed to git-blame.
 #
 # Bugs:
-#    The "host" option is not locale aware; the same offset will be used for
-#    every commit without regard to things that change the offset like daylight
-#    savings or changes by governing / regulatory organizations.
+#   The "host" option is not locale aware; the same offset will be used for
+#   every commit without regard to things that change the offset like daylight
+#   savings or changes by governing / regulatory organizations.
 #
 # Portability:
 #   Although the syntax and features of the script itself are POSIX-compliant,
-#   date(1) is invoked with the "%z" which is specified for strftime(3) but
+#   date(1) is invoked with "%z" which is specified for strftime(3) but
 #   unfortunately not date(1).
 
 BEGIN {

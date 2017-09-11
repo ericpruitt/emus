@@ -544,7 +544,7 @@ $(BIN)/coreutils: $(COREUTILS)/src/coreutils
 		($? --help | grep cp && echo install) \
 		| xargs printf "$(COREUTILS)/man/%s.1\n" \
 		| xargs ls -1 2>/dev/null \
-		| xargs sh -c "cp \"\$$@\" $(MAN)/man1/"; \
+		| xargs sh -c "cp -f \"\$$@\" $(MAN)/man1/"; \
 	fi
 	$? --help | grep cp | (cd "$(BIN)" && xargs -n1 ln -f -s coreutils)
 	ln -f -s ginstall "$(BIN)/install"

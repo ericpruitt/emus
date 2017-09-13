@@ -1,0 +1,21 @@
+--- signal.c	2017-09-12 19:27:08.493844192 -0700
++++ signal.c	2017-09-12 19:26:48.906354456 -0700
+@@ -34,6 +34,8 @@
+ extern int reading;
+ extern int quit_on_intr;
+ extern long jump_sline_fraction;
++extern int no_init;
++extern int quit_if_one_screen;
+ 
+ /*
+  * Interrupt signal handler.
+@@ -250,7 +252,8 @@
+ #endif
+ 	if (tsignals & S_INTERRUPT)
+ 	{
+-		if (quit_on_intr)
++		if (quit_on_intr || (quit_if_one_screen && no_init && position(0) < 1
++		  && position(-1) < 1))
+ 			quit(QUIT_INTERRUPT);
+ 	}
+ }

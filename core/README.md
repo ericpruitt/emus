@@ -173,6 +173,12 @@ launched, is used as a fallback when "/proc/self/exe" cannot be read.
     standard error, and the search is delayed if standard output is also a
     terminal so the user has time to abort the search before the screen is
     pollutted with potentially unwanted information.
+- **Less**
+  - Unpatched, hitting Ctrl+C when less than one screen of text has been shown
+    effectively results in "--quit-if-one-screen" being ignored. To resolve
+    this, Less has been modified to to act as though "--quit-on-intr" ("-K") is
+    set when less than one screen of text has been shown, "--no-init" ("-X")
+    and "--quit-if-one-screen" ("-F") are set.
 
 Repository Layout
 -----------------

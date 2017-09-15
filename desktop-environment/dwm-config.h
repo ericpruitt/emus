@@ -167,6 +167,7 @@ static const TagRule tagrules[] = {
  */
 static Key keys[] = {
     // Modifier                     Key                     Function         Argument
+    { HyperKey,                     XK_c,                   center,          {0} },
     { HyperKey,                     XK_d,                   incnmaster,      {.i = -1 } },
     { HyperKey,                     XK_e,                   toggleview,      {.ui = TAG(9) } },
     { HyperKey,                     XK_i,                   incnmaster,      {.i = +1 } },

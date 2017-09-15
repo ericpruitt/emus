@@ -106,6 +106,30 @@ static int regexmatch(const char *haystack, const char *expression)
 }
 
 /**
+ * Center a floating window. If no window is given as an argument, the selected
+ * window is centered.
+ */
+static void center(const Arg *arg)
+{
+    Client *c = selmon->sel;
+
+    if (arg->v) {
+        c = (Client *) arg->v;
+    }
+
+    if (!c || (!c->isfloating && c->mon->lt[c->mon->sellt]->arrange)) {
+        return;
+    }
+
+    resizeclient(c,
+        c->mon->mx + (c->mon->mw / 2 - WIDTH(c) / 2),
+        c->mon->my + (c->mon->mh / 2 - HEIGHT(c) / 2),
+        c->w,
+        c->h
+    );
+}
+
+/**
  * Rules hook
  *
  * This function is called once applyrules is done processing a client with the
@@ -113,11 +137,13 @@ static int regexmatch(const char *haystack, const char *expression)
  */
 static void ruleshook(Client *c)
 {
+    Arg arg = {0};
+
     // Certain floating Wine windows always get positioned off-screen. When
     // that happens, this code will center them.
     if (!strcmp(c->class, "Wine") && c->x < 1) {
-        c->x = c->mon->mx + (c->mon->mw / 2 - WIDTH(c) / 2);
-        c->y = c->mon->my + (c->mon->mh / 2 - HEIGHT(c) / 2);
+        arg.v = c;
+        center(&arg);
     }
 
     // Mark windows that get created offscreen as urgent.

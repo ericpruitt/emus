@@ -8,6 +8,7 @@
 
 [alias]
 	wdiff = diff --color-words
+	cdiff = diff --color-words --word-diff-regex=.
 	what = "! cd \"$GIT_PREFIX\" && git paginate git-blame-colorizer what"
 	when = "! cd \"$GIT_PREFIX\" && git paginate git-blame-colorizer when"
 	who = "! cd \"$GIT_PREFIX\" && git paginate git-blame-colorizer who"

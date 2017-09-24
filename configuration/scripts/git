@@ -109,12 +109,23 @@ function git-ls()
       | xargs -0 ls --color=auto -d ${ls_flags[@]+"${ls_flags[@]}"} --
 }
 
-# Make the commit file verbose by default, and do not include information about
-# untracked files.
+# Make the commit file verbose by default, do not include information about
+# untracked files, and reuse the last commit message under certain
+# circumstances.
 #
 function git-commit()
 {
-    git commit --untracked-files=no --verbose "$@"
+    local message_file
+
+    local -a options=("--untracked-files=no" "--verbose")
+
+    if message_file="$(git rev-parse --git-dir)/COMMIT_EDITMSG" &&
+     sed -i '/^#/,$d' "$message_file" &&
+      [[ "$(git log -1 --format=%B)" != "$(<"$message_file")" ]]; then
+        options+=("-F" "$message_file" "--edit")
+    fi 2>/dev/null
+
+    git commit "${options[@]}" "$@"
 }
 
 # Stand-in function that calls the canonical Git binary to eliminate infinite

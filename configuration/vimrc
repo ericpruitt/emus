@@ -125,6 +125,9 @@ nnoremap gp `[v`]
 " Make :q run :qa
 cabbrev q <C-r>=getcmdtype() == ":" && getcmdpos() == 1 ? "qa" : "q"<CR>
 
+" Make :cq save changes first.
+cabbrev cq <C-r>=getcmdtype() == ":" && getcmdpos() == 1 ? "w\|cq" : "cq"<CR>
+
 " Use :E as an abbreviation for :e prepopulated with the expansion of $PWD.
 cabbrev E e <C-r>=getchar(1) == 32 && getchar(0) ? $PWD . "/" : ""<CR>
 

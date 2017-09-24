@@ -57,6 +57,7 @@ function -define-aliases()
     alias fgrep='grep -F'
     alias find='-paginate find --'
     alias gawk='-paginate gawk --'
+    alias gpg='gpg --pinentry-mode=loopback'
     alias grep='-paginate grep --'
     alias head='head -n "$((LINES / 2 + (LINES < 1)))"'
     alias help='-paginate help --'

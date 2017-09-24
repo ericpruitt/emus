@@ -19,6 +19,7 @@
 #               option cannot be used with multi-line mode, and it cannot be
 #               used with the gawk expressions ("-k") because it is implemented
 #               in the regular expression translator.
+#   -d          Override the filename displayed with "-H".
 #   -e PATTERN  Search for specified regular expression pattern. This option
 #               may be repeated to look for multiple patterns.
 #   -f FILE     Load one pattern per line from the specified file.
@@ -181,6 +182,8 @@ function filename(    name)
 {
     if (!show_names) {
         return
+    } else if (length(path_override)) {
+        name = path_override
     } else if (!ARGIND || FILENAME == "-") {
         name = "(standard input)"
     } else {
@@ -270,7 +273,7 @@ BEGIN {
     }
 
     # As with GNU geopt, options and non-option arguments can be mixed.
-    OPTIONS = "aA:B:C:e:f:hHikMnstTvw"
+    OPTIONS = "aA:B:C:d:e:f:hHikMnstTvw"
 
     after = 0                               # -A, -C
     before = 0                              # -B, -C
@@ -280,6 +283,7 @@ BEGIN {
     implicit_regex_index = 0                # !(-e | -f)
     invert = 0                              # -v
     multiline_mode = 0                      # -M
+    path_override = ""                      # -d
     REGEX = ""                              # -e, -f
     regex_set = 0                           # -e, -f
     show_line_numbers = 0                   # -n
@@ -339,6 +343,7 @@ BEGIN {
                   case "A":     after = optarg;          break
                   case "B":     before = optarg;         break
                   case "C":     after = before = optarg; break
+                  case "d":     path_override = optarg;  break
                   case "h":     show_names = 0;          break
                   case "H":     show_names = 1;          break
                   case "i":     ignore_case = 1;         break

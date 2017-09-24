@@ -34,3 +34,6 @@
 
 [advice]
 	statusHints = false
+
+[rerere]
+	enabled = true

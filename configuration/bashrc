@@ -339,6 +339,7 @@ function -setup()
     unset -f -- -setup
 
     complete -r
+    complete -c which
     complete -d cd
     shopt -s autocd
     shopt -s cdspell

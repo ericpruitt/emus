@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+# Usage: rel SOURCE... TARGET
+#
+# Relocate a path; move a file or directory and leave a symlink in the old
+# location that points to the new location.
+#
+# Options:
+#  -A   Only relocate a path if it can be done atomically. If a path cannot be
+#       relocated atomically, its relocation fails.
+#  -a   Only fail if a file (vs. a directory) cannot be relocated atomically.
+#       Directories will still be relocated but in a manner that is not atomic.
+#  -b   Make a best-effort to relocate files automatically. If the relocation
+#       cannot be done atomically, the path is still relocated but in a manner
+#       that is not atomic. This is the default behavior.
+#  -f   Always overwrite files without prompt for confirmation. This option has
+#       no effect when used with "-u".
+#  -i   Prompt the user for confirmation before overwriting files. This option
+#       has no effect when used with "-u".
+#  -n   If the target already exists, consider the operation a failure. This is
+#       the default behavior. This option has no effect when used with "-u".
+#  -N   If the target already exists, silently ignore it and move on to the
+#       next operation. This option has no effect when used with "-u".
+#  -u   Undo a relocation. In theory any `rel ...` operation can be reversed by
+#       running `rel ... -u`. If a relocation cannot be performed, the
+#       operation is considered a failure.
+#  -v   Enable verbose mode.
+#
+# Bugs
+#  On some platforms and filesystems, it is technically possible to atomically
+#  relocate directories, but that is not supported by this script.
+#
+set -e -u -o pipefail
+shopt -s extglob
+
+declare -r    SELF="${0##*/}"
+declare -r -i ATOMIC_BEST_EFFORT=0
+declare -r -i ATOMIC_FOR_FILES=1
+declare -r -i ATOMIC_ONLY=2
+
+function die()
+{
+    fail "$@" && return 1
+}
+
+function fail()
+{
+    test "$#" -eq 0 || echo "$SELF:" "$@" >&2
+    trap 'exit 1' EXIT
+}
+
+function main()
+{
+    local basename
+    local preprocessed_options
+    local response
+    local source
+    local _target
+    local target
+    local target_device
+
+    local -i atomic="$ATOMIC_BEST_EFFORT"
+    local conflict_resolution_flag="-n"
+    local -a mover_argv=()
+    local -i OPTIND=1
+    local -i undo=0
+    local v=""
+
+    preprocessed_options="$(getopt -o aAbfiNnuv -n "$SELF" -- "$@")"
+    eval "set -- $preprocessed_options"
+
+    while :; do
+        case "$1" in
+          --) shift && break ;;
+
+          -A) atomic="$ATOMIC_ONLY" ;;
+          -a) atomic="$ATOMIC_FOR_FILES" ;;
+          -b) atomic="$ATOMIC_BEST_EFFORT" ;;
+          -u) undo=1 ;;
+          -v) v="-v" ;;
+          *)  conflict_resolution_flag="$1" ;;
+        esac
+
+        shift
+    done
+
+    if [[ "$#" -lt 2 ]]; then
+        die "at least one source file and a target must be specified"
+    elif [[ "$#" -gt 2 ]] && ! [[ -d "${@: -1}" ]]; then
+        die "target must be a directory when substituting multiple files"
+    else
+        _target="${@: -1}"
+        _target="${_target/#-/./-}"
+        target_device="$(stat --format=%d "$(dirname "$_target")")"
+    fi
+
+    for source in "${@:1:$(($# - 1))}"; do
+        target="$_target"
+        basename="$(basename "$source")"
+
+        if ((undo)); then
+            if ! [[ -L "$source" ]]; then
+                fail "$source: file not substituted; cannot undo"
+            elif ! [[ -L "$target" ]] &&
+              [[ "$(readlink "$source")" -ef "$target" ]]; then
+                test -d "$source" && rm -f "$source"
+                mv -f -T $v "$target" "$source" || fail "$source: could not undo"
+            elif [[ -d "$target" ]] &&
+              [[ "$(readlink "$source")" -ef "$target/$basename" ]]; then
+                target="$target/$basename"
+                test -d "$source" && rm "$source"
+                mv -f -T $v "$target" "$source" || fail "$source: could not undo"
+            else
+                fail "$source: not sure how to undo"
+            fi
+            continue
+        fi
+
+        test ! -e "$source" && fail "$source: file not found" && continue
+        test -d "$target" && target="$target/$basename"
+        source="${source%%+(/)}"
+
+        if [[ "$target_device" -eq "$(stat --format=%d "$source")" ]] &&
+          ! [[ -d "$source" ]]; then
+            mover_argv=(ln -f -T "$source" "$target")
+        elif [[ "$atomic" -eq "$ATOMIC_ONLY" ]] ||
+          [[ "$atomic" -eq "$ATOMIC_FOR_FILES" ]] && ! [[ -d "$source" ]]; then
+            fail "$source: cannot automatically substitute across devices"
+            continue
+        elif [[ "$atomic" -eq "$ATOMIC_ONLY" ]] && [[ -d "$source" ]]; then
+            fail "$source: cannot atomically substitute a directory"
+            continue
+        else
+            mover_argv=(mv -T "$source" "$target")
+        fi
+
+        if [[ "$conflict_resolution_flag" != "-f" ]] && [[ -e "$target" ]]; then
+            case "$conflict_resolution_flag" in
+              -i)
+                read -p "$SELF: overwrite '$target'? " response
+                case "$response" in [!Yy]*) continue ;; esac
+              ;;
+              -n)
+                fail "$source: target already exists"
+              ;&
+              -N)
+                continue
+              ;;
+              *)
+                fail "$source: $conflict_resolution_flag: unrecognized flag"
+                continue
+              ;;
+            esac
+        fi
+
+        if ! "${mover_argv[@]}" || ! (
+          ((undo)) || ln -f -s -T $v "$target" "$source"); then
+            fail
+        fi
+    done
+}
+
+main "$@"

@@ -13,6 +13,7 @@ USER_TARGETS = \
 	$(HOME)/.inputrc \
 	$(HOME)/.pyrepl.py \
 	$(HOME)/.profile \
+	$(HOME)/.ssh \
 	$(HOME)/.terminfo \
 	$(HOME)/.terminfo/t/tmux \
 	$(HOME)/.tmux.conf \
@@ -99,6 +100,9 @@ clean:
 	test ! -h $@ || rm $@
 	echo "- $@"
 	basename="$(@F)" && ln -s "$$PWD/$${basename#.}" $@
+	if [ -e "$@/Makefile" ]; then \
+		(cd "$@" && $(MAKE)); \
+	fi
 
 $(LOCAL_USER_TARGETS):
 	mkdir -p $(HOME)/localconfigs

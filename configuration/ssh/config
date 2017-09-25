@@ -1,0 +1,59 @@
+# Pre-loaded host configuration.
+Include local-pre-config.untracked
+
+# Local host
+Host 0.0.0.0 127.* ::1 localhost
+StrictHostKeyChecking no
+
+# Remote personal servers
+Host *.codevat.com !*.lan.codevat.com
+Port 954
+
+# Home network
+Host 10.0.0.* *.lan.codevat.com
+UserKnownHostsFile ~/.ssh/known-hosts/lan.codevat.com
+StrictHostKeyChecking yes
+
+# GitHub
+Host github.com
+CheckHostIP no
+StrictHostKeyChecking yes
+UserKnownHostsFile ~/.ssh/known-hosts/github.com
+
+# rsync.net
+Host *.rsync.net
+CheckHostIP no
+IdentityFile ~/.ssh/keys/rsync.net
+RequestTTY no
+StrictHostKeyChecking yes
+UserKnownHostsFile ~/.ssh/known-hosts/rsync.net
+
+# suckless.org
+Host git.suckless.org
+CheckHostIP no
+StrictHostKeyChecking yes
+UserKnownHostsFile ~/.ssh/known-hosts/suckless.org
+
+# Use brackets around IPv6 addresses in socket file names.
+Host *:*
+ControlPath ~/.ssh/sockets/%r@[%h]:%p
+
+# Default settings. The exec just tries to ensure the "sockets" folder exists.
+Match exec "mkdir -p ~/.ssh/sockets || true"
+ControlMaster auto
+ControlPath ~/.ssh/sockets/%r@%h:%p
+ControlPersist yes
+LogLevel ERROR
+UserKnownHostsFile ~/.ssh/.known-hosts
+
+# Search for identity files starting with the most specific pattern before
+# falling back to more generic patterns until a match is found.
+IdentityFile ~/.ssh/keys/%r@%h
+IdentityFile ~/.ssh/keys/%h
+IdentityFile ~/.ssh/keys/%u@%l
+IdentityFile ~/.ssh/keys/default-ed25519
+IdentityFile ~/.ssh/keys/default-rsa
+IdentityFile ~/.ssh/keys/default
+
+# Post-loaded host configuration.
+Include local-post-config.untracked

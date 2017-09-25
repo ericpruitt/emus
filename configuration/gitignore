@@ -29,7 +29,6 @@ Thumbs.db
 
 # Java
 *.class
-*.com
 *.jar
 
 # Databases

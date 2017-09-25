@@ -20,6 +20,11 @@ USER_TARGETS = \
 	$(HOME)/.vimrc \
 	$(HOME)/bin \
 
+LOCAL_USER_TARGETS = \
+	$(HOME)/.local.bashrc \
+	$(HOME)/.local.gitconfig \
+	$(HOME)/.local.profile \
+
 HOST_TARGETS = \
 	/etc/modprobe.d/local.conf \
 	linux-lock-on-suspend \
@@ -32,14 +37,14 @@ BACKUP_FOLDER = $(HOME)/config-backups
 PLATFORM = $$(uname -s -m | tr "A-Z " "a-z-" | sed "s/x86_64/amd64/g")
 USERLAND = https://www.codevat.com/downloads/static-unix-userland-$(PLATFORM)
 
-all: $(USER_TARGETS)
+all: user
 	if ! command -v bash | fgrep -q "$(HOME)" && \
 	  wget -q --spider $(USERLAND); then \
 		$(MAKE) userland; \
 	fi
 	$(MAKE) host
 
-user: $(USER_TARGETS)
+user: $(USER_TARGETS) $(LOCAL_USER_TARGETS)
 
 host:
 	for target in $(HOST_TARGETS); do \
@@ -94,6 +99,13 @@ clean:
 	test ! -h $@ || rm $@
 	echo "- $@"
 	basename="$(@F)" && ln -s "$$PWD/$${basename#.}" $@
+
+$(LOCAL_USER_TARGETS):
+	mkdir -p $(HOME)/localconfigs
+	stem="$$(echo '$@' | sed 's/.*\.local\.//')" && \
+	source="$(HOME)/localconfigs/$$stem" &&  \
+	test -e "$$source" || touch "$$source" && \
+	ln -s "$$source" $@
 
 # When using "-B" with GNU Make, it attempts to create the target "Makefile"
 # when a .DEFAULT build rule is defined. This no-op build target eliminates

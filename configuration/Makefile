@@ -11,8 +11,8 @@ USER_TARGETS = \
 	$(HOME)/.gitconfig \
 	$(HOME)/.gitignore \
 	$(HOME)/.inputrc \
-	$(HOME)/.pyrepl.py \
 	$(HOME)/.profile \
+	$(HOME)/.repl.py \
 	$(HOME)/.ssh \
 	$(HOME)/.terminfo \
 	$(HOME)/.terminfo/t/tmux \

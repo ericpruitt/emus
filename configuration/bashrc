@@ -54,6 +54,7 @@ function -define-aliases()
     alias dpkg-query='-paginate dpkg-query --'
     alias du='-paginate du -- -h'
     alias egrep='grep -E'
+    alias esed='sed -E'
     alias fgrep='grep -F'
     alias find='-paginate find --'
     alias gawk='-paginate gawk --'

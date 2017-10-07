@@ -142,7 +142,7 @@ deps:
 			scrot \
 			xdotool \
 			xprintidle \
-			zenity \
+			yad \
 			$$( \
 				lspci | grep -i -q nvidia && echo nvidia-smi; \
 			) \

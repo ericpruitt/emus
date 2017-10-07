@@ -1,30 +1,4 @@
-#define AltKey Mod1Mask
-#define HyperKey Mod3Mask
-#define BothShiftKeys ShiftMask, XK_Shift_R
-#define SuperKey Mod4Mask
-
 #define MODKEY HyperKey
-#define TAGKEYS(KEY, TAG) \
-    { MODKEY,                       KEY,      view,           {.ui = 1 << (TAG - 1)} }, \
-    { Mod1Mask,                     KEY,      toggleview,     {.ui = 1 << (TAG - 1)} }, \
-    { MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << (TAG - 1)} }, \
-    { MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << (TAG - 1)} }, \
-    { MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << (TAG - 1)} },
-
-#define UNUSED(action) { 0, 0, action, { .i = 0 } },
-
-#define TAG(N) (1 << (N - 1))
-#define TAGS2(A, B) (TAG(A) | TAG(B))
-#define TAGS3(A, B, C) (TAG(A) | TAG(B) | TAG(C))
-
-#define SHELL(cmd) { .v = (const char*[]) { "/bin/sh", "-c", cmd, NULL } }
-#define EXECL(...) { .v = (const char*[]) { __VA_ARGS__, NULL } }
-
-#define CLASS(C) (C), NULL, NULL
-#define INSTANCE(I) NULL, (I), NULL
-#define TITLE(T) NULL, NULL, (T)
-#define CLASS_W_TITLE(C, T) (C), NULL, (T)
-
 #include "dwm-hooks.c"
 
 static const unsigned int borderpx = 1;

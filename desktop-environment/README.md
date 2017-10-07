@@ -121,6 +121,14 @@ scroll wheel on top of a window will not shift focus.
 
   [focusonclick]: http://dwm.suckless.org/patches/focusonclick
 
+### Configuration Macros ###
+
+**File:** dwm-00-config-macros.diff
+
+Copies most macros defined in dwm's config.def.h to dwm.c and adds some
+additional helpers. The user must still explicitly map "MODKEY" to their
+preferred window manager key e.g. `#define MODKEY HyperKey`.
+
 ### Custom Rules Hook ###
 
 **File:** dwm-00-custom-rules-hook.diff

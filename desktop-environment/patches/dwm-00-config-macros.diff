@@ -1,0 +1,39 @@
+Title: Configuration Macros
+Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+Copies most macros defined in dwm's config.def.h to dwm.c and adds some
+additional helpers. The user must still explicitly map "MODKEY" to their
+preferred window manager key e.g. `#define MODKEY HyperKey`.
+
+diff --git dwm.c dwm.c
+index d27cb67..8fa3fc6 100644
+--- dwm.c
++++ dwm.c
+@@ -272,2 +272,27 @@ static Window root, wmcheckwin;
+ /* configuration, allows nested code to access above variables */
++#define AltKey Mod1Mask
++#define HyperKey Mod3Mask
++#define BothShiftKeys ShiftMask, XK_Shift_R
++#define SuperKey Mod4Mask
++
++#define TAGKEYS(KEY, TAG) \
++    { MODKEY,                       KEY,      view,           {.ui = 1 << (TAG - 1)} }, \
++    { Mod1Mask,                     KEY,      toggleview,     {.ui = 1 << (TAG - 1)} }, \
++    { MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << (TAG - 1)} }, \
++    { MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << (TAG - 1)} }, \
++    { MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << (TAG - 1)} },
++
++#define UNUSED(action) { 0, 0, action, { .i = 0 } },
++
++#define TAG(N) (1 << (N - 1))
++#define TAGS2(A, B) (TAG(A) | TAG(B))
++#define TAGS3(A, B, C) (TAG(A) | TAG(B) | TAG(C))
++
++#define SHELL(cmd) { .v = (const char*[]) { "/bin/sh", "-c", cmd, NULL } }
++#define EXECL(...) { .v = (const char*[]) { __VA_ARGS__, NULL } }
++
++#define CLASS(C) (C), NULL, NULL
++#define INSTANCE(I) NULL, (I), NULL
++#define TITLE(T) NULL, NULL, (T)
++#define CLASS_W_TITLE(C, T) (C), NULL, (T)
+ #include "config.h"

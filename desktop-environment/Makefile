@@ -126,6 +126,7 @@ deps:
 			acpid \
 			compton \
 			fonts-dejavu \
+			fonts-symbola \
 			fonts-vlgothic \
 			fonts-wqy-zenhei \
 			gsfonts \
@@ -135,8 +136,16 @@ deps:
 			libxft-dev \
 			libxinerama-dev \
 			libxrandr-dev \
+			moc \
+			moc-ffmpeg-plugin \
 			pkg-config \
 			scrot \
+			xdotool \
+			xprintidle \
+			zenity \
+			$$( \
+				lspci | grep -i -q nvidia && echo nvidia-smi; \
+			) \
 		; \
 	else \
 		echo "Unsupported operating system." >&2; \

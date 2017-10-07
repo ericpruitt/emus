@@ -35,7 +35,7 @@ TREE = tree-1.7.0
 VIM = vim-src
 
 # Revision-controlled package versions:
-TMUX_VERSION = 2.5
+TMUX_VERSION = 2.6
 VIM_VERSION = 8.0.0692
 
 # Hashes of unsigned files:

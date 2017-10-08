@@ -60,7 +60,7 @@ static const char *fonts[] = {
 /**
  * Labels used for each tag
  */
-const char *tags[9] = {"1", "2", "3", "4", "5", "6", "7", "8", "Chats"};
+const char *tags[9] = {"1", "2", "3", "4", "5", "6", "7", "Steam", "Chats"};
 
 /**
  * Window rules
@@ -76,7 +76,6 @@ static const Rule rules[] = {
     { INSTANCE("gpick"),                                              0,       1,     0,       0   },
     { CLASS("VirtualBox"),                                            TAG(4),  0,     0,       0   },
     { CLASS("Gimp(-.+)?"),                                            TAG(5),  0,     0,       0   },
-    { CLASS("Pidgin"),                                                TAG(9),  0,     0,       20  },
     { CLASS("st-256color|xterm|rxvt"),                                TAG(1),  0,     0,       100 },
 
     // Firefox and Chrome both go on the same tag. I use Chromium at home and
@@ -88,17 +87,19 @@ static const Rule rules[] = {
     // All Wine applications should float by default.
     { CLASS("Wine"),                                                  0,       1,     0,       0   },
 
-    // Google Hangouts Chrome Extension; all Chrome extensions have instance
-    // values of "crx_$EXTENSION_ID".
+    // Instant messaging:
+    // - Pidgin
+    { CLASS("Pidgin"),                                                TAG(9),  0,     0,       20  },
+    // - Steam buddy list and chat windows.
+    { CLASS_W_TITLE("Steam", "Friends|- Chat$"),                      TAG(9),  0,     0,       20  },
+    // - Google Hangouts Chrome Extension; all Chrome extensions have instance
+    //   values of "crx_$EXTENSION_ID".
     { INSTANCE("crx_nckgahadagoaajjgafhacjanaoiihapd"),               TAG(9),  0,     0,       20  },
     { INSTANCE("crx_ackdflhoddfmjcmpgallljebbjjllepc"),               TAG(9),  0,     0,       20  },
 
-    // All Steam windows go on the 6th tag, and anything other than the main
-    // Steam window should have a reduced attachment priority. When the chat
-    // windows are first created, they are created without a properly set
-    // title, so dwm defaults to setting the window title to "broken."
-    { CLASS_W_TITLE("Steam", "Friends|- Chat|broken|Update News"),    TAG(6),  0,     0,       10  },
-    { CLASS("Steam"),                                                 TAG(6),  0,     0,       0   },
+    // The main Steam windows go on the 8th tag.
+    { CLASS_W_TITLE("Steam", "Steam"),                                TAG(8),  0,     0,       0   },
+    { CLASS_W_TITLE("Steam", "News"),                                 TAG(8),  1,     0,       10  },
 };
 
 /**
@@ -143,7 +144,6 @@ static Key keys[] = {
     // Modifier                     Key                     Function         Argument
     { HyperKey,                     XK_c,                   center,          {0} },
     { HyperKey,                     XK_d,                   incnmaster,      {.i = -1 } },
-    { HyperKey,                     XK_e,                   toggleview,      {.ui = TAG(9) } },
     { HyperKey,                     XK_i,                   incnmaster,      {.i = +1 } },
     { HyperKey,                     XK_j,                   focusstack,      {.i = +1 } },
     { HyperKey,                     XK_k,                   focusstack,      {.i = -1 } },
@@ -153,6 +153,11 @@ static Key keys[] = {
     { AltKey,                       XK_Tab,                 view,            {0} },
     { HyperKey,                     XK_comma,               tagmon,          {.i = -1 } },
     { HyperKey,                     XK_period,              tagmon,          {.i = +1 } },
+
+    // MODKEY + e: Toggle Pidgin
+    { HyperKey,                     XK_e,                   toggleview,      {.ui = TAG(9) } },
+    // MODKEY + r: Switch to Steam
+    { HyperKey,                     XK_r,                   view,            {.ui = TAG(8) } },
 
     // Application launchers
     { BothShiftKeys,                                        spawn,           EXECL("getpass") },

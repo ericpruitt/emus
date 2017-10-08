@@ -28,7 +28,6 @@ export LZOP="-9"
 export MANPATH="$HOME/.local/share/man:"
 export MANSECT="3:3posix:2:1:l:7:8:5:4:9:6:3am:n:3pm:3perl"
 export PAGER="less"
-export PS_FORMAT="user,pid,ppid,stime,comm,cmd"
 export PYTHONSTARTUP="$HOME/.repl.py"
 export TERMINFO="$HOME/.terminfo"
 export USER="$LOGNAME"
@@ -52,6 +51,23 @@ test -e "$HOME/.local.profile" && . "$HOME/.local.profile"
 export GIT_EDITOR="$(command -v "$EDITOR")"
 export MAKEFLAGS="-j$(nproc 2>/dev/null || echo 4)"
 export SHELL="$(command -v bash || echo "$SHELL")"
+
+# Configure the default output format for ps(1). The width of the username
+# column is set to that of the longest username in /etc/passwd.
+export PS_FORMAT="$(
+    awk < /etc/passwd -F ":" '
+    BEGIN {
+        # The initial width comes from the environment-defined username in case
+        # the current user is not in /etc/passwd because of NSS / LDAP, etc.
+        max = length(ENVIRON["LOGNAME"] ? ENVIRON["LOGNAME"] : ENVIRON["USER"])
+    }
+    {
+        max = length($1) > max ? length($1) : max
+    }
+    END {
+        print "user:" (max > 0 ? max : 16) ",pid,ppid,stime,comm,cmd"
+    }'
+)"
 
 eval "$(dircolors -b "$HOME/.dir_colors" 2>/dev/null)"
 eval "$(lesspipe 2>/dev/null)"

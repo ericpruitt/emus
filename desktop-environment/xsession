@@ -14,7 +14,10 @@ blackwalls
 
 test -e "$HOME/.local.xsession" && . "$HOME/.local.xsession"
 
-compton -C &
+compton --daemon -C $(
+    glxinfo | fgrep -q "direct rendering: Yes" && echo " --backend=glx"
+)
+
 st &
 
 if ! pgrep -x statusline; then

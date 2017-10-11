@@ -204,7 +204,9 @@ static Shortcut shortcuts[] = {
  * If you want keys other than the X11 function keys (0xFD00 - 0xFFFF)
  * to be mapped below, add them to this array.
  */
-static KeySym mappedkeys[] = { -1 };
+static KeySym mappedkeys[] = {
+    XK_1, XK_2, XK_3, XK_4, XK_5, XK_6, XK_7, XK_8, XK_9, XK_0
+};
 
 /*
  * State bits to ignore when matching key or button events.  By default,
@@ -228,6 +230,18 @@ static Key key[] = {
 	{ XK_Tab,           ControlMask,    "\033[27;5;9~",  0,    0,    0},
 	// Ctrl+Shft+Tab
 	{ XK_ISO_Left_Tab,  ShiftControl,   "\033[27;6;9~",  0,    0,    0},
+
+	// Map Ctrl+<N> to Function Key <N>.
+	{ XK_1,             ControlMask,    "\033OP",        0,    0,    0},
+	{ XK_2,             ControlMask,    "\033OQ",        0,    0,    0},
+	{ XK_3,             ControlMask,    "\033OR",        0,    0,    0},
+	{ XK_4,             ControlMask,    "\033OS",        0,    0,    0},
+	{ XK_5,             ControlMask,    "\033[15~",      0,    0,    0},
+	{ XK_6,             ControlMask,    "\033[17~",      0,    0,    0},
+	{ XK_7,             ControlMask,    "\033[18~",      0,    0,    0},
+	{ XK_8,             ControlMask,    "\033[19~",      0,    0,    0},
+	{ XK_9,             ControlMask,    "\033[20~",      0,    0,    0},
+	{ XK_0,             ControlMask,    "\033[21~",      0,    0,    0},
 
 	// st default key bindings
 	/* keysym           mask            string      appkey appcursor crlf */

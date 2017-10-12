@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Thin wrapper for find(1) that allows global options like "-xdev" to appear
+# before paths. Additional options have been implemented for some global
+# options that normally have no way to be disabled: "+xdev", "-noxdev", +mount"
+# and "-nomount" can be used to re-enable cross-device searches; and "+depth"
+# and "-nodepth" can re-enable breadth-first searches assuming "-delete" is not
+# used. Since this script does not parse the query, these new options are only
+# recognized when used before the expression.
+set -e -u -o pipefail
+shopt -s extglob
+
+function die()
+{
+    printf "%s: %s\n" "${0##*/}" "$1" >&2
+    return 1
+}
+
+function main()
+{
+    local arg
+    local folder
+
+    local -a argv=()
+    local expression_started=""
+    local -a global_options=()
+
+    while [[ "$@" ]]; do
+        test "$1" = "-d" && arg="-depth" || arg="$1" && shift
+
+        case "$arg" in
+          -@(depth|?(no)ignore_readdir_race|mount|noleaf|xdev))
+            global_options+=("$arg")
+          ;;
+
+          @(+|-no)@(depth|mount|xdev))
+            global_options=(${global_options//-${arg#@(+|-no)}})
+          ;;
+
+          -@(max|min)depth)
+            test "${1:-}" -ge 0 2>&- || die "$arg: missing positive integer"
+            global_options+=("$arg" "$1")
+            shift
+          ;;
+
+          # Tests in GNU find (version 4.6.0 at the time of this writing)
+          # always start with lowercase letters and are at least 2 characters
+          # long.
+          [\(\)!,]|-[[:lower:]]?*)
+            argv+=("${global_options[@]}" "$arg")
+            global_options=()
+            break
+          ;;
+
+          *)
+            argv+=("$arg")
+          ;;
+        esac
+    done
+
+    # This doesn't support using an empty block in $PATH to represent $PWD.
+    for folder in ${PATH//:/ }; do
+        test -x "$folder/find" -a ! "$folder/find" -ef "$0" || continue
+        exec "$folder/find" "${argv[@]}" "$@" "${global_options[@]}"
+    done
+
+    die "unable to locate another find(1) command"
+}
+
+main "$@"

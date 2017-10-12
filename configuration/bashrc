@@ -106,6 +106,10 @@ function -define-aliases()
         alias rm='rm -v'
       ;;&
 
+      *find-allows-xdev-before-paths*)
+        BASH_ALIASES[find]+=" -xdev"
+      ;;&
+
       # My modified version of ls (which is typically under my home directory)
       # has been patched to make "-A" implicit for any directory other than
       # "$HOME," so there's no need for the flag to be in the alias.
@@ -138,6 +142,7 @@ function -features()
 
     man -h                  2>&1 | grep -F "no-hyphenation"
     ps -V                   2>&1 | grep -F "procps"
+    find -xdev /dev/null    2>&1 && echo "find-allows-xdev-before-paths"
 }
 
 # Disable aliases for commands that are not present on this system, and compact

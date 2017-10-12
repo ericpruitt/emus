@@ -371,6 +371,7 @@ function -setup()
     HISTIGNORE="history?( -[acdnrw]*):@(fg|help|history)?( ):@(silent|fg) *"
     HISTSIZE="2147483647"
     HISTTIMEFORMAT=""
+    HISTFILE="$HOME/.xbash_history"
     PROMPT_COMMAND="-prompt-command"
 
     -define-aliases

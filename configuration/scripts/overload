@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -e -u
+ka=(... "?" "!")
+nyaa=(
+    .zZ mňau maullar meong meow miáú miaŭ miaau miao miaou miar miau miauw miav
+    mijau mijav miob miyav miyavlamak mjau mjaullin mjaw mjäu muyawo myau .zZ
+    nyaa meow
+)
+cats="$((2 * $(nproc)))"
+echo "Spawning $cats cats (^人^):"
+trap 'exit 0' INT
+trap 'printf "\r${nyaa[$((RANDOM % ${#nyaa[@]}))]:0:3}—!? (X人X)\n"' EXIT
+while let cats--; do
+    { exec 2>/dev/null && cat /dev/zero > /dev/null & }
+    echo "- ${nyaa[$((RANDOM % ${#nyaa[@]}))]}${ka[$((RANDOM % ${#ka[@]}))]}"
+done
+echo
+echo "Done; hit ^C to abort."
+wait

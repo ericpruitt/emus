@@ -6,6 +6,11 @@ shopt -s extglob
 # Path of canonical Git binary.
 declare -g CANONICAL_GIT="${CANONICAL_GIT:-/usr/bin/git}"
 
+# Path to the Git directory used for the current command that takes into
+# account both "$GIT_DIR" and "--git-dir" with the latter taking precedence
+# over the former.
+declare -g _GIT_DIR
+
 # Pull from the default remote branch overwriting any local changes.
 #
 #   $1  This must be "-f" or "--force" to make this command overwrite unsaved
@@ -109,21 +114,45 @@ function git-ls()
       | xargs -0 ls --color=auto -d ${ls_flags[@]+"${ls_flags[@]}"} --
 }
 
+# Check to see if any member of a sequence any_match a regular expression.
+#
+# Arguments:
+# - $1: Regular expression.
+# - $@: List of values being tested.
+#
+function any_match()
+{
+    local element
+
+    local regex="$1"
+
+    for element in "${@:2}"; do
+        if [[ "$element" =~ $regex ]]; then
+            return
+        fi
+    done
+
+    return 1
+}
+
 # Make the commit file verbose by default, do not include information about
 # untracked files, and reuse the last commit message under certain
 # circumstances.
 #
 function git-commit()
 {
-    local message_file
-
+    local -a dates=()
+    local message_file="$_GIT_DIR/COMMIT_EDITMSG"
     local -a options=("--untracked-files=no" "--verbose")
 
-    if message_file="$(git rev-parse --git-dir)/COMMIT_EDITMSG" &&
-     sed -i '/^#/,$d' "$message_file" &&
+    if [[ -z "${GIT_COMMITTER_DATE:-}" ]] && any_match "^--amend$" "$@"; then
+        local -x GIT_COMMITTER_DATE="$(git log -1 --format="%cI" 2>/dev/null)"
+    fi
+
+    if ! any_match "^-[^-]*m" "$@" && sed -i '/^#/,$d' "$message_file" &&
       [[ "$(git log -1 --format=%B)" != "$(<"$message_file")" ]]; then
         options+=("-F" "$message_file" "--edit")
-    fi 2>/dev/null
+    fi
 
     git commit "${options[@]}" "$@"
 }
@@ -142,6 +171,7 @@ function main()
 {
     local command="${1:-}"
 
+    local arg
     local git
 
     set -e -u -o pipefail
@@ -153,6 +183,20 @@ function main()
 
         test -z "$CANONICAL_GIT" && echo "Could not find Git binary." && exit 1
     fi
+
+    _GIT_DIR="$(git rev-parse --git-dir 2>/dev/null || :)"
+
+    for arg in "$@"; do
+        case "$arg" in
+          --git-dir=*)
+            _GIT_DIR="${arg#--git-dir=}"
+          ;;
+
+          --)
+            break
+          ;;
+        esac
+    done
 
     if [[ "$(type -t "git-$command")" = "function" ]]; then
         shift

@@ -39,6 +39,10 @@ declare -r NOT_HOMEDIR_BASH="${BASH##$HOME/*}"
 # executed.
 declare -r XTERM_TITLE_SUPPORT='^(tmux|xterm|screen|st)([+-].+)?$'
 
+# Result of the last expression that was successfully evaluated by the
+# "calculate" function.
+declare LAST_RESULT="0"
+
 # Define various command aliases. Unless the variable "DISABLE_PRUNING" is set
 # to a non-empty string, the -prune-aliases function is called at the end of
 # this function.
@@ -97,6 +101,10 @@ function -define-aliases()
     # it to the shell history by prefixing it with "silent".
     alias silent=''
 
+    # BASH_ALIASES is used because the "alias" command will not accept "=" as
+    # an identifer.
+    BASH_ALIASES[=]='calculate #'
+
     case "${TOOL_FEATURES:-}" in
       *coreutils*)
         alias cp='cp -a -v'
@@ -127,6 +135,21 @@ function -define-aliases()
     esac
 
     test -n "${DISABLE_PRUNING:-}" || -prune-aliases
+}
+
+# Use _bc(1)_ to calculate the result of an expression. The result of the last
+# successfully evaluated expression as made available as the variable "x". The
+# expression must appear in the command history to be evaluated.
+#
+function calculate()
+{
+    local result
+
+    result="$(
+        echo "x = $LAST_RESULT; x $(history 1 | sed 's/[0-9]\+//'); x" | bc
+    )" || return
+    LAST_RESULT="$result"
+    echo "$result"
 }
 
 # Execute various commands and filter output for certain strings which can be

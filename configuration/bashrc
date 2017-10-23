@@ -43,9 +43,10 @@ declare -r XTERM_TITLE_SUPPORT='^(tmux|xterm|screen|st)([+-].+)?$'
 # "calculate" function.
 declare LAST_RESULT="0"
 
-# Define various command aliases. Unless the variable "DISABLE_PRUNING" is set
-# to a non-empty string, the -prune-aliases function is called at the end of
-# this function.
+# The contents of this variable can be used with "eval" to define Bash aliases.
+export DECLARE_BASH_ALIASES
+
+# Define various command aliases.
 #
 function -define-aliases()
 {
@@ -105,74 +106,47 @@ function -define-aliases()
     # an identifer.
     BASH_ALIASES[=]='calculate #'
 
-    case "${TOOL_FEATURES:-}" in
-      *coreutils*)
+    # take advantage of GNU extensions when coreutils is installed.
+    case "$(ls --help 2>/dev/null)" in
+      *GNU\ coreutils*)
         alias cp='cp -a -v'
         alias grep='-paginate grep --color=always'
         alias ls='-paginate ls "-C -w $COLUMNS --color=always" -b -h \
                       -I lost+found -I __pycache__ -A'
         alias rm='rm -v'
-      ;;&
-
-      *find-allows-xdev-before-paths*)
-        BASH_ALIASES[find]+=" -xdev"
-      ;;&
-
-      # My modified version of ls (which is typically under my home directory)
-      # has been patched to make "-A" implicit for any directory other than
-      # "$HOME," so there's no need for the flag to be in the alias.
-      *home-ls*)
-        BASH_ALIASES[ls]="${BASH_ALIASES[ls]% -A}"
-      ;;&
-
-      *no-hyphenation*)
-        alias man='man --no-hyphenation'
-      ;;&
-
-      *procps*)
-        alias ps='-paginate ps --cols=$COLUMNS --sort=uid,pid -N --ppid 2 -p 2'
-      ;;&
+      ;;
     esac
 
-    test -n "${DISABLE_PRUNING:-}" || -prune-aliases
-}
+    # Make "-xdev" the default behavior of find when possible.
+    if find -xdev /dev/null &>/dev/null; then
+        BASH_ALIASES[find]+=" -xdev"
+    fi
 
-# Use _bc(1)_ to calculate the result of an expression. The result of the last
-# successfully evaluated expression as made available as the variable "x". The
-# expression must appear in the command history to be evaluated.
-#
-function calculate()
-{
-    local result
+    # My modified version of ls (which is typically under my home directory)
+    # has been patched to make "-A" implicit for any directory other than
+    # "$HOME," so there's no need for the flag to be in the alias.
+    case "$(which ls)" in
+      "$HOME"/*)
+        BASH_ALIASES[ls]="${BASH_ALIASES[ls]% -A}"
+      ;;
+    esac
 
-    result="$(
-        echo "x = $LAST_RESULT; x $(history 1 | sed 's/[0-9]\+//'); x" | bc
-    )" || return
-    LAST_RESULT="$result"
-    echo "$result"
-}
+    # Disable hyphenated word-breaks when showing manuals.
+    case "$(man -h 2>/dev/null)" in
+      *no-hyphenation*)
+        alias man='man --no-hyphenation'
+      ;;
+    esac
 
-# Execute various commands and filter output for certain strings which can be
-# used as a means of feature detection to tailor aliases to the system being
-# accessed.
-#
-function -features()
-{
-    local -x LC_ALL="C"
+    # When using ps from procps, show all non-kernel processes / threads.
+    case "$(ps -V 2>/dev/null)" in
+      *procps*)
+        alias ps='-paginate ps --cols=$COLUMNS --sort=uid,pid -N --ppid 2 -p 2'
+      ;;
+    esac
 
-    ls --help               2>&1 | grep -F "GNU coreutils" &&
-    which ls                2>&1 | grep -F -q "$HOME/" && echo "home-ls"
-
-    man -h                  2>&1 | grep -F "no-hyphenation"
-    ps -V                   2>&1 | grep -F "procps"
-    find -xdev /dev/null    2>&1 && echo "find-allows-xdev-before-paths"
-}
-
-# Disable aliases for commands that are not present on this system, and compact
-# multi-line aliases into a single line.
-#
-function -prune-aliases()
-{
+    # Disable aliases for commands that are not present on this system, and
+    # compact multi-line aliases into a single line.
     local alias_key
     local alias_value
     local argv
@@ -194,6 +168,24 @@ function -prune-aliases()
             BASH_ALIASES[$alias_key]="${alias_value//\\$'\n'+(\ )/}"
         fi
     done
+
+    DECLARE_BASH_ALIASES="$(declare -p BASH_ALIASES)"
+    DECLARE_BASH_ALIASES="${DECLARE_BASH_ALIASES#declare -A }"
+}
+
+# Use _bc(1)_ to calculate the result of an expression. The result of the last
+# successfully evaluated expression as made available as the variable "x". The
+# expression must appear in the command history to be evaluated.
+#
+function calculate()
+{
+    local result
+
+    result="$(
+        echo "x = $LAST_RESULT; x $(history 1 | sed 's/[0-9]\+//'); x" | bc
+    )" || return
+    LAST_RESULT="$result"
+    echo "$result"
 }
 
 # Paginate arbitrary commands when stdout is a TTY. If stderr is attached to a
@@ -379,7 +371,7 @@ function -setup()
     shopt -s extglob
     shopt -s histappend
 
-    test "${TOOL_FEATURES+is_defined}" || export TOOL_FEATURES="$(-features)"
+    eval -- "${DECLARE_BASH_ALIASES:--define-aliases}"
 
     if [[ "${TMUX:-}" ]]; then
         trap 'metamux shell-exit-hook "$PPID" 2>&-' EXIT
@@ -396,8 +388,6 @@ function -setup()
     HISTTIMEFORMAT=""
     HISTFILE="$HOME/.xbash_history"
     PROMPT_COMMAND="-prompt-command"
-
-    -define-aliases
 
     # Disable output flow control; makes ^Q and ^S usable.
     stty -ixon -ixoff

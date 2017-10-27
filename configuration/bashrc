@@ -183,9 +183,9 @@ function calculate()
 
     result="$(
         echo "x = $LAST_RESULT; x $(history 1 | sed 's/[0-9]\+//'); x" | bc
-    )" || return
-    LAST_RESULT="$result"
-    echo "$result"
+    )"
+
+    test -n "$result" && LAST_RESULT="$result" && echo "$result"
 }
 
 # Paginate arbitrary commands when stdout is a TTY. If stderr is attached to a

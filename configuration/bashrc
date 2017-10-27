@@ -369,6 +369,7 @@ function -setup()
     shopt -s dirspell
     shopt -s execfail
     shopt -s extglob
+    shopt -s globstar
     shopt -s histappend
 
     eval -- "${DECLARE_BASH_ALIASES:--define-aliases}"

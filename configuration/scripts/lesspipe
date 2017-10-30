@@ -82,6 +82,11 @@ function main()
         python -m json.tool "$path"
       ;;
 
+      # Pretty-print XML files
+      *.x?(ht)ml)
+        xmllint --format - < "$path"
+      ;;
+
       # Usually README-esque files from "scene" publishers that often include
       # text art.
       *.nfo)

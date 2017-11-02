@@ -1,6 +1,17 @@
 --- builtin.c	2016-08-24 12:31:55.000000000 -0700
-+++ builtin.c	2016-11-12 20:27:12.667961114 -0800
-@@ -1819,7 +1819,7 @@
++++ builtin.c	2017-11-01 19:35:35.367783718 -0700
+@@ -1742,9 +1742,7 @@
+ 
+ 	if (nargs == 3) {
+ 		if (! (d_length >= 1)) {
+-			if (do_lint == DO_LINT_ALL)
+-				lintwarn(_("substr: length %g is not >= 1"), d_length);
+-			else if (do_lint == DO_LINT_INVALID && ! (d_length >= 0))
++			if (do_lint == DO_LINT_ALL && ! (d_length >= 0))
+ 				lintwarn(_("substr: length %g is not >= 0"), d_length);
+ 			DEREF(t1);
+ 			/*
+@@ -1817,7 +1815,7 @@
  		src_len = t1->stlen;
  
  	if (indx >= src_len) {

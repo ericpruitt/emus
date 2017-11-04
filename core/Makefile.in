@@ -20,7 +20,7 @@
 BASH = bash-4.4
 COREUTILS = coreutils-8.27
 FINDUTILS = findutils-4.6.0
-GAWK = gawk-4.1.4
+GAWK = gawk-4.2.0
 GMP = gmp-6.1.2
 GREP = grep-3.1
 LESS = less-487
@@ -625,10 +625,8 @@ $(BIN)/gawk: $(GAWK)/gawk
 	if [ -n "$(MAN)" ]; then \
 		ln -f -s gawk.1 "$(MAN)/man1/awk.1"; \
 		cp -f $(GAWK)/doc/gawk.1 "$(MAN)/man1/"; \
-		cp -f $(GAWK)/doc/igawk.1 "$(MAN)/man1/"; \
 	fi
 	cp -f -r $(GAWK)/awklib/eg/lib/ "$(BIN)/awklib"
-	cp -f $(GAWK)/awklib/igawk "$(BIN)"
 	ln -f -s gawk "$(BIN)/awk"
 	cp -f $? $@
 

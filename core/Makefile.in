@@ -32,10 +32,12 @@ READLINE = readline-7.0
 SED = sed-4.4
 TMUX = tmux-src
 TREE = tree-1.7.0
+UTF8PROC = utf8proc-src
 VIM = vim-src
 
 # Revision-controlled package versions:
 TMUX_VERSION = 2.6
+UTF8PROC_VERSION = 2.1.0
 VIM_VERSION = 8.0.0692
 
 # Hashes of unsigned files:
@@ -97,6 +99,7 @@ FOLDER_CLEAN_TARGETS = \
 
 GIT_CLEAN_TARGETS = \
 	clean-tmux \
+	clean-utf8proc \
 	clean-vim \
 
 TAR_GZ_SIGNATURES = \
@@ -399,8 +402,15 @@ $(MUSL)/config.mak: $(MUSL)/.FOLDER
 		--prefix="$$PWD" \
 	)
 
-$(MUSL_CC): $(MUSL)/config.mak
+$(MUSL_CC): $(MUSL)/config.mak $(UTF8PROC)/.git
 	rm -f "$(PWD)/$(MUSL)/bin/musl"-*
+	(cd $(UTF8PROC) && cpp -P -E utf8proc.c) > $(MUSL)/src/ctype/wcwidth.c
+	printf '%s\n' >> $(MUSL)/src/ctype/wcwidth.c \
+		'#include <wchar.h>' \
+		'int wcwidth(wchar_t wc)' \
+		'{' \
+		'    return utf8proc_charwidth((utf8proc_int32_t) wc);' \
+		'}'
 	(cd $(?D) && $(MAKE) -S install)
 	ln -s $(PWD)/$(MUSL)/bin/musl-* "$$(realpath $@)"
 
@@ -756,6 +766,9 @@ $(BIN)/tree: $(TREE)/tree
 		  > "$(MAN)/man1/tree.1"; \
 	fi
 	cp -f $? $@
+
+$(UTF8PROC)/.git:
+	git clone -b v$(UTF8PROC_VERSION) https://github.com/JuliaLang/utf8proc.git $(UTF8PROC)
 
 $(VIM)/.git:
 	git clone -b v$(VIM_VERSION) https://github.com/vim/vim.git $(VIM)

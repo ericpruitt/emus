@@ -1,0 +1,212 @@
+commit 064d78b562c9670751c48673c6d1d171aff51a42
+Author: Andrew J. Schorr <aschorr@telemetry-investments.com>
+Date:   Tue Nov 14 14:28:48 2017 -0500
+
+    Fix field corruption when $0 is reassigned with open $n references.
+
+Fix corruption when $0 is reassigned while other NODEs have open references to
+$n. Thanks to Eric Pruitt <eric.pruitt@gmail.com> for the bug report
+(https://lists.gnu.org/archive/html/bug-gawk/2017-11/msg00005.html).
+
+* field.c (purge_record): For each $n field variable, if valref > 1 and it has
+  not already been malloced, make a copy of the string, since $0 is about to be
+  reset.
+* interpret.h (Op_store_field): We must call the assign function before unref,
+  since we must copy any non-malloced $n string values before freeing $0.
+
+<https://git.savannah.gnu.org/cgit/gawk.git/commit/?id=064d78b562c9670751c48673c6d1d171aff51a42>
+
+diff --git field.c field.c
+index 5ab718d4..5263cc61 100644
+--- field.c
++++ field.c
+@@ -341,14 +341,20 @@ static void
+ purge_record()
+ {
+ 	int i;
+-	NODE *n;
+ 
+ 	NF = -1;
+ 	for (i = 1; i <= parse_high_water; i++) {
+-		assert((fields_arr[i]->flags & MALLOC) == 0
+-			? fields_arr[i]->valref == 1
+-			: true);
+-		unref(fields_arr[i]);
++		NODE *n;
++		NODE *r = fields_arr[i];
++		if ((r->flags & MALLOC) == 0 && r->valref > 1) {
++			/* This can and does happen. We must copy the string! */
++			const char *save = r->stptr;
++			emalloc(r->stptr, char *, r->stlen + 1, "purge_record");
++			memcpy(r->stptr, save, r->stlen);
++			r->stptr[r->stlen] = '\0';
++			r->flags |= MALLOC;
++		}
++		unref(r);
+ 		getnode(n);
+ 		*n = *Null_field;
+ 		fields_arr[i] = n;
+diff --git interpret.h interpret.h
+index 166a11e1..4b140c28 100644
+--- interpret.h
++++ interpret.h
+@@ -699,11 +699,16 @@ mod:
+ 			lhs = r_get_field(t1, & assign, false);
+ 			decr_sp();
+ 			DEREF(t1);
+-			unref(*lhs);
+-			r = POP_SCALAR();
+-			UNFIELD(*lhs, r);
++			/*
++			 * N.B. We must call assign() before unref, since
++			 * we may need to copy $n values before freeing the
++			 * $0 buffer.
++			 */
+ 			assert(assign != NULL);
+ 			assign();
++			unref(*lhs);
++			r = POP_SCALAR();
++			UNFIELD(*lhs, r);
+ 		}
+ 			break;
+ 
+diff --git test/Makefile.am test/Makefile.am
+index cb17f9d6..1438e083 100644
+--- test/Makefile.am
++++ test/Makefile.am
+@@ -1003,6 +1003,11 @@ EXTRA_DIST = \
+ 	sclforin.ok \
+ 	sclifin.awk \
+ 	sclifin.ok \
++	setrec0.awk \
++	setrec0.in \
++	setrec0.ok \
++	setrec1.awk \
++	setrec1.ok \
+ 	shadow.awk \
+ 	shadow.ok \
+ 	shadowbuiltin.awk \
+@@ -1229,7 +1234,8 @@ BASIC_TESTS = \
+ 	regexpbrack regexpbrack2 regexprange regrange reindops reparse resplit \
+ 	rri1 rs rscompat rsnul1nl rsnulbig rsnulbig2 rstest1 rstest2 rstest3 \
+ 	rstest4 rstest5 rswhite \
+-	scalar sclforin sclifin sigpipe1 sortempty sortglos splitargv splitarr \
++	scalar sclforin sclifin setrec0 setrec1 \
++	sigpipe1 sortempty sortglos splitargv splitarr \
+ 	splitdef splitvar splitwht status-close strcat1 strnum1 strnum2 strtod \
+ 	subamp subback subi18n subsepnm subslash substr swaplns synerr1 synerr2 \
+ 	tradanch tweakfld \
+diff --git test/Makefile.in test/Makefile.in
+index 091927c5..5a190d7a 100644
+--- test/Makefile.in
++++ test/Makefile.in
+@@ -1261,6 +1261,11 @@ EXTRA_DIST = \
+ 	sclforin.ok \
+ 	sclifin.awk \
+ 	sclifin.ok \
++	setrec0.awk \
++	setrec0.in \
++	setrec0.ok \
++	setrec1.awk \
++	setrec1.ok \
+ 	shadow.awk \
+ 	shadow.ok \
+ 	shadowbuiltin.awk \
+@@ -1486,7 +1491,8 @@ BASIC_TESTS = \
+ 	regexpbrack regexpbrack2 regexprange regrange reindops reparse resplit \
+ 	rri1 rs rscompat rsnul1nl rsnulbig rsnulbig2 rstest1 rstest2 rstest3 \
+ 	rstest4 rstest5 rswhite \
+-	scalar sclforin sclifin sigpipe1 sortempty sortglos splitargv splitarr \
++	scalar sclforin sclifin setrec0 setrec1 \
++	sigpipe1 sortempty sortglos splitargv splitarr \
+ 	splitdef splitvar splitwht status-close strcat1 strnum1 strnum2 strtod \
+ 	subamp subback subi18n subsepnm subslash substr swaplns synerr1 synerr2 \
+ 	tradanch tweakfld \
+@@ -3755,6 +3761,16 @@ sclifin:
+ 	@AWKPATH="$(srcdir)" $(AWK) -f $@.awk  >_$@ 2>&1 || echo EXIT CODE: $$? >>_$@
+ 	@-$(CMP) "$(srcdir)"/$@.ok _$@ && rm -f _$@
+ 
++setrec0:
++	@echo $@
++	@AWKPATH="$(srcdir)" $(AWK) -f $@.awk  < "$(srcdir)"/$@.in >_$@ 2>&1 || echo EXIT CODE: $$? >>_$@
++	@-$(CMP) "$(srcdir)"/$@.ok _$@ && rm -f _$@
++
++setrec1:
++	@echo $@
++	@AWKPATH="$(srcdir)" $(AWK) -f $@.awk  >_$@ 2>&1 || echo EXIT CODE: $$? >>_$@
++	@-$(CMP) "$(srcdir)"/$@.ok _$@ && rm -f _$@
++
+ sigpipe1:
+ 	@echo $@
+ 	@AWKPATH="$(srcdir)" $(AWK) -f $@.awk  >_$@ 2>&1 || echo EXIT CODE: $$? >>_$@
+diff --git test/Maketests test/Maketests
+index 8ae3f973..f64b8640 100644
+--- test/Maketests
++++ test/Maketests
+@@ -887,6 +887,16 @@ sclifin:
+ 	@AWKPATH="$(srcdir)" $(AWK) -f $@.awk  >_$@ 2>&1 || echo EXIT CODE: $$? >>_$@
+ 	@-$(CMP) "$(srcdir)"/$@.ok _$@ && rm -f _$@
+ 
++setrec0:
++	@echo $@
++	@AWKPATH="$(srcdir)" $(AWK) -f $@.awk  < "$(srcdir)"/$@.in >_$@ 2>&1 || echo EXIT CODE: $$? >>_$@
++	@-$(CMP) "$(srcdir)"/$@.ok _$@ && rm -f _$@
++
++setrec1:
++	@echo $@
++	@AWKPATH="$(srcdir)" $(AWK) -f $@.awk  >_$@ 2>&1 || echo EXIT CODE: $$? >>_$@
++	@-$(CMP) "$(srcdir)"/$@.ok _$@ && rm -f _$@
++
+ sigpipe1:
+ 	@echo $@
+ 	@AWKPATH="$(srcdir)" $(AWK) -f $@.awk  >_$@ 2>&1 || echo EXIT CODE: $$? >>_$@
+diff --git test/setrec0.awk test/setrec0.awk
+new file mode 100644
+index 00000000..8d978aa7
+--- /dev/null
++++ test/setrec0.awk
+@@ -0,0 +1,8 @@
++function reassign(x, y) {
++   $0 = x
++   print y
++}
++
++{
++   reassign("larry", $1)
++}
+diff --git test/setrec0.in test/setrec0.in
+new file mode 100644
+index 00000000..ce013625
+--- /dev/null
++++ test/setrec0.in
+@@ -0,0 +1 @@
++hello
+diff --git test/setrec0.ok test/setrec0.ok
+new file mode 100644
+index 00000000..ce013625
+--- /dev/null
++++ test/setrec0.ok
+@@ -0,0 +1 @@
++hello
+diff --git test/setrec1.awk test/setrec1.awk
+new file mode 100644
+index 00000000..3da1aa10
+--- /dev/null
++++ test/setrec1.awk
+@@ -0,0 +1,9 @@
++function reassign(x, y) {
++   $0 = x
++   print y
++}
++
++BEGIN {
++   $0 = substr("geronimo", 5, 3)
++   reassign(" 52", $1)
++}
+diff --git test/setrec1.ok test/setrec1.ok
+new file mode 100644
+index 00000000..6bb3f869
+--- /dev/null
++++ test/setrec1.ok
+@@ -0,0 +1 @@
++nim

@@ -329,7 +329,7 @@ $(DEFAULT):
 		echo "make: $?: hash not recognized" >&2; \
 		exit 1; \
 	fi
-	ln -f $< $@
+	ln -f -s $< $@
 
 .asc.sig:
 	mv $< $@
@@ -561,6 +561,7 @@ $(BIN)/coreutils: $(COREUTILS)/src/coreutils
 	cp -f $? $@
 
 $(FINDUTILS).tar.gz.unverified:
+	rm -f $(@:.unverified=)
 	$(WGET) -O $@ http://ftpmirror.gnu.org/findutils/$(FINDUTILS).tar.gz
 
 $(FINDUTILS)/.FOLDER: $(FINDUTILS).tar.gz
@@ -749,6 +750,7 @@ $(BIN)/sed: $(SED)/sed/sed
 	cp -f $? $@
 
 $(TREE).tar.gz.unverified:
+	rm -f $(@:.unverified=)
 	$(WGET) -O $@ -nc ftp://mama.indstate.edu/linux/tree/$(TREE).tgz
 
 $(TREE)/.FOLDER: $(TREE).tar.gz

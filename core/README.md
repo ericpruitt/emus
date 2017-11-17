@@ -147,6 +147,7 @@ launched, is used as a fallback when "/proc/self/exe" cannot be read.
       displayed if the third argument is set or if the start index is more than
       character beyond the end of a string.
     - Disabled: "substr: length 0 is not >= 1"
+    - Disabled: "subscript of array … is null string"
 - **Vim**
   - When `$VIMRUNTIME` is unset, it will default to "$EXEDIR/vimruntime".
   - If the tmux source code is available, a syntax file will be generated and

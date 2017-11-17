@@ -1,0 +1,20 @@
+--- interpret.h.orig	2017-10-17 11:46:48.000000000 -0700
++++ interpret.h	2017-11-17 00:14:39.127254529 -0800
+@@ -240,8 +240,6 @@
+ 				t2 = force_string(t2);
+ 				lintwarn(_("reference to uninitialized element `%s[\"%.*s\"]'"),
+ 					array_vname(t1), (int) t2->stlen, t2->stptr);
+-				if (t2->stlen == 0)
+-					lintwarn(_("subscript of array `%s' is null string"), array_vname(t1));
+ 			}
+ 
+ 			/* for FUNCTAB, get the name as the element value */
+@@ -313,8 +311,6 @@
+ 				if (pc->do_reference)
+ 					lintwarn(_("reference to uninitialized element `%s[\"%.*s\"]'"),
+ 						array_vname(t1), (int) t2->stlen, t2->stptr);
+-				if (t2->stlen == 0)
+-					lintwarn(_("subscript of array `%s' is null string"), array_vname(t1));
+ 			}
+ 
+ 			lhs = assoc_lookup(t1, t2);

@@ -181,6 +181,9 @@ launched, is used as a fallback when "/proc/self/exe" cannot be read.
     this, Less has been modified to to act as though "--quit-on-intr" ("-K") is
     set when less than one screen of text has been shown, "--no-init" ("-X")
     and "--quit-if-one-screen" ("-F") are set.
+- **tmux**
+  - When "mode-keys" is set to "vi" and there is an active search query in
+    copy-mode, the search query is preserved when using movement commands.
 
 Repository Layout
 -----------------

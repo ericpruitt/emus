@@ -703,6 +703,7 @@ $(TMUX)/configure: $(LIBEVENT)/.BUILT $(TMUX)/.git $(NCURSES)/.BUILT
 
 $(TMUX)/Makefile: $(TMUX)/configure
 	(cd $(@D) && \
+	(git diff --quiet && cat $(PWD)/patches/$(TMUX)-*) | patch -p0 && \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -I$(COMMON_PREFIX)/include/ncurses" \

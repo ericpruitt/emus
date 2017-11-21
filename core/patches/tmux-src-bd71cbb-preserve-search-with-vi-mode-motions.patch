@@ -1,0 +1,73 @@
+diff --git window-copy.c window-copy.c
+index 7ab26262..0648e5e5 100644
+--- window-copy.c
++++ window-copy.c
+@@ -523,10 +523,46 @@ window_copy_command(struct window_pane *wp, struct client *c, struct session *s,
+ 	struct window_copy_mode_data	*data = wp->modedata;
+ 	struct screen			*sn = &data->screen;
+ 	const char			*command, *argument, *ws;
+-	u_int				 np = wp->modeprefix;
++	u_int				 np = wp->modeprefix, i, n;
+ 	int				 cancel = 0, redraw = 0;
+ 	char				 prefix;
+ 
++	static const char *motion_commands[] = {
++		"bottom-line",
++		"cursor-down",
++		"cursor-left",
++		"cursor-right",
++		"cursor-up",
++		"end-of-line",
++		"goto-line",
++		"halfpage-down",
++		"halfpage-up",
++		"history-bottom",
++		"history-top",
++		"jump-again",
++		"jump-backward",
++		"jump-forward",
++		"jump-reverse",
++		"jump-to-backward",
++		"jump-to-forward",
++		"middle-line",
++		"next-paragraph",
++		"next-space",
++		"next-space-end",
++		"next-word",
++		"next-word-end",
++		"other-end",
++		"page-down",
++		"page-up",
++		"previous-paragraph",
++		"previous-space",
++		"previous-word",
++		"scroll-down",
++		"scroll-up",
++		"start-of-line",
++		"top-line",
++	};
++
+ 	if (args->argc == 0)
+ 		return;
+ 	command = args->argv[0];
+@@ -934,9 +970,17 @@ window_copy_command(struct window_pane *wp, struct client *c, struct session *s,
+ 	}
+ 
+ 	if (strncmp(command, "search-", 7) != 0 && data->searchmark != NULL) {
+-		window_copy_clear_marks(wp);
+-		redraw = 1;
+-		data->searchx = data->searchy = -1;
++		n = 0;
++		if (!strcmp(window_copy_key_table(wp), "copy-mode-vi"))
++			n = nitems(motion_commands);
++
++		for (i = 0; i < n && strcmp(command, motion_commands[i]); i++);
++
++		if (i >= n) {
++			window_copy_clear_marks(wp);
++			redraw = 1;
++			data->searchx = data->searchy = -1;
++		}
+ 	}
+ 
+ 	if (cancel)

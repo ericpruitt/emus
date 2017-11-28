@@ -425,6 +425,16 @@ This patch depends on "slock-00-pam-authentication.diff".
 Patches for _st_
 ----------------
 
+### Don't Preserve Bolding Under Cursor ###
+
+**File:** st-00-dont-preserve-bolding-under-cursor.diff
+
+When a character is emboldened, its color may not be the same as the non-bold
+version, so swapping the background color and foreground color will result in
+text's color becoming something other than the background color. This patch
+disables preservation of the bold attribute of the character under the cursor
+to resolve this.
+
 ### Font Array Support ###
 
 **File:** st-00-font-array-support.diff

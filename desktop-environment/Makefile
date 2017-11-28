@@ -20,8 +20,8 @@ DWM_COMMIT = bb3bd6fec37174e8d4bb9457ca815c00609e5157
 SLOCK_URL = http://git.suckless.org/slock
 SLOCK_COMMIT = 2d2a21a90ad1b53594b1b90b97486189ec54afce
 
-ST_URL = http://git.suckless.org/st
-ST_COMMIT = e44832408bb3147826c346872b49de105a4d0e0b
+ST_URL = https://git.suckless.org/st
+ST_COMMIT = 0ac685fc015362e749bf82cfaa3cfe2dd9b305f0
 
 USER_LAUNCHER_ENTRIES = \
 	st \
@@ -198,6 +198,8 @@ config.mk:
 	echo LDFLAGS = $(LDFLAGS) \
 		$$(test -z "$(LIBRARIES)" || pkg-config --libs $(LIBRARIES))
 	echo CC = $(CC)
+	echo STCFLAGS = '$$(CFLAGS)'
+	echo STLDFLAGS = '$$(LDFLAGS)'
 
 # Dummy target used to ensure a recipe is always executed even if it is
 # otherwise up to date.

@@ -1,24 +1,51 @@
 Title: Font Array Support
 Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
-Modifies st to support user-defined fallback fonts specified in an array
-defined as `static const char *fonts[]`. This change also resolves an issue
-where fallback fonts were used in place of default fonts in an inconsistent
-manner which caused identical sets of text to sometimes use different fonts. In
-the following example, DejaVu Sans Mono is the primary font with two others
-specified as fallbacks:
+Modifies st to support user-defined fallback fonts specified in a NULL
+terminated array defined as `const char *fonts[]`. This change also resolves an
+issue where fallback fonts were used in place of default fonts in an
+inconsistent manner which caused identical sets of text to sometimes use
+different fonts. In the following example, DejaVu Sans Mono is the primary font
+with two others specified as fallbacks:
 
-    static const char *fonts[] = {
+    const char *fonts[] = {
         "DejaVu Sans Mono",
         "VL Gothic",
         "WenQuanYi Micro Hei",
+        NULL
     };
 
-diff --git st.c st.c
-index d6fe58a..86bfbea 100644
---- st.c
-+++ st.c
-@@ -363,10 +363,17 @@ typedef struct {
+diff --git st.h st.h
+index 44d4938..d52c1c2 100644
+--- st.h
++++ st.h
+@@ -237,7 +237,7 @@ extern double usedfontsize;
+ extern double defaultfontsize;
+ 
+ /* config.h globals */
+-extern char font[];
++extern const char *fonts[];
+ extern int borderpx;
+ extern float cwscale;
+ extern float chscale;
+diff --git win.h win.h
+index 428111c..bd6cda9 100644
+--- win.h
++++ win.h
+@@ -18,7 +18,7 @@ void xhints(void);
+ void xinit(void);
+ void xloadcols(void);
+ int xsetcolorname(int, const char *);
+-void xloadfonts(char *, double);
++void xloadfonts(const char *, double);
+ void xsetenv(void);
+ void xsettitle(char *);
+ void xsetpointermotion(int);
+diff --git x.c x.c
+index 191e5dc..63d0f18 100644
+--- x.c
++++ x.c
+@@ -72,11 +72,18 @@ typedef struct {
  	FcPattern *pattern;
  } Font;
  
@@ -31,33 +58,16 @@ index d6fe58a..86bfbea 100644
 +
  /* Drawing Context */
  typedef struct {
- 	Color col[MAX(LEN(colorname), 256)];
+ 	Color *col;
+ 	size_t collen;
 -	Font font, bfont, ifont, ibfont;
 +	FontFamily fontfamily;
  	GC gc;
  } DC;
  
-@@ -445,7 +452,7 @@ static void xloadcols(void);
- static int xsetcolorname(int, const char *);
- static int xgeommasktogravity(int);
- static int xloadfont(Font *, FcPattern *);
--static void xloadfonts(char *, double);
-+static void xloadfonts(const char *, double);
- static void xsettitle(char *);
- static void xresettitle(void);
- static void xsetpointermotion(int);
-@@ -544,7 +551,7 @@ static char *opt_name  = NULL;
- static char *opt_title = NULL;
- static int oldbutton   = 3; /* button event on startup: 3 = release */
- 
--static char *usedfont = NULL;
-+static const char *usedfont = NULL;
- static double usedfontsize = 0;
- static double defaultfontsize = 0;
- 
-@@ -553,6 +560,10 @@ static uchar utfmask[UTF_SIZ + 1] = {0xC0, 0x80, 0xE0, 0xF0, 0xF8};
- static Rune utfmin[UTF_SIZ + 1] = {       0,    0,  0x80,  0x800,  0x10000};
- static Rune utfmax[UTF_SIZ + 1] = {0x10FFFF, 0x7F, 0x7FF, 0xFFFF, 0x10FFFF};
+@@ -140,6 +147,10 @@ static DC dc;
+ static XWindow xw;
+ static XSelection xsel;
  
 +static FontFamily EmptyFontFamily;
 +static FontFamily fontfamilies[16];
@@ -66,7 +76,7 @@ index d6fe58a..86bfbea 100644
  /* Font Ring Cache */
  enum {
  	FRC_NORMAL,
-@@ -3444,11 +3455,16 @@ xloadfont(Font *f, FcPattern *pattern)
+@@ -774,11 +785,16 @@ xloadfont(Font *f, FcPattern *pattern)
  }
  
  void
@@ -84,7 +94,7 @@ index d6fe58a..86bfbea 100644
  
  	if (fontstr[0] == '-') {
  		pattern = XftXlfdParse(fontstr, False, False);
-@@ -3482,37 +3498,43 @@ xloadfonts(char *fontstr, double fontsize)
+@@ -812,37 +828,43 @@ xloadfonts(char *fontstr, double fontsize)
  		defaultfontsize = usedfontsize;
  	}
  
@@ -102,8 +112,8 @@ index d6fe58a..86bfbea 100644
  	}
  
 -	/* Setting character width and height. */
--	xw.cw = ceilf(dc.font.width * cwscale);
--	xw.ch = ceilf(dc.font.height * chscale);
+-	win.cw = ceilf(dc.font.width * cwscale);
+-	win.ch = ceilf(dc.font.height * chscale);
 -
  	FcPatternDel(pattern, FC_SLANT);
  	FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ITALIC);
@@ -127,17 +137,17 @@ index d6fe58a..86bfbea 100644
 +
 +	/* Setting character width and height. */
 +	if (!fontfamiliescount) {
-+		xw.cw = ceilf(fontfamily.font.width * cwscale);
-+		xw.ch = ceilf(fontfamily.font.height * chscale);
++		win.cw = ceilf(fontfamily.font.width * cwscale);
++		win.ch = ceilf(fontfamily.font.height * chscale);
 +		dc.fontfamily = fontfamily;
-+		usedfont = fontstr;
++		usedfont = (char *) fontstr;
 +	}
 +
 +	fontfamilies[fontfamiliescount++] = fontfamily;
  }
  
  void
-@@ -3531,10 +3553,13 @@ xunloadfonts(void)
+@@ -861,15 +883,20 @@ xunloadfonts(void)
  	while (frclen > 0)
  		XftFontClose(xw.dpy, frc[--frclen].font);
  
@@ -155,8 +165,6 @@ index d6fe58a..86bfbea 100644
  }
  
  void
-@@ -3571,6 +3596,8 @@ xzoomreset(const Arg *arg)
- void
  xinit(void)
  {
 +	int i;
@@ -164,7 +172,7 @@ index d6fe58a..86bfbea 100644
  	XGCValues gcvalues;
  	Cursor cursor;
  	Window parent;
-@@ -3586,8 +3613,13 @@ xinit(void)
+@@ -885,8 +912,13 @@ xinit(void)
  	if (!FcInit())
  		die("Could not init fontconfig.\n");
  
@@ -174,26 +182,26 @@ index d6fe58a..86bfbea 100644
 +		xloadfonts(opt_font, 0);
 +	}
 +
-+	for (i = 0; i < LEN(fonts); i++) {
++	for (i = 0; fonts[i]; i++) {
 +		xloadfonts(fonts[i], 0);
 +	}
  
  	/* colors */
  	xw.cmap = XDefaultColormap(xw.dpy, xw.scr);
-@@ -3683,9 +3715,9 @@ xinit(void)
+@@ -986,9 +1018,9 @@ xinit(void)
  int
  xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x, int y)
  {
--	float winx = borderpx + x * xw.cw, winy = borderpx + y * xw.ch, xp, yp;
+-	float winx = borderpx + x * win.cw, winy = borderpx + y * win.ch, xp, yp;
 -	ushort mode, prevmode = USHRT_MAX;
 -	Font *font = &dc.font;
-+	float winx = borderpx + x * xw.cw, winy = borderpx + y * xw.ch, xp;
++	float winx = borderpx + x * win.cw, winy = borderpx + y * win.ch, xp;
 +	ushort mode;
 +	Font *font, *reference = NULL;
  	int frcflags = FRC_NORMAL;
- 	float runewidth = xw.cw;
+ 	float runewidth = win.cw;
  	Rune rune;
-@@ -3696,7 +3728,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+@@ -999,7 +1031,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
  	FcCharSet *fccharset;
  	int i, f, numspecs = 0;
  
@@ -202,7 +210,7 @@ index d6fe58a..86bfbea 100644
  		/* Fetch rune and mode for current glyph. */
  		rune = glyphs[i].u;
  		mode = glyphs[i].mode;
-@@ -3705,32 +3737,33 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+@@ -1008,32 +1040,33 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
  		if (mode == ATTR_WDUMMY)
  			continue;
  
@@ -214,7 +222,7 @@ index d6fe58a..86bfbea 100644
 +		for (glyphidx = 0, f = 0; f < fontfamiliescount && !glyphidx; f++) {
 +			font = &fontfamilies[f].font;
  			frcflags = FRC_NORMAL;
- 			runewidth = xw.cw * ((mode & ATTR_WIDE) ? 2.0f : 1.0f);
+ 			runewidth = win.cw * ((mode & ATTR_WIDE) ? 2.0f : 1.0f);
  			if ((mode & ATTR_ITALIC) && (mode & ATTR_BOLD)) {
 -				font = &dc.ibfont;
 +				font = &fontfamilies[f].ibfont;
@@ -247,7 +255,7 @@ index d6fe58a..86bfbea 100644
  			xp += runewidth;
  			numspecs++;
  			continue;
-@@ -3749,12 +3782,14 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+@@ -1052,12 +1085,14 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
  			}
  		}
  
@@ -267,7 +275,7 @@ index d6fe58a..86bfbea 100644
  
  			/*
  			 * Nothing was found in the cache. Now use
-@@ -3763,7 +3798,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+@@ -1066,7 +1101,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
  			 *
  			 * Xft and fontconfig are design failures.
  			 */
@@ -276,7 +284,7 @@ index d6fe58a..86bfbea 100644
  			fccharset = FcCharSetCreate();
  
  			FcCharSetAddChar(fccharset, rune);
-@@ -3804,7 +3839,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+@@ -1110,7 +1145,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
  		specs[numspecs].font = frc[f].font;
  		specs[numspecs].glyph = glyphidx;
  		specs[numspecs].x = (short)xp;
@@ -285,7 +293,7 @@ index d6fe58a..86bfbea 100644
  		xp += runewidth;
  		numspecs++;
  	}
-@@ -3824,10 +3859,10 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
+@@ -1130,10 +1165,10 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
  
  	/* Fallback on color display for attributes not supported by the font */
  	if (base.mode & ATTR_ITALIC && base.mode & ATTR_BOLD) {
@@ -299,7 +307,7 @@ index d6fe58a..86bfbea 100644
  		base.fg = defaultattr;
  	}
  
-@@ -3932,12 +3967,12 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
+@@ -1238,12 +1273,12 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
  
  	/* Render underline and strikethrough. */
  	if (base.mode & ATTR_UNDERLINE) {

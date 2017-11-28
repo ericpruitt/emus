@@ -15,20 +15,32 @@ underscore.
 
 This patch depends on "st-00-font-array-support.diff".
 
-diff --git st.c st.c
-index 86bfbea..f5da8fc 100644
---- st.c
-+++ st.c
-@@ -3715,7 +3715,7 @@ xinit(void)
+diff --git st.h st.h
+index d52c1c2..76dc7ca 100644
+--- st.h
++++ st.h
+@@ -241,6 +241,7 @@ extern const char *fonts[];
+ extern int borderpx;
+ extern float cwscale;
+ extern float chscale;
++extern float underscoreascentscale;
+ extern unsigned int doubleclicktimeout;
+ extern unsigned int tripleclicktimeout;
+ extern int allowaltscreen;
+diff --git x.c x.c
+index 63d0f18..9e62657 100644
+--- x.c
++++ x.c
+@@ -1018,7 +1018,7 @@ xinit(void)
  int
  xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x, int y)
  {
--	float winx = borderpx + x * xw.cw, winy = borderpx + y * xw.ch, xp;
-+	float winx = borderpx + x * xw.cw, winy = borderpx + y * xw.ch, xp, ascentscale;
+-	float winx = borderpx + x * win.cw, winy = borderpx + y * win.ch, xp;
++	float winx = borderpx + x * win.cw, winy = borderpx + y * win.ch, xp, ascentscale;
  	ushort mode;
  	Font *font, *reference = NULL;
  	int frcflags = FRC_NORMAL;
-@@ -3732,6 +3732,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+@@ -1035,6 +1035,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
  		/* Fetch rune and mode for current glyph. */
  		rune = glyphs[i].u;
  		mode = glyphs[i].mode;
@@ -36,7 +48,7 @@ index 86bfbea..f5da8fc 100644
  
  		/* Skip dummy wide-character spacing. */
  		if (mode == ATTR_WDUMMY)
-@@ -3763,7 +3764,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+@@ -1066,7 +1067,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
  			specs[numspecs].font = font->match;
  			specs[numspecs].glyph = glyphidx;
  			specs[numspecs].x = (short)xp;
@@ -45,7 +57,7 @@ index 86bfbea..f5da8fc 100644
  			xp += runewidth;
  			numspecs++;
  			continue;
-@@ -3839,7 +3840,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+@@ -1145,7 +1146,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
  		specs[numspecs].font = frc[f].font;
  		specs[numspecs].glyph = glyphidx;
  		specs[numspecs].x = (short)xp;

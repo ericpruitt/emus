@@ -429,30 +429,19 @@ Patches for _st_
 
 **File:** st-00-font-array-support.diff
 
-Modifies st to support user-defined fallback fonts specified in an array
-defined as `static const char *fonts[]`. This change also resolves an issue
-where fallback fonts were used in place of default fonts in an inconsistent
-manner which caused identical sets of text to sometimes use different fonts. In
-the following example, DejaVu Sans Mono is the primary font with two others
-specified as fallbacks:
+Modifies st to support user-defined fallback fonts specified in a NULL
+terminated array defined as `const char *fonts[]`. This change also resolves an
+issue where fallback fonts were used in place of default fonts in an
+inconsistent manner which caused identical sets of text to sometimes use
+different fonts. In the following example, DejaVu Sans Mono is the primary font
+with two others specified as fallbacks:
 
-    static const char *fonts[] = {
+    const char *fonts[] = {
         "DejaVu Sans Mono",
         "VL Gothic",
         "WenQuanYi Micro Hei",
+        NULL
     };
-
-### Primary Clipboard ("Ms" capability) Support ###
-
-**File:** st-00-primary-clipboard-support.diff
-
-Adds support for the "Ms" terminal capability that allows programs to set the
-contents of the primary clipboard. This capability is used by tmux to
-automatically copy buffer selections to the primary clipboard. This version of
-the patch has been modified slightly from the original to remove "static" from
-the definition `static const char base64_tbl` to eliminate the compiler warning
-"‘base64_tbl’ is static but used in inline function ‘chrpos’ which is not
-static."
 
 ### Underscore Ascent Scale ###
 

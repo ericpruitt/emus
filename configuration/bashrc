@@ -388,6 +388,7 @@ function -setup()
     HISTSIZE="2147483647"
     HISTTIMEFORMAT=""
     HISTFILE="$HOME/.xbash_history"
+    TIMEFORMAT="[%R s (%P%% CPU; User: %U, Sys: %S)]"
     PROMPT_COMMAND="-prompt-command"
 
     # Disable output flow control; makes ^Q and ^S usable.

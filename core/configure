@@ -45,6 +45,22 @@ configure_sha256()
     fi
 }
 
+# Configure the value of COMPAT.
+#
+# Variables:
+# - COMPAT: A list of platform-specific build targets.
+#
+configure_compat()
+{
+    test -z "${COMPAT:-}" || return 0
+
+    case "$PLATFORM" in
+      *-linux-*)
+        COMPAT="utf8proc-wcwidth/utf8proc-wcwidth.so"
+      ;;
+    esac
+}
+
 # Configure the value of MAKE and GMAKE.
 #
 # Variables:
@@ -92,11 +108,10 @@ configure_cc()
       *-linux-*)
         CC="$PWD/$(make -s -f Makefile.in musl-cc)"
 
-        test ! -e "$CC" -a -z "$DRY_RUN" || return 0
+        test -z "$DRY_RUN" || return 0
         test -n "$GMAKE" || die "GNU Make needed for musl; set GMAKE or MAKE"
         test "$GMAKE" = '$(MAKE)' && make="make" || make="$GMAKE"
 
-        echo "Building musl-cc..."
         $make -s -f Makefile.in CC="cc" musl
       ;;
     esac
@@ -239,6 +254,7 @@ usage()
     echo "  CFLAGS      Compiler flags"
     echo "  LDFLAGS     Linker flags"
     echo
+    echo "  COMPAT      Platform-specific build targets"
     echo "  GMAKE       GNU Make command"
     echo "  MAKE        POSIX-compatible Make command"
     echo "  SHA256      SHA-256 hashing command"
@@ -278,6 +294,7 @@ main()
     PLATFORM="$(make -f Makefile.in platform)"
     test -n "$PLATFORM"
 
+    configure_compat
     configure_make
     configure_sha256
     configure_cc

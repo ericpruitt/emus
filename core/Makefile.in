@@ -15,6 +15,8 @@
 # MAKE =
 # Miscellaneous programs:
 # SHA256 =
+# Platform-specific build targets:
+# COMPAT =
 
 # Packages:
 BASH = bash-4.4
@@ -60,6 +62,7 @@ LIBRARIES = \
 	$(MPFR) \
 	$(NCURSES) \
 	$(READLINE) \
+	$(UTF8PROC) \
 
 BINARIES = \
 	$(BASH)/bash \
@@ -131,6 +134,10 @@ MUSL_CC = $(MUSL)/bin/musl-cc
 PUBRING = $(GNUPGHOME)/pubring.kbx
 WGET = wget --no-use-server-timestamps -nv
 
+UTF8PROC_WCWIDTH = utf8proc-wcwidth
+UTF8PROC_WCWIDTH_SO = $(UTF8PROC_WCWIDTH)/utf8proc-wcwidth.so
+UTF8PROC_WCWIDTH_SRC = $(UTF8PROC_WCWIDTH_SO:.so=.c)
+
 FOLDERS = $$(echo $(BINARIES) $(LIBRARIES) | xargs -n1 | cut -d/ -f1 | sort -u)
 
 # These are targets listed in $(VIM)/Filelist that have their contents copied
@@ -149,7 +156,7 @@ VIM_RUNTIME_EXTRAS = \
 	runtime/doc/tags \
 
 all:
-	if ! $(MAKE) -k $(BINARIES); then \
+	if ! $(MAKE) -k $(BINARIES) $(COMPAT); then \
 		echo "Incomplete build:"; \
 		$(MAKE) what; \
 		exit 1; \
@@ -181,10 +188,11 @@ $(FOLDER_CLEAN_TARGETS):
 		test ! -e "$(COMMON_PREFIX)/$$path" || $(MAKE) clean-common; \
 	done
 
-clean: $(GIT_CLEAN_TARGETS) $(FOLDER_CLEAN_TARGETS)
+clean: $(GIT_CLEAN_TARGETS) $(FOLDER_CLEAN_TARGETS) clean-utf8proc-wcwidth
 
 purge:
 	rm -f -r dist.tmp dist.tar.xz "$(GNUPGHOME)" "$(GNUPGHOME).tmp"
+	rm -f $(COMPAT)
 	for prefix in $(FOLDERS); do \
 		rm -f -r "$$prefix".*.asc "$$prefix".*.sig "$$prefix".tar.* \
 		         "$$prefix"-patches/ "$$prefix"/; \
@@ -255,10 +263,11 @@ deps:
 	esac
 
 sanity:
-	for binary in $(BINARIES); do \
+	for binary in $(BINARIES) $(COMPAT); do \
 		case "$$binary" in \
 		  */tmux)               args="-V" ;; \
 		  */xxd)                args="" ;; \
+		  *.so)                 args="env" ;; \
 		  *)                    args="--version" ;; \
 		esac; \
 		printf "\055 %s" "$$binary: "; \
@@ -267,7 +276,7 @@ sanity:
 	done
 
 what:
-	for binary in $(BINARIES); do \
+	for binary in $(BINARIES) $(COMPAT); do \
 		symbol=" "; \
 		if [ -e "$$binary" ]; then \
 			symbol="+"; \
@@ -284,7 +293,7 @@ install:
 	fi
 	mkdir -p "$(BIN)"
 	test -z "$(MAN)" || mkdir -p "$(MAN)/man1/"
-	for binary in $$(ls $(BINARIES) 2>/dev/null); do \
+	for binary in $$(ls $(BINARIES) $(COMPAT) 2>/dev/null); do \
 		echo "- $$binary"; \
 		$(MAKE) BIN="$(BIN)" MAN="$(MAN)" "$(BIN)/$${binary##*/}"; \
 	done; \
@@ -293,7 +302,7 @@ install:
 		exit 1; \
 	fi
 
-dist.tar.xz: $(BINARIES) dist.mk
+dist.tar.xz: $(BINARIES) $(COMPAT) dist.mk
 	rm -f -r dist.tmp "$@.tmp"
 	mkdir -p dist.tmp/bin dist.tmp/man
 	sed < dist.mk > dist.tmp/Makefile \
@@ -391,27 +400,25 @@ $(MUSL).tar.gz $(MUSL).tar.gz.asc:
 $(MUSL)/.FOLDER: $(MUSL).tar.gz $(MUSL).tar.gz.asc $(PUBRING)
 	$(GPG) --verify $(MUSL).tar.gz.asc
 	tar -x -z -f $(MUSL).tar.gz
+	rm $(MUSL)/src/ctype/wcwidth.c
 	touch $@
 
 $(MUSL)/config.mak: $(MUSL)/.FOLDER
 	(cd $(@D) && \
 	./configure \
 		CC="$(CC)" \
-		CFLAGS="$(CFLAGS)" \
+		CFLAGS="$(CFLAGS) -I$(PWD)/$(UTF8PROC)" \
 		--disable-shared \
 		--prefix="$$PWD" \
 	)
 
-$(MUSL_CC): $(MUSL)/config.mak $(UTF8PROC)/.git
+$(MUSL)/src/ctype/wcwidth.c: $(MUSL)/.FOLDER $(UTF8PROC_WCWIDTH_SRC)
+	cp $(UTF8PROC_WCWIDTH_SRC) $@
+
+$(MUSL_CC): $(MUSL)/config.mak $(MUSL)/src/ctype/wcwidth.c $(UTF8PROC)/utf8proc.c $(UTF8PROC)/utf8proc_data.c
+	echo "Building musl-cc..."
 	rm -f "$(PWD)/$(MUSL)/bin/musl"-*
-	(cd $(UTF8PROC) && cpp -P -E utf8proc.c) > $(MUSL)/src/ctype/wcwidth.c
-	printf '%s\n' >> $(MUSL)/src/ctype/wcwidth.c \
-		'#include <wchar.h>' \
-		'int wcwidth(wchar_t wc)' \
-		'{' \
-		'    return utf8proc_charwidth((utf8proc_int32_t) wc);' \
-		'}'
-	(cd $(?D) && $(MAKE) -S install)
+	(cd $(MUSL) && $(MAKE) -S install)
 	ln -s $(PWD)/$(MUSL)/bin/musl-* "$$(realpath $@)"
 
 musl: $(MUSL_CC)
@@ -771,7 +778,25 @@ $(BIN)/tree: $(TREE)/tree
 	cp -f $? $@
 
 $(UTF8PROC)/.git:
-	git clone -b v$(UTF8PROC_VERSION) https://github.com/JuliaLang/utf8proc.git $(UTF8PROC)
+	if [ -e $@ ]; then \
+		touch $@; \
+	else \
+		git clone -b v$(UTF8PROC_VERSION) https://github.com/JuliaLang/utf8proc.git $(UTF8PROC); \
+	fi
+
+$(UTF8PROC)/utf8proc.c $(UTF8PROC)/utf8proc_data.c: $(UTF8PROC)/.git
+
+$(UTF8PROC_WCWIDTH_SO): $(UTF8PROC)/utf8proc.c $(UTF8PROC)/utf8proc_data.c
+	(cd $(@D) && $(MAKE) UTF8PROC="$(PWD)/$(UTF8PROC)" -S)
+
+clean-utf8proc-wcwidth:
+	if [ -e "$(UTF8PROC_WCWIDTH_SO)" ]; then \
+		echo "- $(UTF8PROC_WCWIDTH_SO)"; \
+		(cd $(UTF8PROC_WCWIDTH) && $(MAKE) -S clean); \
+	fi
+
+$(BIN)/utf8proc-wcwidth.so: $(UTF8PROC_WCWIDTH_SO)
+	cp $? $@
 
 $(VIM)/.git:
 	git clone -b v$(VIM_VERSION) https://github.com/vim/vim.git $(VIM)

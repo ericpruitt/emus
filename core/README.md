@@ -184,6 +184,13 @@ launched, is used as a fallback when "/proc/self/exe" cannot be read.
 - **tmux**
   - When "mode-keys" is set to "vi" and there is an active search query in
     copy-mode, the search query is preserved when using movement commands.
+- **musl**
+  - The _wcwidth(3)_ function has been reimplemented with [utf8proc][utf8proc].
+    The replacement code can also be compiled as a shared library that can be
+    used with "LD_PRELOAD" so other, dynamically linked applications "agree" on
+    the width of characters.
+
+  [utf8proc]: https://github.com/JuliaLang/utf8proc
 
 Repository Layout
 -----------------

@@ -27,6 +27,18 @@ $if Bash
 "\e[1;3D": shell-backward-word      # Alt+Left
 "\e[1;3C": shell-forward-word       # Alt+Right
 
+# Use F1 through F10 to bring job number X back into the foreground.
+"\eOP": "\C-a\C-kfg 1 \C-m"
+"\eOQ": "\C-a\C-kfg 2 \C-m"
+"\eOR": "\C-a\C-kfg 3 \C-m"
+"\eOS": "\C-a\C-kfg 4 \C-m"
+"\e[15~": "\C-a\C-kfg 5 \C-m"
+"\e[17~": "\C-a\C-kfg 6 \C-m"
+"\e[18~": "\C-a\C-kfg 7 \C-m"
+"\e[19~": "\C-a\C-kfg 8 \C-m"
+"\e[20~": "\C-a\C-kfg 9 \C-m"
+"\e[21~": "\C-a\C-kfg 10 \C-m"
+
 # Allows Ctrl+Z to be used to bring programs back into the foreground. The
 # cursor is moved to the beginning of the line before typing so a specific job
 # can be resumed by typing its identifier (e.g. a number) then hitting Ctrl+Z.

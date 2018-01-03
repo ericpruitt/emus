@@ -765,8 +765,11 @@ $(TREE)/.FOLDER: $(TREE).tar.gz
 	tar -x -z -f $?
 	touch $@
 
+# "-DLINUX" ensures that MB_CUR_MAX is used. The macro is not used by any
+# system headers nor is it used for anything else, so it doesn't cause problems
+# on other operating systems.
 $(TREE)/tree: $(TREE)/.FOLDER
-	$(CC) $(CFLAGS) -o $@ $(TREE)/*.c
+	$(CC) $(CFLAGS) -DLINUX -o $@ $(TREE)/*.c
 
 tree: $(TREE)/tree
 

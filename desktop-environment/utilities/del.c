@@ -348,10 +348,10 @@ static int parse_desktop_entry(const char *fpath, const struct stat *_2,
     }
 
     if (command_path(lowercase_basename)) {
-        printf("+ %s\n", lowercase_basename);
+        printf("+ %s (%s)\n", lowercase_basename, fpath);
         add_command_to_list(lowercase_basename);
     } else if (case_changed && command_path(command_basename)) {
-        printf("+ %s\n", command_basename);
+        printf("+ %s (%s)\n", command_basename, fpath);
         add_command_to_list(command_basename);
     }
 

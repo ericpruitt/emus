@@ -296,7 +296,9 @@ static int parse_desktop_entry(const char *fpath, const struct stat *_2,
     char boolean_value_string[6];
     FILE *file;
     char *k;
+    int len;
     char *lowercase_basename;
+    int offset;
 
     size_t bufsize = 0;
     int case_changed = 0;
@@ -325,8 +327,23 @@ static int parse_desktop_entry(const char *fpath, const struct stat *_2,
                 command[0] = '\0';
                 break;
             }
-        } else if (sscanf(line, "Exec = %4095s", command) > 0) {
+        } else if (sscanf(line, "Exec = %4095s %n", command, &offset) > 0) {
             command_basename = basename(command);
+
+            // If the desktop entry uses env(1), find use the first word that
+            // doesn't appear to be a variable assignment or an option as the
+            // command name.
+            if (!strcmp(command_basename, "env")) {
+                while (sscanf(line + offset, "%4095s %n", command, &len) > 0) {
+                    if (!strchr(command + 1, '=') && command[0] != '-') {
+                        command_basename = basename(command);
+                        break;
+                    }
+
+                    command[0] = '\0';
+                    offset += len;
+                }
+            }
         }
     }
 

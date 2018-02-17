@@ -1,0 +1,46 @@
+#!/bin/sh
+# Usage: epgrep [--enhance] [PS_ARGUMENT]...
+#
+# Enhanced pgrep (epgrep) is wrapper for pgrep(1) that adds a couple of new
+# features when the "--enhance" is given as the first command line argument:
+# - ps(1) is used to show detailed information about matching processes instead
+#   of just their PIDs.
+# - When there no arguments other arguments, detailed information about all
+#   non-kernel processes is shown.
+#
+# If standard output is a terminal, "--enhance" is implied.
+
+set -e -u
+test -t 1 && enhance="x" || enhance=""
+test "${1:-}" = "--enhance" && shift && enhance="x"
+test "$enhance" || exec pgrep "$@"
+
+case "$*" in
+  # When no arguments are given, show every non-kernel process.
+  "")
+    for arg in $(pgrep -v -P 2); do
+        test "$arg" -eq 2 -o "$arg" -eq "$$" || args="${args:-} $arg"
+    done
+  ;;
+
+  # If the arguments are non-numeric, assume they're pgrep flags.
+  *[!0-9\ ]*)
+    # Get a list of PIDs that match the conditions and filter out this script's
+    # PID.
+    results="$(pgrep "$@" || test "$?" -eq 1)"
+    for pid in $results; do
+        test "$pid" -eq "$$" || args="${args:-} $pid"
+    done
+
+    # If there were no matching processes, use a dummy argument that should
+    # make ps(1) to show no processes.
+    args="${args:--u 123456789}"
+  ;;
+
+  # If the args are numeric, assume they're PIDs.
+  *)
+    args="$*"
+  ;;
+esac
+
+exec ps --cols="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}" $args

@@ -138,10 +138,10 @@ function -define-aliases()
       ;;
     esac
 
-    # When using ps from procps, show all non-kernel processes / threads.
     case "$(ps -V 2>/dev/null)" in
       *procps*)
-        alias ps='-paginate ps --cols=$COLUMNS --sort=uid,pid -N --ppid 2 -p 2'
+        alias pgrep='-paginate epgrep --enhance'
+        alias ps='-paginate ps --cols=$COLUMNS --sort=uid,pid'
       ;;
     esac
 

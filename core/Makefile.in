@@ -25,7 +25,7 @@ FINDUTILS = findutils-4.6.0
 GAWK = gawk-4.2.0
 GMP = gmp-6.1.2
 GREP = grep-3.1
-LESS = less-487
+LESS = less-530
 LIBEVENT = libevent-2.1.8-stable
 MPFR = mpfr-3.1.5
 MUSL = musl-1.1.16
@@ -674,8 +674,11 @@ $(BIN)/grep: $(GREP)/src/grep
 	cp -f $(GREP)/src/fgrep "$(BIN)"
 	cp -f $? $@
 
-$(LESS).tar.gz $(LESS).tar.gz.sig:
+$(LESS).tar.gz $(LESS).sig:
 	$(WGET) -nc http://www.greenwoodsoftware.com/less/$@
+
+$(LESS).tar.gz.sig: $(LESS).sig
+	mv $? $@
 
 $(LESS)/Makefile: $(LESS)/.FOLDER $(NCURSES)/.BUILT
 	(cd $(@D) && \

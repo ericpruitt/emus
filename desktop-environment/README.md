@@ -425,6 +425,13 @@ This patch depends on "slock-00-pam-authentication.diff".
 Patches for _st_
 ----------------
 
+### Clear Selection When Ownership of X11 "PRIMARY" Buffer Is Lost ###
+
+**File:** st-00-clear-selection-when-primary-ownership-lost.diff
+
+If text is selected in another window and st loses ownership of the X11
+"PRIMARY" buffer, clear any existing highlighted / selected lines.
+
 ### Don't Preserve Bolding Under Cursor ###
 
 **File:** st-00-dont-preserve-bolding-under-cursor.diff

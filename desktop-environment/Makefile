@@ -21,7 +21,7 @@ SLOCK_URL = http://git.suckless.org/slock
 SLOCK_COMMIT = 2d2a21a90ad1b53594b1b90b97486189ec54afce
 
 ST_URL = https://git.suckless.org/st
-ST_COMMIT = 0ac685fc015362e749bf82cfaa3cfe2dd9b305f0
+ST_COMMIT = 8ab629031bd958d93deee9203fea32c38fe8ac30
 
 USER_LAUNCHER_ENTRIES = \
 	st \

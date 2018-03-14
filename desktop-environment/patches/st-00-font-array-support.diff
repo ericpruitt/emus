@@ -15,37 +15,11 @@ with two others specified as fallbacks:
         NULL
     };
 
-diff --git st.h st.h
-index 44d4938..d52c1c2 100644
---- st.h
-+++ st.h
-@@ -237,7 +237,7 @@ extern double usedfontsize;
- extern double defaultfontsize;
- 
- /* config.h globals */
--extern char font[];
-+extern const char *fonts[];
- extern int borderpx;
- extern float cwscale;
- extern float chscale;
-diff --git win.h win.h
-index 428111c..bd6cda9 100644
---- win.h
-+++ win.h
-@@ -18,7 +18,7 @@ void xhints(void);
- void xinit(void);
- void xloadcols(void);
- int xsetcolorname(int, const char *);
--void xloadfonts(char *, double);
-+void xloadfonts(const char *, double);
- void xsetenv(void);
- void xsettitle(char *);
- void xsetpointermotion(int);
 diff --git x.c x.c
-index 191e5dc..63d0f18 100644
+index d43a529..9948b65 100644
 --- x.c
 +++ x.c
-@@ -72,11 +72,18 @@ typedef struct {
+@@ -125,11 +125,18 @@ typedef struct {
  	FcPattern *pattern;
  } Font;
  
@@ -65,9 +39,18 @@ index 191e5dc..63d0f18 100644
  	GC gc;
  } DC;
  
-@@ -140,6 +147,10 @@ static DC dc;
- static XWindow xw;
+@@ -145,7 +152,7 @@ static void xresize(int, int);
+ static void xhints(void);
+ static int xloadcolor(int, const char *, Color *);
+ static int xloadfont(Font *, FcPattern *);
+-static void xloadfonts(char *, double);
++static void xloadfonts(const char *, double);
+ static void xunloadfont(Font *);
+ static void xunloadfonts(void);
+ static void xsetenv(void);
+@@ -208,6 +215,10 @@ static XWindow xw;
  static XSelection xsel;
+ static TermWindow win;
  
 +static FontFamily EmptyFontFamily;
 +static FontFamily fontfamilies[16];
@@ -76,7 +59,7 @@ index 191e5dc..63d0f18 100644
  /* Font Ring Cache */
  enum {
  	FRC_NORMAL,
-@@ -774,11 +785,16 @@ xloadfont(Font *f, FcPattern *pattern)
+@@ -898,10 +909,15 @@ xloadfont(Font *f, FcPattern *pattern)
  }
  
  void
@@ -85,7 +68,6 @@ index 191e5dc..63d0f18 100644
  {
  	FcPattern *pattern;
  	double fontval;
- 	float ceilf(float);
 +	FontFamily fontfamily = EmptyFontFamily;
 +
 +	if (fontfamiliescount >= LEN(fontfamilies)) {
@@ -94,7 +76,7 @@ index 191e5dc..63d0f18 100644
  
  	if (fontstr[0] == '-') {
  		pattern = XftXlfdParse(fontstr, False, False);
-@@ -812,37 +828,43 @@ xloadfonts(char *fontstr, double fontsize)
+@@ -935,37 +951,43 @@ xloadfonts(char *fontstr, double fontsize)
  		defaultfontsize = usedfontsize;
  	}
  
@@ -147,7 +129,7 @@ index 191e5dc..63d0f18 100644
  }
  
  void
-@@ -861,15 +883,20 @@ xunloadfonts(void)
+@@ -984,10 +1006,13 @@ xunloadfonts(void)
  	while (frclen > 0)
  		XftFontClose(xw.dpy, frc[--frclen].font);
  
@@ -165,14 +147,15 @@ index 191e5dc..63d0f18 100644
  }
  
  void
- xinit(void)
- {
-+	int i;
-+
- 	XGCValues gcvalues;
- 	Cursor cursor;
+@@ -998,6 +1023,7 @@ xinit(int cols, int rows)
  	Window parent;
-@@ -885,8 +912,13 @@ xinit(void)
+ 	pid_t thispid = getpid();
+ 	XColor xmousefg, xmousebg;
++	int i;
+ 
+ 	if (!(xw.dpy = XOpenDisplay(NULL)))
+ 		die("Can't open display\n");
+@@ -1008,8 +1034,13 @@ xinit(int cols, int rows)
  	if (!FcInit())
  		die("Could not init fontconfig.\n");
  
@@ -188,7 +171,7 @@ index 191e5dc..63d0f18 100644
  
  	/* colors */
  	xw.cmap = XDefaultColormap(xw.dpy, xw.scr);
-@@ -986,9 +1018,9 @@ xinit(void)
+@@ -1117,9 +1148,9 @@ xinit(int cols, int rows)
  int
  xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x, int y)
  {
@@ -201,7 +184,7 @@ index 191e5dc..63d0f18 100644
  	int frcflags = FRC_NORMAL;
  	float runewidth = win.cw;
  	Rune rune;
-@@ -999,7 +1031,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+@@ -1130,7 +1161,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
  	FcCharSet *fccharset;
  	int i, f, numspecs = 0;
  
@@ -210,7 +193,7 @@ index 191e5dc..63d0f18 100644
  		/* Fetch rune and mode for current glyph. */
  		rune = glyphs[i].u;
  		mode = glyphs[i].mode;
-@@ -1008,32 +1040,33 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+@@ -1139,32 +1170,33 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
  		if (mode == ATTR_WDUMMY)
  			continue;
  
@@ -255,7 +238,7 @@ index 191e5dc..63d0f18 100644
  			xp += runewidth;
  			numspecs++;
  			continue;
-@@ -1052,12 +1085,14 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+@@ -1183,12 +1215,14 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
  			}
  		}
  
@@ -275,7 +258,7 @@ index 191e5dc..63d0f18 100644
  
  			/*
  			 * Nothing was found in the cache. Now use
-@@ -1066,7 +1101,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+@@ -1197,7 +1231,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
  			 *
  			 * Xft and fontconfig are design failures.
  			 */
@@ -284,7 +267,7 @@ index 191e5dc..63d0f18 100644
  			fccharset = FcCharSetCreate();
  
  			FcCharSetAddChar(fccharset, rune);
-@@ -1110,7 +1145,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
+@@ -1241,7 +1275,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
  		specs[numspecs].font = frc[f].font;
  		specs[numspecs].glyph = glyphidx;
  		specs[numspecs].x = (short)xp;
@@ -293,7 +276,7 @@ index 191e5dc..63d0f18 100644
  		xp += runewidth;
  		numspecs++;
  	}
-@@ -1130,10 +1165,10 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
+@@ -1261,10 +1295,10 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
  
  	/* Fallback on color display for attributes not supported by the font */
  	if (base.mode & ATTR_ITALIC && base.mode & ATTR_BOLD) {
@@ -307,7 +290,7 @@ index 191e5dc..63d0f18 100644
  		base.fg = defaultattr;
  	}
  
-@@ -1238,12 +1273,12 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
+@@ -1371,12 +1405,12 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
  
  	/* Render underline and strikethrough. */
  	if (base.mode & ATTR_UNDERLINE) {

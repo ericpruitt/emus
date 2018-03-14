@@ -1,0 +1,23 @@
+Title: Clear Selection When Ownership of X11 "PRIMARY" Buffer Is Lost
+Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+If text is selected in another window and st loses ownership of the X11
+"PRIMARY" buffer, clear any existing highlighted / selected lines.
+
+diff --git x.c x.c
+index d43a529..9d44c12 100644
+--- x.c
++++ x.c
+@@ -188,11 +188,7 @@ static void (*handler[LASTEvent])(XEvent *) = {
+ 	[MotionNotify] = bmotion,
+ 	[ButtonPress] = bpress,
+ 	[ButtonRelease] = brelease,
+-/*
+- * Uncomment if you want the selection to disappear when you select something
+- * different in another window.
+- */
+-/*	[SelectionClear] = selclear_, */
++	[SelectionClear] = selclear_,
+ 	[SelectionNotify] = selnotify,
+ /*
+  * PropertyNotify is only turned on when there is some INCR transfer happening

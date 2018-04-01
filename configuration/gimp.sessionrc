@@ -1,0 +1,99 @@
+# Initial configuration for new GIMP profiles that enables single-window mode
+# and customizes the contents & arrangement of a toolbox dock on the right-hand
+# side.
+
+(session-info "toplevel"
+    (factory-entry "gimp-empty-image-window")
+    (open-on-exit))
+
+(session-info "toplevel"
+    (factory-entry "gimp-single-image-window")
+    (open-on-exit)
+
+    (aux-info
+        (left-docks-width "1")
+        (right-docks-width "390")
+        (maximized "no"))
+
+    (gimp-toolbox
+        (side right)
+
+        (book
+            (current-page 0)
+
+            # Tool Options
+            (dockable "gimp-tool-options"
+                (tab-style automatic)
+                (aux-info
+                    (show-button-bar "true")))
+
+            # Brush Selection
+            (dockable "gimp-brush-grid"
+                (tab-style automatic)
+                (aux-info
+                    (show-button-bar "true")))
+
+            # Gradient Selection
+            (dockable "gimp-gradient-list"
+                (tab-style automatic)
+                (aux-info
+                    (show-button-bar "true")))
+
+            # List of Open Images
+            (dockable "gimp-image-list"
+                (tab-style automatic)
+                (aux-info
+                    (show-button-bar "true")))
+
+            # Recently Opened Files / History
+            (dockable "gimp-document-list"
+                (tab-style automatic)
+                (aux-info
+                    (show-button-bar "true")))
+
+        )
+
+        (book
+            (current-page 0)
+            (position 580)
+
+            # Layers
+            (dockable "gimp-layer-list"
+                (tab-style automatic)
+                (preview-size 32)
+                (aux-info
+                    (show-button-bar "true")))
+
+            # Channels
+            (dockable "gimp-channel-list"
+                (tab-style automatic)
+                (preview-size 32)
+                (aux-info
+                    (show-button-bar "true")))
+
+            # Undo History
+            (dockable "gimp-undo-history"
+                (tab-style automatic)
+                (aux-info
+                    (show-button-bar "true")))
+
+            # Selection Editor
+            (dockable "gimp-selection-editor"
+                (tab-style automatic)
+                (aux-info
+                    (show-button-bar "true")))
+
+            # Paths
+            (dockable "gimp-vectors-list"
+                (tab-style automatic)
+                (preview-size 32)
+                (aux-info
+                    (show-button-bar "true")))
+
+        )
+    )
+)
+
+(hide-docks no)
+(single-window-mode yes)
+(last-tip-shown 0)

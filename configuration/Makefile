@@ -8,6 +8,7 @@ USER_TARGETS = \
 	$(HOME)/.bashrc \
 	$(HOME)/.dir_colors \
 	$(HOME)/.elinks/elinks.conf \
+	$(HOME)/.gimp/sessionrc \
 	$(HOME)/.gitconfig \
 	$(HOME)/.gitignore \
 	$(HOME)/.inputrc \
@@ -37,6 +38,12 @@ BACKUP_FOLDER = $(HOME)/config-backups
 
 PLATFORM = $$(uname -s -m | tr "A-Z " "a-z-" | sed "s/x86_64/amd64/g")
 USERLAND = https://www.codevat.com/downloads/static-unix-userland-$(PLATFORM)
+
+# When installing the default GIMP session configuration, "gimp --version" is
+# used to find out which version of GIMP is installed since the configuration
+# path is version dependent. If GIMP has not been installed, this value is used
+# as the fallback version number.
+FALLBACK_GIMP_VERSION = 2.8
 
 all: user
 	if ! command -v bash | fgrep -q "$(HOME)" && \
@@ -127,6 +134,23 @@ $(HOME)/.elinks/elinks.conf: elinks.conf
 	mkdir -p $(@D)
 	test ! -h $@ || rm $@
 	ln -s "$$PWD/$?" $@
+
+$(HOME)/.gimp/sessionrc: gimp.sessionrc
+	if ! [ -e $(@D) ]; then \
+		major_minor_version="$$( \
+		    LC_ALL=C gimp --version \
+		    | sed -e 's/.* //' -e 's/^\([0-9]\+[.][0-9]\+\)[.].*/\1/' \
+		)"; \
+		test -n "$${major_minor_version:=$(FALLBACK_GIMP_VERSION)}"; \
+		config_directory=".gimp-$$major_minor_version"; \
+		mkdir -p $(HOME)/"$$config_directory"; \
+		ln -s "$$config_directory" $(@D); \
+	fi
+	if [ -e $@ ]; then \
+		touch $@; \
+	else \
+		cp $^ $@; \
+	fi
 
 $(HOME)/.terminfo/t/tmux: terminfo/tmux.info
 	echo "- $@"

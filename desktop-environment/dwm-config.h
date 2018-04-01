@@ -151,8 +151,10 @@ static Key keys[] = {
     { HyperKey,                     XK_w,                   killclient,      {0} },
     { HyperKey,                     XK_Return,              zoom,            {0} },
     { AltKey,                       XK_Tab,                 view,            {0} },
-    { HyperKey,                     XK_comma,               tagmon,          {.i = -1 } },
-    { HyperKey,                     XK_period,              tagmon,          {.i = +1 } },
+    { HyperKey|ShiftMask,           XK_comma,               tagmon,          {.i = -1 } },
+    { HyperKey|ShiftMask,           XK_period,              tagmon,          {.i = +1 } },
+    { HyperKey,                     XK_comma,               focusmon,        {.i = -1 } },
+    { HyperKey,                     XK_period,              focusmon,        {.i = +1 } },
 
     // MODKEY + e: Toggle Pidgin
     { HyperKey,                     XK_e,                   toggleview,      {.ui = TAG(9) } },
@@ -190,11 +192,9 @@ static Key keys[] = {
     TAGKEYS(                        XK_8,                      8)
     TAGKEYS(                        XK_9,                      9)
 
-    UNUSED(focusmon)
     UNUSED(quit)
     UNUSED(setmfact)
     UNUSED(spawn)
-    UNUSED(tagmon)
     UNUSED(togglebar)
 };
 

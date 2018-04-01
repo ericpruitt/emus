@@ -111,6 +111,53 @@ static size_t command_count = 0;
 static int malloc_failed = 0;
 
 /**
+ * Command usage documentation.
+ */
+static const char command_usage[] =
+"Usage: %s [-h] [-f PATH] [-r] [ARGUMENTS...]\n"
+"\n"
+"DEL searches for Freedesktop Desktop Entries, generates a list of graphical\n"
+"commands and uses dmenu as a front-end so the user can select a command to\n"
+"execute. The first time DEL is executed, it should be invoked as \"del -r\" to\n"
+"generate the application list.\n"
+"\n"
+"When \"-r\" is not specified, dmenu is launched with the command list feed into\n"
+"standard input. Trailing command line arguments can be used to pass flags to\n"
+"dmenu or use a different menu altogether:\n"
+"\n"
+"    Set the background color of selected text to red:\n"
+"    $ %s -- -sb \"#ff0000\"\n"
+"\n"
+"    Use rofi in dmenu mode instead of dmenu:\n"
+"    $ %s rofi -dmenu\n"
+"\n"
+"Options:\n"
+"  -h    Show this text and exit.\n"
+"  -f PATH\n"
+"        Use specified file as the command list. When this is unspecified, it\n"
+"        defaults to \"$HOME/" DEFAULT_COMMAND_LIST_BASENAME "\".\n"
+"  -r    Search for desktop entries to refresh the command list. Trailing\n"
+"        command line parameters are interpreted as folders to be searched.\n"
+"        Folders on different devices must be explicitly enumerated because the\n"
+"        search will not automatically cross filesystem boundaries; in terms of\n"
+"        find(1), the search is equivalent to the following command:\n"
+"\n"
+"            find $ARGUMENTS -xdev -name '*.desktop'\n"
+"\n"
+"        When no paths are given, \"/\" is searched by default. A\n"
+"        newline-separated list of programs can be fed to del via stdin to\n"
+"        include programs that do not have desktop entries in the generated\n"
+"        launcher list. The programs must exist in $PATH or they will be\n"
+"        silently ignored.\n"
+"\n"
+"Exit Statuses:\n"
+"- 1: Fatal error encountered.\n"
+"- 2: Non-fatal error encountered.\n"
+"- > 128: The menu subprocess was killed by signal \"N\" where \"N\" is 128\n"
+"  subtracted from the exit status.\n"
+;
+
+/**
  * This function is used as the comparison function for _qsort(3)_ and sorts a
  * list of strings alphabetically ignoring case. This function is **not**
  * locale-aware.
@@ -440,51 +487,7 @@ static int load_commands_from_file(const char *path, FILE *file)
  */
 static void usage(const char *self)
 {
-    printf(
-        "Usage: %s [-h] [-f PATH] [-r] [ARGUMENTS...]\n"
-        "\n"
-        "DEL searches for Freedesktop Desktop Entries, generates a list of "
-        "graphical\ncommands and uses dmenu as a front-end so the user can "
-        "select a command to\nexecute. The first time DEL is executed, it "
-        "should be invoked as \"del -r\" to\ngenerate the application list.\n"
-        "\n"
-        "Exit statuses:\n"
-        "  1        Fatal error encountered.\n"
-        "  2        Non-fatal error encountered.\n"
-        "  > 128    The dmenu subprocess was killed by a signal.\n"
-        "\n"
-        "Options:\n"
-        "  -h       Show this text and exit.\n"
-        "  -f PATH  Use specified file as the command list. When this is\n"
-        "           unspecified, it defaults to ~/%s\n"
-        "  -r       Search for desktop entries to refresh the command list.\n"
-        "           Trailing command line parameters are interpreted as\n"
-        "           folders to be searched. Folders on different devices\n"
-        "           must be explicitly enumerated because the search will\n"
-        "           not automatically cross filesystem boundaries; in terms\n"
-        "           of find(1), the search is equivalent to the following:\n"
-        "           find $ARGUMENTS -xdev -name '*.desktop'\n"
-        "           When no paths are given, \"/\" is searched by default.\n"
-        "           A newline-separated list of programs can be fed to del\n"
-        "           via stdin to include programs that do not have desktop\n"
-        "           entries in the generated launcher list. The programs\n"
-        "           must exist in $PATH or they will be silently ignored.\n"
-        "\n"
-        "When \"-r\" is not specified, dmenu is launched with the command\n"
-        "list feed into standard input. Trailing command line arguments can\n"
-        "be used to pass flags to dmenu or use a different menu altogether:\n"
-        "\n"
-        "  Set the background color of selected text to red:\n"
-        "  $ %s -- -sb \"#ff0000\"\n"
-        "\n"
-        "  Use rofi in dmenu mode instead of dmenu:\n"
-        "  $ %s rofi -dmenu\n"
-        ,
-        self,
-        DEFAULT_COMMAND_LIST_BASENAME,
-        self,
-        self
-    );
+    printf(command_usage, self, self, self);
 }
 
 /**

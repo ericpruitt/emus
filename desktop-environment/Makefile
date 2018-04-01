@@ -38,6 +38,7 @@ UTILITIES = \
 	bin/blackwalls \
 	bin/del \
 	bin/statusline \
+	bin/xidletime \
 
 BASENAME = $(@F)
 

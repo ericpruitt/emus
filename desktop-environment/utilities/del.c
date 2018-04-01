@@ -320,10 +320,10 @@ static int parse_desktop_entry(const char *fpath, const struct stat *_2,
 
     while (getline(&line, &bufsize, file) != -1) {
         if (!inside_desktop_entry) {
-            inside_desktop_entry = !strcmp("[Desktop Entry]\n", line);
+            inside_desktop_entry = !strcasecmp("[Desktop Entry]\n", line);
         } else if (sscanf(line, "NoDisplay = %5s", boolean_value_string) > 0 ||
           sscanf(line, "Terminal = %5s", boolean_value_string) > 0) {
-            if (!strcmp("true", boolean_value_string)) {
+            if (!strcasecmp("true", boolean_value_string)) {
                 command[0] = '\0';
                 break;
             }

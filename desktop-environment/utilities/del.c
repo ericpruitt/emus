@@ -1,16 +1,14 @@
 /**
- * D.E.L.: Desktop Entry Launcher
+ * Desktop Entry Launcher (D.E.L.)
  *
  * DEL searches for Freedesktop Desktop Entries, generates a list of graphical
  * commands and uses dmenu as a front-end so the user can select a command to
  * execute. Refer to the "usage" function for more information.
  *
- * Make: c99 -o $@ $?
+ * Make: c99 -O1 -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=500 -o $@ $?
  * Copyright: Eric Pruitt (https://www.codevat.com/)
  * License: BSD 2-Clause License (https://opensource.org/licenses/BSD-2-Clause)
  */
-#define _POSIX_C_SOURCE 200809L
-#define _XOPEN_SOURCE 500
 
 #include <errno.h>
 #include <fcntl.h>
@@ -30,7 +28,7 @@
 static int add_command_to_list(const char *);
 static int can_execute(const char *);
 static int command_list_contains(const char *);
-static char *command_path(const char *);
+static const char *command_path(const char *);
 static int load_commands_from_file(const char *, FILE *);
 static int menu(const char *, char **);
 static int parse_desktop_entry(const char *, const struct stat *, int,
@@ -53,7 +51,14 @@ static void usage(const char *);
 /**
  * Default command used to present a menu to the user.
  */
-#define DEFAULT_MENU "dmenu"
+#define DEFAULT_MENU_COMMAND "dmenu"
+
+/**
+ * Maximum number of files the process may open simultaneously.
+ */
+#define MAX_OPEN_FILES ( \
+    (int) (sysconf(_SC_OPEN_MAX) > INT_MAX ? INT_MAX : sysconf(_SC_OPEN_MAX)) \
+)
 
 /**
  * Works like _printf(3)_ but writes to stderr and implicitly adds a newline to
@@ -263,64 +268,59 @@ static int can_execute(const char *command)
  *
  * Return: Pointer to resolved path stored in a statically allocated buffer.
  */
-static char *command_path(const char *command)
+static const char *command_path(const char *command)
 {
-    size_t command_length;
     char *dest;
     const char *env_value;
-    static char full_path[PATH_MAX];
+    static char path[PATH_MAX];
     const char *src;
     const char *src_mark;
+    size_t strlen_command;
 
     // This behavior is defined by POSIX 2.9.1 -- "Command Search and
     // Execution," item 2.
     if (strchr(command, '/')) {
-        if (can_execute(command)) {
-            return (char *) command;
-        }
-        return NULL;
+        return (can_execute(command) ? command : NULL);
     } else if (!(env_value = getenv("PATH"))) {
         return NULL;
     }
 
-    dest = full_path;
+    dest = path;
     src = env_value;
     src_mark = src;
-    command_length = strlen(command);
+    strlen_command = strlen(command);
 
     while (1) {
-        if (*src == ':' || *src == '\0') {
-            if ((src - src_mark) == 0) {
-                // Per POSIX 8.3, zero-length prefixes represent the current
-                // working directory.
-                *dest++ = '.';
-                *dest++ = '/';
-            } else if (*(dest - 1) != '/') {
-                *dest++ = '/';
-            }
-
-            if (((size_t) (dest - full_path) + command_length) >=
-              sizeof(full_path)) {
-                errno = ENAMETOOLONG;
-                return NULL;
-            } else {
-                strcpy(dest, command);
-            }
-
-            if (can_execute(full_path)) {
-                return full_path;
-            } else if (*src == '\0') {
-                break;
-            } else {
-                dest = full_path;
-                src_mark = ++src;
-            }
-        } else {
+        if (*src != ':' && *src != '\0') {
             *dest++ = *src++;
+            continue;
         }
-    }
 
-    return NULL;
+        if ((src - src_mark) == 0) {
+            // Per POSIX 8.3, zero-length prefixes represent the current
+            // working directory.
+            *dest++ = '.';
+            *dest++ = '/';
+        } else if (*(dest - 1) != '/') {
+            *dest++ = '/';
+        }
+
+        if (((size_t) (dest - path) + strlen_command) >= sizeof(path)) {
+            errno = ENAMETOOLONG;
+            return NULL;
+        }
+
+        strcpy(dest, command);
+
+        if (can_execute(path)) {
+            return path;
+        } else if (*src == '\0') {
+            return NULL;
+        }
+
+        dest = path;
+        src_mark = ++src;
+    }
 }
 
 /**
@@ -377,7 +377,7 @@ static int parse_desktop_entry(const char *fpath, const struct stat *_2,
         } else if (sscanf(line, "Exec = %4095s %n", command, &offset) > 0) {
             command_basename = basename(command);
 
-            // If the desktop entry uses env(1), find use the first word that
+            // If the desktop entry uses env(1), use the first word that
             // doesn't appear to be a variable assignment or an option as the
             // command name.
             if (!strcmp(command_basename, "env")) {
@@ -510,7 +510,7 @@ static int refresh_command_list(const char *path, char **dirs, const size_t n)
     int fdtemp;
     FILE *ftemp;
     size_t i;
-    int maxopen;
+    int nftw_maxopen;
 
     char tempname[PATH_MAX + 6];  // 6: strlen of the mkstemp suffix
 
@@ -523,26 +523,24 @@ static int refresh_command_list(const char *path, char **dirs, const size_t n)
         return 1;
     }
 
-    // 4 is subtracted below under the assumption that stdin, stdout and stderr
-    // are the only open files and that parse_desktop_entry will open 1 file.
-    if (sysconf(_SC_OPEN_MAX) > INT_MAX) {
-        maxopen = INT_MAX - 4;
-    } else {
-        // POSIX mandates that _SC_OPEN_MAX must be at
-        // least 20, so this value should never be negative.
-        maxopen = (int) sysconf(_SC_OPEN_MAX) - 4;
-    }
+    // To determine the number of file descriptors nftw(3) may simultaneously
+    // hold open, 4 is subtracted from the maximum number of files the whole
+    // process may open under the assumption that parse_desktop_entry will open
+    // one file and stdin, stdout & stderr will be already be open. POSIX
+    // mandates that _SC_OPEN_MAX must be at least 20, so this value should
+    // never be negative.
+    nftw_maxopen = MAX_OPEN_FILES - 4;
 
     if (dirs && n) {
         for (i = 0; i < n; i++) {
-            if (nftw(dirs[i], parse_desktop_entry, maxopen, FTW_MOUNT)) {
+            if (nftw(dirs[i], parse_desktop_entry, nftw_maxopen, FTW_MOUNT)) {
                 if (!malloc_failed) {
                     verror("del: unable to walk '%s'", dirs[i]);
                 }
                 return 1;
             }
         }
-    } else if (nftw("/", parse_desktop_entry, maxopen, FTW_MOUNT)) {
+    } else if (nftw("/", parse_desktop_entry, nftw_maxopen, FTW_MOUNT)) {
         if (!malloc_failed) {
             perror("del: unable to walk '/'");
         }
@@ -558,25 +556,26 @@ static int refresh_command_list(const char *path, char **dirs, const size_t n)
     strcat(tempname, "XXXXXX");
     tempname[sizeof(tempname) - 1] = '\0';
 
-    if ((fdtemp = mkstemp(tempname)) != -1 &&
-        (ftemp = fdopen(fdtemp, "w"))) {
+    if ((fdtemp = mkstemp(tempname)) == -1 || !(ftemp = fdopen(fdtemp, "w"))) {
+        goto error;
+    }
 
-        qsort(commands, command_count, sizeof(char *), stringcomparator);
+    qsort(commands, command_count, sizeof(char *), stringcomparator);
 
-        for (i = 0; i < command_count; i++) {
-            if ((!i || strcmp(commands[i - 1], commands[i])) &&
-                fprintf(ftemp, "%s\n", commands[i]) < 0) {
-                goto error;
-            }
+    for (i = 0; i < command_count; i++) {
+        if ((!i || strcmp(commands[i - 1], commands[i])) &&
+            fprintf(ftemp, "%s\n", commands[i]) < 0) {
+
+            goto error;
         }
+    }
 
-        if (fflush(ftemp) || fsync(fdtemp) || fclose(ftemp)) {
-            verror("del: unable to flush changes to '%s'", tempname);
-        } else if (rename(tempname, path)) {
-            verror("del: unable to rename '%s' to '%s'", tempname, path);
-        } else {
-            return 0;
-        }
+    if (fflush(ftemp) || fsync(fdtemp) || fclose(ftemp)) {
+        verror("del: unable to flush changes to '%s'", tempname);
+    } else if (rename(tempname, path)) {
+        verror("del: unable to rename '%s' to '%s'", tempname, path);
+    } else {
+        return 0;
     }
 
 error:
@@ -584,7 +583,7 @@ error:
         verror("del: mkstemp: %s", tempname);
     } else {
         verror("del: %s", tempname);
-        if (fdtemp != -1 && unlink(tempname)) {
+        if (unlink(tempname)) {
             verror("del: could not delete temporary file '%s'", tempname);
         }
     }
@@ -631,11 +630,13 @@ static int menu(const char *menu_list_path, char **argv)
     }
 
     switch ((menu_pid = fork())) {
+      // Parent: handle fork failure.
       case -1:
         verror("del: could not fork to launch %s", argv[0]);
         return 1;
 
-      case 0:  // Child: execute menu
+      // Child: execute menu program.
+      case 0:
         if (close(pipefds[0])) {
             perror("del: could not close unused read-end of pipe");
         } else if ((failure = dup2(pipefds[1], STDOUT_FILENO)) < 0) {
@@ -667,17 +668,20 @@ static int menu(const char *menu_list_path, char **argv)
                 command[line_length - 1] = '\0';
 
                 switch (fork()) {
-                  case 0:  // Child: execute printed command
+                  // Parent: handle fork failure.
+                  case -1:
+                    perror("del: could not fork to execute command");
+                    failure = 1;
+                    break;
+
+                  // Child: execute command printed by menu program.
+                  case 0:
                     if (fclose(menu_output)) {
                         perror("del: could not close inherited file");
                     } else if (execlp(command, command, NULL)) {
                         verror("del: %s", command);
                     }
                     _exit(1);
-
-                  case -1:
-                    perror("del: could not fork to execute command");
-                    failure = 1;
                 }
             } else {
                 fmterr("del: missing newline after '%s'", command);
@@ -794,7 +798,7 @@ int main(int argc, char **argv)
       case LAUNCH_MENU:
         menu_argv0 = *(argv + optind);
         if (optind <= argc && (!menu_argv0 || menu_argv0[0] == '-')) {
-            *(argv + (--optind)) = DEFAULT_MENU;
+            *(argv + (--optind)) = DEFAULT_MENU_COMMAND;
         }
         exit_status = menu(command_list_path, argv + optind);
         break;

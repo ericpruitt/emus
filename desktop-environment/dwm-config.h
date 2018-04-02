@@ -93,10 +93,11 @@ static const Rule rules[] = {
     { CLASS("Pidgin"),                                                TAG(9),  0,     0,       20  },
     // - Steam buddy list and chat windows.
     { CLASS_W_TITLE("Steam", "Friends|- Chat$"),                      TAG(9),  0,     0,       20  },
-    // - Google Hangouts Chrome Extension; all Chrome extensions have instance
+    // - Google Hangouts Chrome extensions; all Chrome extensions have instance
     //   values of "crx_$EXTENSION_ID".
     { INSTANCE("crx_nckgahadagoaajjgafhacjanaoiihapd"),               TAG(9),  0,     0,       20  },
     { INSTANCE("crx_ackdflhoddfmjcmpgallljebbjjllepc"),               TAG(9),  0,     0,       20  },
+    { INSTANCE("crx_knipolnnllmklapflnccelgolnpehhpl"),               TAG(9),  0,     0,       20  },
 
     // The main Steam windows go on the 8th tag.
     { CLASS_W_TITLE("Steam", "Steam"),                                TAG(8),  0,     0,       0   },

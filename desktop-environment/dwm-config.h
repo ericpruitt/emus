@@ -165,8 +165,8 @@ static Key keys[] = {
     { HyperKey,                     XK_r,                   view,            {.ui = TAG(8) } },
 
     // Application launchers
-    { BothShiftKeys,                                        spawn,           EXECL("getpass") },
     { HyperKey,                     XK_space,               spawn,           EXECL("del") },
+    { HyperKey,                     XK_p,                   spawn,           EXECL("getpass") },
     { HyperKey,                     XK_q,                   spawn,           EXECL("session-control", "menu") },
     { HyperKey,                     XK_b,                   spawn,           EXECL("media-control", "bass-toggle") },
     { HyperKey,                     XK_bracketright,        spawn,           EXECL("media-control", "next-track") },

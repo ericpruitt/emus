@@ -1,7 +1,6 @@
 #include <ctype.h>
 #include <regex.h>
 
-extern const int nonmasterpriority;
 extern const char *tags[9];
 
 /**
@@ -262,52 +261,4 @@ static void fifohook(char *command)
             break;
         }
     }
-}
-
-/**
- * Return a value indicating whether or not a window is visible. This augments
- * the default way of checking for visibility by making it possible to specify
- * tags with non-master priority. When the current view has windows on tags
- * with non-master priority combined with those that do not, windows lacking
- * non-master priority are hidden. This is useful for cutting down on clutter
- * when multiple tags are selected.
- */
-static int isvisible(Client *c)
-{
-    #undef  ISVISIBLE
-    #define ISVISIBLE(C)    isvisible(C)
-    #define HASPRIORITY(C)  ((C)->tags & nonmasterpriority)
-
-    Client *k;
-
-    int active = c->mon->tagset[c->mon->seltags];
-    int masterslots = c->mon->nmaster;
-    int visible = c->tags & active;
-
-    if (!visible || !(nonmasterpriority & active) || HASPRIORITY(c)) {
-        return visible;
-    }
-
-    // Check to see if there are tiled clients on tags with non-master
-    // priority.
-    for (k = c->mon->clients; k; k = k->next) {
-        if ((k->tags & active) && HASPRIORITY(k) && !k->isfloating) {
-            break;
-        }
-    }
-
-    // There were no windows on tags with non-master priority, so the window is
-    // visible.
-    if (!k) {
-        return 1;
-    }
-
-    // The window is only visible if it fits in the master area.
-    for (k = c->mon->clients; (masterslots > 0) && k != c; k = k->next) {
-        if (!k->isfloating && (k->tags & (active | nonmasterpriority))) {
-            masterslots--;
-        }
-    }
-
-    return (masterslots > 0);
 }

@@ -1,13 +1,14 @@
 Title: Status Bar On All Monitors
 Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
-With this patch, the status bar is shown on all monitors even when they are not
-focused.
+Show the status bar on all monitors -- focused or not, and always use
+"SchemeSel" (the selected-item color scheme) on the focused monitor's status
+bar for the window title area even when no windows are visible.
 
 This patch depends on "dwm-00-systray.diff".
 
 diff --git dwm.c dwm.c
-index 4933a1f..e987f92 100644
+index 4933a1f..c44562b 100644
 --- dwm.c
 +++ dwm.c
 @@ -792,11 +792,9 @@ drawbar(Monitor *m)
@@ -25,7 +26,27 @@ index 4933a1f..e987f92 100644
  
  	resizebarwin(m);
  	for (c = m->clients; c; c = c->next) {
-@@ -2209,9 +2207,13 @@ updatetitle(Client *c)
+@@ -820,15 +818,10 @@ drawbar(Monitor *m)
+ 	x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
+ 
+ 	if ((w = m->ww - sw - stw - x) > bh) {
+-		if (m->sel) {
+-			drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]);
+-			drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
+-			if (m->sel->isfloating)
+-				drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
+-		} else {
+-			drw_setscheme(drw, scheme[SchemeNorm]);
+-			drw_rect(drw, x, 0, w, bh, 1, 1);
+-		}
++		drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]);
++		drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel ? m->sel->name : "", 0);
++		if (m->sel && m->sel->isfloating)
++			drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
+ 	}
+ 	drw_map(drw, m->barwin, 0, 0, m->ww - stw, bh);
+ }
+@@ -2209,9 +2202,13 @@ updatetitle(Client *c)
  void
  updatestatus(void)
  {

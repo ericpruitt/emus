@@ -380,8 +380,9 @@ mouse to the newly focused monitor.
 
 **File:** dwm-10-status-bar-on-all-monitors.diff
 
-With this patch, the status bar is shown on all monitors even when they are not
-focused.
+Show the status bar on all monitors -- focused or not, and always use
+"SchemeSel" (the selected-item color scheme) on the focused monitor's status
+bar for the window title area even when no windows are visible.
 
 This patch depends on "dwm-00-systray.diff".
 

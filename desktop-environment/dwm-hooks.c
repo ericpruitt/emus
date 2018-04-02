@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <regex.h>
+#include <time.h>
 
 extern const char *tags[9];
 
@@ -261,4 +262,41 @@ static void fifohook(char *command)
             break;
         }
     }
+}
+
+/**
+ * This works like killclient but with the added safety net of a double
+ * confirmation: this function must be called twice no more than 250 ms between
+ * calls to close a window. The delay timer is reset if the selected window has
+ * changed since the last call.
+ */
+static void killclient2(const Arg *arg)
+{
+    double delta;
+    double now;
+    struct timespec ts;
+
+    static Client *c = NULL;
+    static double lastcall = -1;
+
+    if (!selmon->sel) {
+        return;
+    }
+
+    if (clock_gettime(CLOCK_MONOTONIC, &ts)) {
+        perror("clock_gettime");
+        return;
+    }
+
+    now = (double) ts.tv_sec + ts.tv_nsec * 0.000000001;
+    delta = now - lastcall;
+
+    if (selmon->sel == c && delta < 0.250) {
+        killclient(arg);
+        c = NULL;
+        return;
+    }
+
+    c = selmon->sel;
+    lastcall = now;
 }

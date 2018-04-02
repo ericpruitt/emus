@@ -72,36 +72,36 @@ const char *tags[9] = {"1", "2", "3", "4", "5", "6", "7", "Steam", "Chats"};
  */
 static const Rule rules[] = {
     // Match conditions                                               Tags     Float  Monitor  Priority
-    { TITLE("File Operation Progress"),                               0,       1,     0,       0   },
-    { INSTANCE("eog"),                                                0,       1,     0,       0   },
-    { INSTANCE("gpick"),                                              0,       1,     0,       0   },
-    { CLASS("VirtualBox"),                                            TAG(4),  0,     0,       0   },
-    { CLASS("Gimp(-.+)?"),                                            TAG(5),  0,     0,       0   },
-    { CLASS("st-256color|xterm|rxvt"),                                TAG(1),  0,     0,       100 },
+    { TITLE("File Operation Progress"),                               0,       1,     -1,      0   },
+    { INSTANCE("eog"),                                                0,       1,     -1,      0   },
+    { INSTANCE("gpick"),                                              0,       1,     -1,      0   },
+    { CLASS("VirtualBox"),                                            TAG(4),  0,     -1,      0   },
+    { CLASS("Gimp(-.+)?"),                                            TAG(5),  0,     -1,      0   },
+    { CLASS("st-256color|xterm|rxvt"),                                TAG(1),  0,     -1,      100 },
 
     // Firefox and Chrome both go on the same tag. I use Chromium at home and
     // Chrome at work, so Chrome and Firefox are never run together.
-    { CLASS("Firefox|Iceweasel"),                                     TAG(2),  0,     0,       0   },
-    { INSTANCE("google-chrome"),                                      TAG(2),  0,     0,       0   },
-    { INSTANCE("chromium"),                                           TAG(3),  0,     0,       0   },
+    { CLASS("Firefox|Iceweasel"),                                     TAG(2),  0,     -1,      0   },
+    { INSTANCE("google-chrome"),                                      TAG(2),  0,     -1,      0   },
+    { INSTANCE("chromium"),                                           TAG(3),  0,     -1,      0   },
 
     // All Wine applications should float by default.
-    { CLASS("Wine"),                                                  0,       1,     0,       0   },
+    { CLASS("Wine"),                                                  0,       1,     -1,      0   },
 
     // Instant messaging:
     // - Pidgin
-    { CLASS("Pidgin"),                                                TAG(9),  0,     0,       20  },
+    { CLASS("Pidgin"),                                                TAG(9),  0,     -1,      20  },
     // - Steam buddy list and chat windows.
-    { CLASS_W_TITLE("Steam", "Friends|- Chat$"),                      TAG(9),  0,     0,       20  },
+    { CLASS_W_TITLE("Steam", "Friends|- Chat$"),                      TAG(9),  0,     -1,      20  },
     // - Google Hangouts Chrome extensions; all Chrome extensions have instance
     //   values of "crx_$EXTENSION_ID".
-    { INSTANCE("crx_nckgahadagoaajjgafhacjanaoiihapd"),               TAG(9),  0,     0,       20  },
-    { INSTANCE("crx_ackdflhoddfmjcmpgallljebbjjllepc"),               TAG(9),  0,     0,       20  },
-    { INSTANCE("crx_knipolnnllmklapflnccelgolnpehhpl"),               TAG(9),  0,     0,       20  },
+    { INSTANCE("crx_nckgahadagoaajjgafhacjanaoiihapd"),               TAG(9),  0,     -1,      20  },
+    { INSTANCE("crx_ackdflhoddfmjcmpgallljebbjjllepc"),               TAG(9),  0,     -1,      20  },
+    { INSTANCE("crx_knipolnnllmklapflnccelgolnpehhpl"),               TAG(9),  0,     -1,      20  },
 
     // The main Steam windows go on the 8th tag.
-    { CLASS_W_TITLE("Steam", "Steam"),                                TAG(8),  0,     0,       0   },
-    { CLASS_W_TITLE("Steam", "News"),                                 TAG(8),  1,     0,       10  },
+    { CLASS_W_TITLE("Steam", "Steam"),                                TAG(8),  0,     -1,      0   },
+    { CLASS_W_TITLE("Steam", "News"),                                 TAG(8),  1,     -1,      10  },
 };
 
 /**

@@ -141,14 +141,9 @@ configure_cflags_ldflags()
             _LDFLAGS="-static"
           ;;
 
-          *[!f]no-pie*|*clang*)
-            _CFLAGS="-static -fno-pie -fPIC"
-            _LDFLAGS="-static -no-pie"
-          ;;
-
-          *[!f]nopie*)
-            _CFLAGS="-static -fno-pie -fPIC"
-            _LDFLAGS="-static -nopie"
+          *-pie*|*clang*)
+            _CFLAGS="-static -fpie -fPIC"
+            _LDFLAGS="-static -pie"
           ;;
 
           *)

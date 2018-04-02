@@ -8,6 +8,7 @@ static const int resizehints       = 0;
 static const int showbar           = 1;
 static const unsigned int snap     = 0;
 static const int topbar            = 1;
+static       int restrictmouse     = 1;
 
 static const unsigned int systraypinning = 0;
 static const unsigned int systrayspacing = 4;
@@ -155,6 +156,7 @@ static Key keys[] = {
     { HyperKey|ShiftMask,           XK_period,              tagmon,          {.i = +1 } },
     { HyperKey,                     XK_comma,               focusmon,        {.i = -1 } },
     { HyperKey,                     XK_period,              focusmon,        {.i = +1 } },
+    { HyperKey,                     XK_backslash,           restrictmousetoggle, {0} },
 
     // MODKEY + e: Toggle Pidgin
     { HyperKey,                     XK_e,                   toggleview,      {.ui = TAG(9) } },

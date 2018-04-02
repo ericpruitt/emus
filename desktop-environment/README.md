@@ -364,6 +364,18 @@ centers these windows when they appear.
 
 This patch must be applied after "dwm-00-window-attachment-priority.diff".
 
+### Restrict Mouse To Focused Monitor ###
+
+**File:** dwm-10-restrict-mouse-to-focused-monitor.diff
+
+This change adds the option to restrict the mouse to the focused monitor. When
+the mouse reaches the edge of the screen while restriction is enabled, the
+cursor will not be permitted to move to another monitor. This feature is
+controlled by the variable "restrictmouse" which should be defined in the
+configuration header i.e. `static int restrictmouse = 1`. When mouse
+restriction is enabled, the behavior of "focusmon" changes so that it warps the
+mouse to the newly focused monitor.
+
 ### Status Bar On All Monitors ###
 
 **File:** dwm-10-status-bar-on-all-monitors.diff

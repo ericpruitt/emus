@@ -280,8 +280,9 @@ function -prompt-command()
     local exit_status="${debug_hook_ran:+$?}"
 
     local depth="$((SHLVL - SHLVL_OFFSET + 1))"
-    local jobs="$(jobs)"
+    local jobs=""
 
+    jobs % &> /dev/null && jobs="x"
     test "${exit_status:=0}" -eq 0 || echo -e "($exit_status)\a"
     test "$depth" -gt 1 || depth=""
 

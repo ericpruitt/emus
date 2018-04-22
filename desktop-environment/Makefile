@@ -235,7 +235,7 @@ $(TERMINFO)/s/st: st-src/st.info
 $(UTILITIES): ALWAYS_RUN
 	mkdir -p bin
 	source="utilities/$(BASENAME).c"; \
-	make=$$(sed -n "/^[^A-Za-z]* Make: /{s///p;q;}; /^$$/q" "$$source"); \
+	make=$$(./extract-recipe.sed "$$source"); \
 	echo "$@: $$source; +$${make:?$@: recipe not found}" | $(MAKE) -n -f -
 
 dmenu-src/config.mk dwm-src/config.mk:

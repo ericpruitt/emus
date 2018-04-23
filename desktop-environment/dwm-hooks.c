@@ -5,25 +5,8 @@
 extern const char *tags[9];
 
 /**
- * Array mapping hexadecimal characters to their decimal values and vice versa.
- * The hexadecimal letters are mapped using the lowercase forms.
- */
-static const char hexdecmap[] = {
-    // Decimal value to hexadecimal digit
-    [0]  = '0', [1]  = '1', [2]  = '2', [3]  = '3', [4]  = '4', [5]  = '5',
-    [6]  = '6', [7]  = '7', [8]  = '8', [9]  = '9', [10] = 'a', [11] = 'b',
-    [12] = 'c', [13] = 'd', [14] = 'e', [15] = 'f',
-
-    // Hexadecimal digit to decimal value
-    ['0'] = 0,  ['1'] = 1,  ['2'] = 2,  ['3'] = 3,  ['4'] = 4,  ['5'] = 5,
-    ['6'] = 6,  ['7'] = 7,  ['8'] = 8,  ['9'] = 9,  ['a'] = 10, ['b'] = 11,
-    ['c'] = 12, ['d'] = 13, ['e'] = 14, ['f'] = 15,
-};
-
-/**
  * Convert a C-escaped string to raw data. This function modifies the input
- * string in place and returns a pointer to the end of the escaped data. The
- * return value can be used to detect embedded null bytes.
+ * string in place.
  *
  * Arguments:
  * - text: C-escaped text.
@@ -32,18 +15,28 @@ static const char hexdecmap[] = {
  */
 static char *unescape(char *text)
 {
-    char *in;
-    size_t k;
-    char *out;
-    char value;
+    unsigned char *head;
+    int need;
+    unsigned char utf8seq[3];
+    int32_t value;
+    int wide;
 
-    for (out = in = text; *in; in++) {
-        if (*in != '\\') {
-            *out++ = *in;
+    unsigned char *in = (unsigned char *) text;
+    unsigned char *out = (unsigned char *) text;
+
+    while (*in) {
+        // Literal character
+        if (*in++ != '\\') {
+            *out++ = *(in - 1);
             continue;
         }
 
-        switch (*++in) {
+        // Single-character escape sequences
+        switch (*in) {
+          case '"':  *out++ = '"';  continue;
+          case '\'': *out++ = '\''; continue;
+          case '\?': *out++ = '\?'; continue;
+          case '\\': *out++ = '\\'; continue;
           case 'a':  *out++ = '\a'; continue;
           case 'b':  *out++ = '\b'; continue;
           case 't':  *out++ = '\t'; continue;
@@ -51,34 +44,86 @@ static char *unescape(char *text)
           case 'v':  *out++ = '\v'; continue;
           case 'f':  *out++ = '\f'; continue;
           case 'r':  *out++ = '\r'; continue;
-          case '\\': *out++ = '\\'; continue;
-          case '\0':                continue;
+
+          // Input ends without finishing escape.
+          case '\0':
+            errno = EILSEQ;
+            goto parsing_error;
         }
 
-        value = 0;
+        wide = 0;
 
-        for (k = 0; *in && *in >= '0' && *in <= '7' && k < 3; in++, k++) {
-            value = value * 8 + (*in - '0');
-        }
+        // Hexadecimal escape sequences
+        if (*in == 'x' || *in == 'u' || *in == 'U') {
+            head = in++;
+            need = (*head == 'x' ? 0 : *head == 'u' ? 4 : 8);
 
-        if (k) {
-            *out++ = value;
-        } else if (*in != 'x') {
-            // If the escape sequence isn't recognized, ignore the slash and
-            // just render the character that immediately follows.
-            *out++ = *in;
-        } else {
-            in++;
-            while (isxdigit(*in)) {
-                value = value * 16 + hexdecmap[tolower(*in++)];
+            for (value = 0; isxdigit(*in); /* ... */) {
+                value *= 16;
+                value += *in <= '9' ? *in - '0' : (*in | 32) - 'a' + 10;
+                in++;
+
+                // Stop processing digits at a certain length for "u" and "U."
+                if (need && (in - head - 1) == need) {
+                    need = 0;
+                    wide = 1;
+                    break;
+                }
             }
-            *out++ = value;
-            in--;
+
+            // Handle incorrect number of hexadecimal characters.
+            if (need || (*head == 'x' && head == (in - 1))) {
+                errno = EILSEQ;
+                goto parsing_error;
+            }
+
+        // Octal escape sequence
+        } else if (*in >= '0' && *in <= '7') {
+            value = *in++ - '0';
+
+            for (int n = 0; n < 2; n++) {
+                if ((*in >= '0' && *in <= '7')) {
+                    value = 8 * value + (*in++ - '0');
+                }
+            }
+
+        // If the escape sequence isn't recognized, ignore the slash and just
+        // render the character that immediately follows.
+        } else {
+            value = *(++in);
+        }
+
+        if (!wide || value < 128) {
+            for (/* ... */; value; value >>= 8) {
+                *out++ = (value & 0xFF);
+            }
+        } else if (value > 0x10FFFF) {
+            // Value is out of range for Unicode.
+            errno = EDOM;
+            goto parsing_error;
+        } else {
+            // Encode wide codepoints as UTF-8.
+            if ((utf8seq[0] = value >= 65536 ? 240 : 0)) {
+                *out++ = utf8seq[0] | (value >> 18 & 63);
+            }
+
+            if ((utf8seq[1] = (utf8seq[0] ? 128 : value >= 2048 ? 224 : 0))) {
+                *out++ = utf8seq[1] | (value >> 12 & 63);
+            }
+
+            if ((utf8seq[2] = (utf8seq[1] ? 128 : value >= 64 ? 192 : 0))) {
+                *out++ = utf8seq[2] | (value >> 6 & 63);
+            }
+
+            *out++ = 128 | (value & 63);
         }
     }
 
     *out = '\0';
-    return out;
+    return text;
+
+parsing_error:
+    return NULL;
 }
 
 /**

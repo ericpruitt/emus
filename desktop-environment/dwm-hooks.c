@@ -1,25 +1,37 @@
 #include <ctype.h>
+#include <errno.h>
 #include <regex.h>
+#include <stdint.h>
 #include <time.h>
 
 extern const char *tags[9];
 
+
 /**
- * Convert a C-escaped string to raw data. This function modifies the input
- * string in place.
+ * Convert a C-escaped string to raw bytes.
  *
  * Arguments:
- * - text: C-escaped text.
+ * - text: C-escaped text. This will be modified in-place.
  *
- * Return: Text with escape sequences converted to individual bytes.
+ * Errors:
+ * - EBADMSG: The string ends with an unfinished "\" escape.
+ * - ERANGE: An escape sequence represents a code point that is larger than
+ *   the maximum value the sequence can encode. For octal and hexadecimal
+ *   escapes, the maximum value is 255; and for Unicode escape sequences, it is
+ *   0x10FFFF.
+ * - EILSEQ: A Unicode escape sequence has too few digits; "u" must be
+ *   followed by exactly 4 hexadecimal digits, and "U" must be followed by 8.
+ * - EDOM: A Unicode escape sequence encodes a value within the reserved
+ *   surrogate range -- code points 0xD800 through 0xDFFF, inclusive of both.
+ *
+ * Returns: Text with escape sequences converted to individual bytes.
  */
 static char *unescape(char *text)
 {
-    unsigned char *head;
-    int need;
-    unsigned char utf8seq[3];
-    int32_t value;
-    int wide;
+    int k;
+    unsigned char *marker;
+    int unicode;
+    uint32_t value;
 
     unsigned char *in = (unsigned char *) text;
     unsigned char *out = (unsigned char *) text;
@@ -47,82 +59,89 @@ static char *unescape(char *text)
 
           // Input ends without finishing escape.
           case '\0':
-            errno = EILSEQ;
-            goto parsing_error;
+            errno = EBADMSG;
+            goto unparsable;
         }
 
-        wide = 0;
+        value = 0;
+        unicode = 0;
 
         // Hexadecimal escape sequences
         if (*in == 'x' || *in == 'u' || *in == 'U') {
-            head = in++;
-            need = (*head == 'x' ? 0 : *head == 'u' ? 4 : 8);
+            unicode = (*in != 'x');
+            marker = in++;
 
-            for (value = 0; isxdigit(*in); /* ... */) {
+            while ((*in >= '0' && *in <= '9') ||
+              ((*in | 32) >= 'a' && (*in | 32) <= 'f')) {
                 value *= 16;
                 value += *in <= '9' ? *in - '0' : (*in | 32) - 'a' + 10;
                 in++;
 
-                // Stop processing digits at a certain length for "u" and "U."
-                if (need && (in - head - 1) == need) {
-                    need = 0;
-                    wide = 1;
-                    break;
+                if (unicode) {
+                    // Exactly 4 hexadecimal digits must follow a "u," and 8
+                    // must follow a "U."
+                    if ((in - marker - 1) == (*marker == 'u' ? 4 : 8)) {
+                        goto encode;
+                    }
+                } else if (value > 255) {
+                    // Hexadecimal escapes can be arbitrarily long, but they
+                    // may only be used to encode bytes.
+                    errno = ERANGE;
+                    goto unparsable;
                 }
             }
 
-            // Handle incorrect number of hexadecimal characters.
-            if (need || (*head == 'x' && head == (in - 1))) {
+            // Check whether there were enough hexadecimal digits.
+            if (unicode || (in - 1) == marker) {
                 errno = EILSEQ;
-                goto parsing_error;
-            }
-
-        // Octal escape sequence
-        } else if (*in >= '0' && *in <= '7') {
-            value = *in++ - '0';
-
-            for (int n = 0; n < 2; n++) {
-                if ((*in >= '0' && *in <= '7')) {
-                    value = 8 * value + (*in++ - '0');
-                }
+                goto unparsable;
             }
 
         // If the escape sequence isn't recognized, ignore the slash and just
-        // render the character that immediately follows.
-        } else {
+        // encode the character that immediately follows.
+        } else if (*in < '0' || *in > '7') {
             value = *(++in);
+
+        // Octal escape sequence
+        } else {
+            for (k = 0; k < 3 && *in >= '0' && *in <= '7'; k++) {
+                value = 8 * value + (*in++ - '0');
+            }
+
+            // Octal escapes may only be used to encode bytes.
+            if (value > 255) {
+                errno = ERANGE;
+                goto unparsable;
+            }
         }
 
-        if (!wide || value < 128) {
-            for (/* ... */; value; value >>= 8) {
-                *out++ = (value & 0xFF);
-            }
-        } else if (value > 0x10FFFF) {
-            // Value is out of range for Unicode.
-            errno = EDOM;
-            goto parsing_error;
-        } else {
-            // Encode wide codepoints as UTF-8.
-            if ((utf8seq[0] = value >= 65536 ? 240 : 0)) {
-                *out++ = utf8seq[0] | (value >> 18 & 63);
-            }
-
-            if ((utf8seq[1] = (utf8seq[0] ? 128 : value >= 2048 ? 224 : 0))) {
-                *out++ = utf8seq[1] | (value >> 12 & 63);
+encode:
+        if (value < 128 || !unicode) {
+            // ASCII code points and raw bytes are written out as-is.
+            *out++ = (unsigned char) value;
+        } else if (value <= 0x10FFFF && (value < 0xD800 || value > 0xDFFF)) {
+            // Encode Unicode code points as UTF-8.
+            if (value >= 0x10000) {
+                *out++ = 240 | (value >> 18 & 63);
+                *out++ = 128 | (value >> 12 & 63);
+            } else if (value >= 0x800) {
+                *out++ = 224 | (value >> 12 & 63);
             }
 
-            if ((utf8seq[2] = (utf8seq[1] ? 128 : value >= 64 ? 192 : 0))) {
-                *out++ = utf8seq[2] | (value >> 6 & 63);
-            }
-
+            *out++ = (value < 0x800 ? 192 : 128) | (value >> 6 & 63);
             *out++ = 128 | (value & 63);
+        } else {
+            // The value is too large to be a Unicode code point or it falls
+            // within the surrogate range.
+            errno = value > 0x10FFFF ? ERANGE : EDOM;
+            goto unparsable;
         }
     }
 
     *out = '\0';
     return text;
 
-parsing_error:
+unparsable:
     return NULL;
 }
 
@@ -259,9 +278,11 @@ static void fifohook(char *command)
         // selection queue. If MONITOR is -1, all monitors are searched. The
         // remaining values are case sensitive, extended regular expressions.
         } else if (argmatch("select %d %s %s %s", &mnum, class, name, instance)) {
-            unescape(class);
-            unescape(name);
-            unescape(instance);
+            if (!unescape(class) || !unescape(name) || !unescape(instance)) {
+                perror("unescape");
+                return;
+            }
+
             for (m = mons; m && (mnum == -1 || mnum == m->num); m = m->next) {
                 for (c = m->clients; c; c = c->next) {
                     keep = regexmatch(c->class, class) &&

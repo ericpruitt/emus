@@ -32,7 +32,8 @@ HOST_TARGETS = \
 	linux-lock-on-suspend \
 	linux-tmpfs-tmp \
 
-SLOCK_BINARY = /usr/local/bin/slock
+SCREEN_LOCKER_COMMAND = screen-locker
+SCREEN_LOCKER_BINARY = /usr/local/bin/$(SCREEN_LOCKER_COMMAND)
 
 BACKUP_FOLDER = $(HOME)/config-backups
 
@@ -190,7 +191,7 @@ $(HOME)/.terminfo/t/tmux: terminfo/tmux.info
 	chmod 644 $@.tmp
 	mv $@.tmp $@
 
-/etc/systemd/system/lock-on-suspend.service:
+/etc/systemd/system/lock-on-suspend.service: $(SCREEN_LOCKER_BINARY)
 	echo "- $@"
 	if [ -z "$(SUDO_USER)" ]; then \
 		echo "make: $@: SUDO_USER must be set to create file" >&2; \
@@ -205,7 +206,8 @@ $(HOME)/.terminfo/t/tmux: terminfo/tmux.info
 		'Type=oneshot' \
 		'Environment=DISPLAY=:0' \
 		'ExecStart=/bin/sh -c \
-			"$(SLOCK_BINARY) & sleep 1 && pgrep -x slock"' \
+			"$(SCREEN_LOCKER_BINARY) & sleep 1 && \
+			pgrep -x $(SCREEN_LOCKER_COMMAND)"' \
 		'KillMode=none' \
 		'[Install]' \
 		'WantedBy=sleep.target' \
@@ -215,7 +217,7 @@ $(HOME)/.terminfo/t/tmux: terminfo/tmux.info
 	  *)               systemctl enable $(@F) ;; \
 	esac
 
-/usr/lib/pm-utils/sleep.d/00lock-screen-on-suspend:
+/usr/lib/pm-utils/sleep.d/00lock-screen-on-suspend: $(SCREEN_LOCKER_BINARY)
 	echo "- $@"
 	if [ -z "$(SUDO_USER)" ]; then \
 		echo "make: $@: SUDO_USER must be set to create file" >&2; \
@@ -226,9 +228,9 @@ $(HOME)/.terminfo/t/tmux: terminfo/tmux.info
 		'set -e -u' \
 		'case "$${1:-}" in' \
 		'  hibernate|suspend)' \
-		'    DISPLAY=:0 sudo -u $(SUDO_USER) $(SLOCK_BINARY) &' \
+		'    DISPLAY=:0 sudo -u $(SUDO_USER) $(SCREEN_LOCKER_BINARY) &' \
 		'    sleep 1' \
-		'    pgrep -x slock' \
+		'    pgrep -x $(SCREEN_LOCKER_COMMAND)' \
 		'  ;;' \
 		'esac' \
 	  | sudo sh -c "touch $@ && chmod 755 $@ && cat > $@"

@@ -30,7 +30,7 @@ function shutdown-host()
 #
 function suspend-host()
 {
-    slock systemctl suspend
+    screen-locker systemctl suspend
 }
 
 function main()

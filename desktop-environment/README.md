@@ -386,55 +386,6 @@ bar for the window title area even when no windows are visible.
 
 This patch depends on "dwm-00-systray.diff".
 
-Patches for _slock_
--------------------
-
-### P.A.M. Support ###
-
-**File:** slock-00-pam-authentication.diff
-
-This patch adds support for PAM to slock. Although it was originally based on a
-[patch written by Jan Christoph Ebersbach][jce-pam-auth], it has since been
-refactored. This patch notably differs from Jan's in the following ways:
-
-- PAM is automatically used as the fallback when the user does not appear to
-  have a hash on the local system.
-- The function used to converse with PAM does not kill the screen locker if
-  there is a memory allocation failure.
-- C preprocessor guards have been added so slock can still be compiled when
-  this patch is applied regardless of whether or not the PAM development
-  libraries are available.
-
-Other changes include:
-
-- A new, intermediate color will be shown when slock is waiting on PAM. Its
-  index is `PAM_WAIT`.
-- With this patch, slock drops privileges using the return values of
-  _getuid(2)_ and _getgid(2)_ instead of constants in "config.h".
-
-To build slock with PAM support, add "-lpam" to the library flags and
-"-DHAVE_PAM_AUTH" to the C preprocessor flags.
-
-  [jce-pam-auth]: http://tools.suckless.org/slock/patches/pam_auth
-
-### Improved Modifier Handling ###
-
-**File:** slock-10-improved-modifier-handling.diff
-
-With this patch, modifier keys only cause the screen to display the failure
-color when they are released without pressing a complementary key.
-
-This patch depends on "slock-00-pam-authentication.diff".
-
-### Support for Longer Passwords ###
-
-**File:** slock-10-longer-password-buffer.diff
-
-This patch enlarges the buffer used to store user input so slock can support
-longer passwords.
-
-This patch depends on "slock-00-pam-authentication.diff".
-
 Patches for _st_
 ----------------
 

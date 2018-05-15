@@ -17,9 +17,6 @@ DMENU_COMMIT = e90b88e12a88d6214c00d5ee58ceb69446aa5ac4
 DWM_URL = http://git.suckless.org/dwm
 DWM_COMMIT = bb3bd6fec37174e8d4bb9457ca815c00609e5157
 
-SLOCK_URL = http://git.suckless.org/slock
-SLOCK_COMMIT = 2d2a21a90ad1b53594b1b90b97486189ec54afce
-
 ST_URL = https://git.suckless.org/st
 ST_COMMIT = 8ab629031bd958d93deee9203fea32c38fe8ac30
 
@@ -81,7 +78,7 @@ BASENAME = $(@F)
 			exit 1; \
 		fi; \
 	  ;; \
-	  dmenu-src|dwm-src|slock-src|st-src) \
+	  dmenu-src|dwm-src|st-src) \
 		prefix="$$(echo $${target%-src} | tr 'a-z-' 'A-Z_')"; \
 		url="$$($(MAKE) -s printvar VARIABLE=$${prefix}_URL)"; \
 		commit="$$($(MAKE) -s printvar VARIABLE=$${prefix}_COMMIT)"; \
@@ -99,7 +96,7 @@ BASENAME = $(@F)
 # Compile all known binaries.
 all:
 	touch .MARK
-	$(MAKE) -s dmenu dwm slock st $(UTILITIES)
+	$(MAKE) -s dmenu dwm screen-locker st $(UTILITIES)
 	if [ "$(.TARGETS)" != "install" ] && \
 	  [ "$(MAKECMDGOALS)" != "install" ] ; then \
 		find . -name .git -prune -o -newer .MARK -type f -print \
@@ -111,7 +108,7 @@ all:
 install: all
 	echo "PREFIX = $(PREFIX)"
 	echo "SUPERUSER_PREFIX = $(SUPERUSER_PREFIX)"
-	echo "- slock" && $(MAKE) -s $(SUPERUSER_PREFIX)/bin/slock
+	echo "- screen-locker" && $(MAKE) -s $(SUPERUSER_PREFIX)/bin/screen-locker
 	test -e $(PREFIX)/bin || mkdir $(PREFIX)/bin
 	for binary in "$$PWD/bin/"*; do \
 		echo "- $${binary##*/}"; \
@@ -269,6 +266,22 @@ bin/dwm: dwm-src/dwm
 
 dwm: bin/dwm
 
+screen-locker/screen-locker:
+	cc_shadow_h="$$($(MAKE) -s cc-test ARGS=shadow.h)"; \
+	LDFLAGS="$$($(MAKE) -s cc-test ARGS='-lcrypt -lpam')"; \
+	echo "$$LDFLAGS" | grep -q -e -lpam && pam_cflags="-DHAVE_PAM_AUTH"; \
+	(cd $(@D) && \
+	$(MAKE) $(@F) \
+		CC="$(CC)" \
+		LDFLAGS="$$LDFLAGS" \
+		CFLAGS="$${pam_cflags:-} $${cc_shadow_h:+-DHAVE_SHADOW_H}" \
+	)
+
+screen-locker: screen-locker/screen-locker
+
+$(SUPERUSER_PREFIX)/bin/screen-locker: screen-locker/screen-locker
+	$(RUN_COMMAND_AS_ROOT) 'install -m 4755 -g 0 -o 0 $? $@'
+
 st-src/config.mk:
 	$(MAKE) -s config.mk \
 		CFLAGS="-D_XOPEN_SOURCE" \
@@ -287,25 +300,3 @@ bin/st: st-src/st
 	cp -f $? $@
 
 st: bin/st
-
-slock-src/config.mk:
-	cc_shadow_h="$$($(MAKE) cc-test ARGS=shadow.h)"; \
-	LDFLAGS="$$($(MAKE) cc-test ARGS='-lcrypt -lpam')"; \
-	echo "$$LDFLAGS" | grep -q -e -lpam && pam_cflags="-DHAVE_PAM_AUTH"; \
-	$(MAKE) -s config.mk \
-		CFLAGS="$${pam_cflags:-} $${cc_shadow_h:+-DHAVE_SHADOW_H}" \
-		LDFLAGS="$$LDFLAGS" \
-		LIBRARIES="x11 xext xrandr" \
-	  > $@.tmp
-	uname | grep -qi openbsd || echo COMPATSRC = explicit_bzero.c >> $@.tmp
-	mv $@.tmp $@
-
-slock-src/slock: slock-src ALWAYS_RUN
-	ln -s -f ../slock-config.h slock-src/config.h
-	$(MAKE) -s patch-slock
-	(cd slock-src && $(MAKE) -s slock)
-
-slock: slock-src/slock
-
-$(SUPERUSER_PREFIX)/bin/slock: slock-src/slock
-	$(RUN_COMMAND_AS_ROOT) 'install -m 4755 -g 0 -o 0 $? $@'

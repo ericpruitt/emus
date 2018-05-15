@@ -11,7 +11,6 @@ set -e -u -o pipefail
 declare -a -r PROJECTS=(
     "dmenu dmenu"
     "dwm dwm"
-    "slock slock"
     "st st"
 )
 

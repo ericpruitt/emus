@@ -7,7 +7,7 @@
 set -e -u -o pipefail
 
 declare -r ALWAYS_UNSET_AFTER_UNLOCK="SSH_CONNECTION SSH_TTY"
-declare -r LOCK_COMMAND="slock"
+declare -r LOCK_COMMAND="screen-locker"
 declare -r TMUX_ENV_LIST="$(tmux show-options -g -v -q update-environment)"
 
 declare    tmux_args=""

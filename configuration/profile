@@ -39,9 +39,9 @@ export _JAVA_AWT_WM_NONREPARENTING="1"
 
 export VISUAL="$EDITOR"
 
-sysconfigs="$(dirname "$(readlink "$HOME/.profile")")"
-PATH="$HOME/bin:$sysconfigs/scripts:$HOME/.local/bin:$PATH"
-unset sysconfigs
+reporoot="$(dirname "$(dirname "$(readlink "$HOME/.profile")")")"
+PATH="$HOME/bin:$reporoot/scripts:$HOME/.local/bin:$PATH"
+unset reporoot
 
 # Secondary profile for machine-specific settings.
 test -e "$HOME/.local.profile" && . "$HOME/.local.profile"

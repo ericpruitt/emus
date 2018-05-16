@@ -51,7 +51,7 @@ SHA_HASHES = \
 
 # Build dependencies:
 DEBIAN_BUILD_DEPS = automake bison build-essential pkg-config
-FREEBSD_BUILD_DEPS = automake git gnupg1 pkgconf wget
+FREEBSD_BUILD_DEPS = automake git gnupg2 pkgconf wget
 MACOS_BUILD_DEPS = automake gnupg wget xz
 OPENBSD_BUILD_DEPS = "automake->=1.15" git "gnupg->=2.1" wget xz
 

@@ -42,6 +42,10 @@ TMUX_VERSION = 2.6
 UTF8PROC_VERSION = 2.1.0
 VIM_VERSION = 8.0.0692
 
+# Patch level for Chet Ramey's packages:
+BASH_PATCH_LEVEL = 19
+READLINE_PATCH_LEVEL = 3
+
 # Hashes of unsigned files:
 SHA_HASHES = \
 	"findutils-4.6.0" \
@@ -383,14 +387,22 @@ $(SIGNED_ARCHIVE_FOLDERS): $(PUBRING)
 	  ;; \
 	esac
 	case '$@' in \
-	  $(BASH)/*|$(READLINE)/*) \
+	  $(BASH)/*) \
 		$(MAKE) $(@D)-patches/.FOLDER; \
+		last_patch_regex='-0*$(BASH_PATCH_LEVEL)$$'; \
 	  ;; \
-	esac
+	  $(READLINE)/*) \
+		$(MAKE) $(@D)-patches/.FOLDER; \
+		last_patch_regex='-0*$(READLINE_PATCH_LEVEL)$$'; \
+	  ;; \
+	esac; \
 	for path in patches/$(@D)-* $(@D)-patches/*; do \
 		case "$$path" in *.sig|*[*]*) continue ;; esac; \
 		echo "- $$path"; \
 		(cd $(@D) && patch -p0) < "$$path"; \
+		if echo "$$path" | grep -qe "$${last_patch_regex:-^$$}"; then \
+			break; \
+		fi; \
 	done
 	touch $@
 

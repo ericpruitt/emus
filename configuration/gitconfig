@@ -23,7 +23,6 @@
 	patternType = perl
 
 [diff]
-	noprefix = true
 	algorithm = patience
 
 [include]

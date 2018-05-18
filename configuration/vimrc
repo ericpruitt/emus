@@ -97,8 +97,10 @@ inoremap <C-Right> <C-o>e<C-o><Space>
 for i in range(char2nr("a"), char2nr("z"))
     exec "nnoremap m" . nr2char(i) . " m" . toupper(nr2char(i))
     exec "nnoremap '" . nr2char(i) . " '" . toupper(nr2char(i))
+    exec "nnoremap `" . nr2char(i) . " `" . toupper(nr2char(i))
     exec "vnoremap m" . nr2char(i) . " m" . toupper(nr2char(i))
     exec "vnoremap '" . nr2char(i) . " '" . toupper(nr2char(i))
+    exec "vnoremap `" . nr2char(i) . " `" . toupper(nr2char(i))
 endfor
 unlet i
 

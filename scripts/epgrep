@@ -5,8 +5,8 @@
 # features when the "--enhance" is given as the first command line argument:
 # - ps(1) is used to show detailed information about matching processes instead
 #   of just their PIDs.
-# - When there no arguments other arguments, detailed information about all
-#   non-kernel processes is shown.
+# - When there no other arguments, detailed information about all non-kernel
+#   processes is shown.
 #
 # If standard output is a terminal, "--enhance" is implied.
 
@@ -33,7 +33,7 @@ case "$*" in
     done
 
     # If there were no matching processes, use a dummy argument that should
-    # make ps(1) to show no processes.
+    # make ps(1) show no processes.
     args="${args:--u 123456789}"
   ;;
 

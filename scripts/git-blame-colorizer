@@ -11,10 +11,6 @@
 #   -N              Hide working-copy line numbers.
 #   -n, --show-number
 #                   Show line numbers from the original commit.
-#   -p, --porcelain
-#                   Run "git blame --porcelain" without post-processing. Any
-#                   flags specific to this script are silently ignored while
-#                   any that mirror git-blame arguments are forwarded.
 #   --palette=NAME  Set the color palette. For a list of palettes, search for
 #                   "Predefined Color Palettes" in the AWK script source.
 #   -s, --short     Show summaries using one line instead of two.
@@ -74,10 +70,6 @@ BEGIN {
 
     # Color of lines that have not been committed.
     UNCOMMITTED_COLOR = "239"
-
-    # This variable can be set to invoke "git blame --porcelain" without any
-    # post-processing.
-    PORCELAIN_PROXY = 0
 
     # Controls whether time zone offsets are displayed.
     SHOW_TIMEZONE = 0
@@ -183,8 +175,6 @@ function getopts(    argument, git, optind0)
             LINE_NUMBERS = 0
         } else if (argument ~ /^-(n|-show-number$)/) {
             ORIGINAL_LINE_NUMBERS = 1
-        } else if (argument ~ /^-(p|-porcelain)$/) {
-            PORCELAIN_PROXY = 1
         } else if (argument ~ /^--palette(=|$)/) {
             PALETTE = optarg()
         } else if (argument ~ /^-(s|-short$)/) {
@@ -551,10 +541,6 @@ function handle_line(    c, furthest, lineno, margin, previous_color)
 }
 
 BEGIN {
-    if (PORCELAIN_PROXY) {
-        exit system(GIT_COMMAND)
-    }
-
     if (DATETIME == "host") {
         command = "date +%z"
         command | getline OUTPUT_TIMEZONE

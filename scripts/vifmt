@@ -63,6 +63,7 @@ BEGIN {
     TOKEN_TO_FORMAT["//"]   = "generic"         # Go
     TOKEN_TO_FORMAT[";"]    = "generic"         # Assembly, INI files
     TOKEN_TO_FORMAT["\""]   = "generic"         # Vim
+    TOKEN_TO_FORMAT["*"]    = "generic"         # Middle of a C comment.
 
     USAGE_BODY = 1
     USAGE_FIRST_PARAGRAPH = -1
@@ -201,7 +202,9 @@ function is_title(text)
                 FORMAT = (FORMAT == "c") ? FORMAT : guess
             }
         } else if (guess) {
-            COMMENT_REGEX = "^[ \t]*" $1 "( |$)"
+            symbol = $1
+            gsub(/./, "[&]", symbol)
+            COMMENT_REGEX = "^[ \t]*" symbol "( |$)"
         } else {
             print
             next

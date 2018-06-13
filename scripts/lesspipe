@@ -83,7 +83,7 @@ function main()
       ;;
 
       # Pretty-print XML files
-      *.x?(ht)ml)
+      *.x?(ht)ml|*.atom)
         xmllint --format - < "$path"
       ;;
 

@@ -176,18 +176,6 @@ $(HOME)/.terminfo/t/tmux: terminfo/tmux.info
 	case "$$(lsmod)" in *iwlwifi*) \
 	  echo "options iwlwifi led_mode=1" >> $@.tmp ;; \
 	esac
-	# If there's a discrete Sound Blaster sound card installed, blacklist
-	# every other PCI audio module to avoid load order / driver precedence
-	# issues if there happens to be another device that also has the
-	# ability to act as a sound card (e.g. a video card that supports audio
-	# over HDMI).
-	case "$$(lsmod)" in *snd_emu10k1*) \
-	  find "/lib/modules/$$(uname -r)/kernel/sound/pci" -type f \
-	    | sed -e '/emu10k/d' \
-	          -e 's/\.ko$$//' \
-	          -e 's/-/_/g' \
-	          -e 's:.*/:blacklist :' >> $@.tmp ;; \
-	esac
 	chmod 644 $@.tmp
 	mv $@.tmp $@
 

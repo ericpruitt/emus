@@ -84,7 +84,7 @@ function user-configure-iterm2()
 {
     local guid
 
-    local iterm2_json="$OLDPWD/iterm2json"
+    local iterm2_json="$OLDPWD/iterm2.json"
     local -a option_set=(
         "Control -integer 7"
         "LeftCommand -integer 1"

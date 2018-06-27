@@ -20,7 +20,7 @@
 
 # Packages:
 BASH = bash-4.4
-COREUTILS = coreutils-8.27
+COREUTILS = coreutils-8.29
 FINDUTILS = findutils-4.6.0
 GAWK = gawk-4.2.0
 GMP = gmp-6.1.2

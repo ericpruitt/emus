@@ -1,0 +1,11 @@
+--- lib/explicit_bzero.c	2017-11-23 13:32:17.000000000 -0800
++++ lib/explicit_bzero.c	2018-06-27 07:40:46.000000000 -0700
+@@ -42,7 +42,7 @@
+   memset (s, '\0', len);
+ # ifdef __GNUC__
+   /* Compiler barrier.  */
+-  asm volatile ("" ::: "memory");
++  __asm__ volatile ("" ::: "memory");
+ # endif
+ #endif
+ }

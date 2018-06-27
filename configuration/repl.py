@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
+
 def _install_eager_iterable_shims():
     """
     Modify "filter", "map", "range" and "zip" so they return lists in Python 3.
@@ -24,6 +27,13 @@ def _install_eager_iterable_shims():
 
         closure(function.__name__)
 
+
+try:
+    import readline
+    import rlcompleter
+    readline.parse_and_bind("tab: complete")
+except ImportError:
+    pass
 
 try:
     _install_eager_iterable_shims()

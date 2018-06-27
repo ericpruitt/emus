@@ -39,6 +39,17 @@ export _JAVA_AWT_WM_NONREPARENTING="1"
 
 export VISUAL="$EDITOR"
 
+prefix="$(
+    for path in $(cat /etc/paths /etc/paths.d/*); do
+        case "$PATH" in
+          "$path"|"$path":*|*:"$path"|*:"$path":*) ;;
+          *) printf "$path:" ;;
+        esac
+    done
+)"
+PATH="$prefix$PATH"
+unset prefix
+
 reporoot="$(dirname "$(dirname "$(readlink "$HOME/.profile")")")"
 PATH="$HOME/bin:$reporoot/scripts:$HOME/.local/bin:$PATH"
 unset reporoot

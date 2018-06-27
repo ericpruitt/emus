@@ -1,0 +1,26 @@
+{
+    Disabled = 0;
+    Label = "com.codevat.macos-sshd";
+    POSIXSpawnType = Interactive;
+    Program = "/usr/libexec/sshd-keygen-wrapper";
+    ProgramArguments =     (
+        "/usr/sbin/sshd",
+        "-i",
+        "-f",
+        "/etc/ssh/custom_sshd_config"
+    );
+    Sockets =     {
+        Listeners =         {
+            Bonjour =             (
+                ssh,
+                "sftp-ssh"
+            );
+            SockServiceName = ssh;
+        };
+    };
+    StandardErrorPath = "/dev/null";
+    inetdCompatibility =     {
+        Instances = 42;
+        Wait = 0;
+    };
+}

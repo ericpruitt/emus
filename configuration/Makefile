@@ -31,6 +31,7 @@ HOST_TARGETS = \
 	/etc/modprobe.d/local.conf \
 	linux-lock-on-suspend \
 	linux-tmpfs-tmp \
+	macos-ssh-server \
 
 SCREEN_LOCKER_COMMAND = screen-locker
 SCREEN_LOCKER_BINARY = /usr/local/bin/$(SCREEN_LOCKER_COMMAND)
@@ -58,7 +59,8 @@ user: $(USER_TARGETS) $(LOCAL_USER_TARGETS)
 host:
 	for target in $(HOST_TARGETS); do \
 		case "$$target" in \
-		  linux-*) uname | grep -iq linux || continue ;; \
+		  *linux-*) uname | grep -iq linux || continue ;; \
+		  *macos-*) uname | grep -iq darwin || continue ;; \
 		  *) test -d "$$(dirname -- $$target)" || continue ;; \
 		esac; \
 		targets="$$targets $$target"; \
@@ -236,3 +238,12 @@ linux-tmpfs-tmp:
 		echo "tmpfs /tmp/ tmpfs defaults 0" >> /etc/fstab; \
 		echo "- mount -t tmpfs tmpfs /tmp/ (reboot required)"; \
 	fi
+
+/etc/ssh/com.codevat.macos-sshd_config: macos-sshd_config
+	cp $? $@
+
+/Library/LaunchDaemons/com.codevat.macos-sshd.plist: macos-sshd.plist
+	cp $? $@
+
+macos-ssh-server: /etc/ssh/com.codevat.macos-sshd_config /Library/LaunchDaemons/com.codevat.macos-sshd.plist
+	launchctl load -w /Library/LaunchDaemons/com.codevat.macos-sshd.plist

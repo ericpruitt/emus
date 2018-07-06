@@ -11,6 +11,7 @@ SSH_KEYS_SECRET_FOLDER = $(SSH_KEYS_SECRET)/.FOLDER
 # is created instead of a file.
 UNTRACKED_FILES = \
 	$(HOME)/.ssh/.known-hosts.untracked \
+	$(HOME)/.ssh/authorized_keys.untracked \
 	$(SSH_KEYS_SECRET_FOLDER) \
 
 HOST_KEYS = \
@@ -56,17 +57,11 @@ $(LOCAL_CONFIGS):
 	touch $@
 
 $(UNTRACKED_FILES):
-	target='$(@:/.FOLDER=)'; \
-	symlink="$${target%.*}"; \
-	if [ -e "$$symlink" ] || [ -L "$$symlink" ]; then \
-	    echo "$$symlink: already exists" >&2 && exit 1; \
-	fi; \
 	case "$@" in \
 	  */.FOLDER)    mkdir $(@D) && touch $@ ;; \
 	  */)           mkdir $@ ;; \
 	  *)            (set -o noclobber && > $@) ;; \
-	esac; \
-	ln -s "$${target##*/}" "$$symlink"
+	esac
 
 $(TYPED_SSH_KEYS): $(SSH_KEYS_SECRET_FOLDER)
 	case "$@" in \

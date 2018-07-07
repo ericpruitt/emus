@@ -33,6 +33,11 @@ HOST_TARGETS = \
 	linux-tmpfs-tmp \
 	macos-ssh-server \
 
+TARGETS = \
+	$(HOST_TARGETS) \
+	$(LOCAL_USER_TARGETS) \
+	$(USER_TARGETS) \
+
 SCREEN_LOCKER_COMMAND = screen-locker
 SCREEN_LOCKER_BINARY = /usr/local/bin/$(SCREEN_LOCKER_COMMAND)
 

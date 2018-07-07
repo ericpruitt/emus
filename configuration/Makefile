@@ -29,7 +29,7 @@ LOCAL_USER_TARGETS = \
 
 HOST_TARGETS = \
 	/etc/modprobe.d/local.conf \
-	linux-lock-on-suspend \
+	/etc/systemd/system/lock-on-suspend.service \
 	linux-tmpfs-tmp \
 	macos-ssh-server \
 
@@ -211,32 +211,6 @@ $(HOME)/.terminfo/t/tmux: terminfo/tmux.info
 	  *$(@F)*enabled*) systemctl daemon-reload ;; \
 	  *)               systemctl enable $(@F) ;; \
 	esac
-
-/usr/lib/pm-utils/sleep.d/00lock-screen-on-suspend: $(SCREEN_LOCKER_BINARY)
-	echo "- $@"
-	if [ -z "$(SUDO_USER)" ]; then \
-		echo "make: $@: SUDO_USER must be set to create file" >&2; \
-		exit 1; \
-	fi
-	printf '%s\n' \
-		'#!/bin/sh' \
-		'set -e -u' \
-		'case "$${1:-}" in' \
-		'  hibernate|suspend)' \
-		'    DISPLAY=:0 sudo -u $(SUDO_USER) $(SCREEN_LOCKER_BINARY) &' \
-		'    sleep 1' \
-		'    pgrep -x $(SCREEN_LOCKER_COMMAND)' \
-		'  ;;' \
-		'esac' \
-	  | sudo sh -c "touch $@ && chmod 755 $@ && cat > $@"
-
-linux-lock-on-suspend:
-	if systemctl --version > /dev/null 2>&1; then \
-		target="/etc/systemd/system/lock-on-suspend.service"; \
-	else \
-		target="/usr/lib/pm-utils/sleep.d/00lock-screen-on-suspend"; \
-	fi; \
-	exec $(MAKE) $$target
 
 linux-tmpfs-tmp:
 	if ! egrep -q "^\s*tmpfs\s+/tmp/?\s" /etc/fstab; then \

@@ -108,12 +108,15 @@ clean:
 	fi
 
 .DEFAULT:
-	if ! echo "$@" | grep -qe "$$(printf '%s\n' $(TARGETS))"; then \
-		echo "make: $@: unknown target" >&2; \
-		exit 1; \
-	fi
-	test ! -h $@ || rm $@
-	echo "- $@"
+	for target in $(TARGETS) ""; do \
+		if [ -z "$$target" ]; then \
+			echo "make: no rule to make target '$@'" >&2; \
+			exit 1; \
+		elif [ "$@" = "$$target" ]; then \
+			echo "- $@"; \
+			break; \
+		fi \
+	done
 	basename="$(@F)" && ln -s "$$PWD/$${basename#.}" $@
 	if [ -e "$@/Makefile" ]; then \
 		(cd "$@" && $(MAKE)); \

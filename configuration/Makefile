@@ -38,8 +38,7 @@ TARGETS = \
 	$(LOCAL_USER_TARGETS) \
 	$(USER_TARGETS) \
 
-SCREEN_LOCKER_COMMAND = screen-locker
-SCREEN_LOCKER_BINARY = /usr/local/bin/$(SCREEN_LOCKER_COMMAND)
+SCREEN_LOCKER = /usr/local/bin/screen-locker
 
 BACKUP_FOLDER = $(HOME)/config-backups
 
@@ -169,62 +168,40 @@ $(HOME)/.terminfo/t/tmux: terminfo/tmux.info
 	find terminfo/ -name "*.info" -print -exec tic {} ";"
 	touch $@
 
-/etc/modprobe.d/local.conf:
+#
+#                                --- Linux ---
+#
+
+/etc/fstab: linux/fstab.awk
 	echo "- $@"
-	rm -f $@.tmp
-	# Disable internal speaker
-	echo "blacklist pcspkr" >> $@.tmp
-	# Disable floppy disk support since having this enabled can cause slow
-	# boot times on systems that support floppy disks but don't have a
-	# physical dive present.
-	echo "blacklist floppy" >> $@.tmp
-	# Depending on how the driver is compiled, FireWire may make the host
-	# vulnerable to DMA exploits, so it is disabled since I have no devices
-	# that rely on FireWire.
-	echo "blacklist firewire_core" >> $@.tmp
-	# Disable blinking activity LED for Intel wireless cards.
-	case "$$(lsmod)" in *iwlwifi*) \
-	  echo "options iwlwifi led_mode=1" >> $@.tmp ;; \
-	esac
-	chmod 644 $@.tmp
-	mv $@.tmp $@
+	trap "rm -f $@.tmp" EXIT && $? > $@.tmp && mv $@.tmp $@
 
-/etc/systemd/system/lock-on-suspend.service: $(SCREEN_LOCKER_BINARY)
+/etc/modprobe.d/local.conf: linux/modprobe.conf
 	echo "- $@"
-	if [ -z "$(SUDO_USER)" ]; then \
-		echo "make: $@: SUDO_USER must be set to create file" >&2; \
-		exit 1; \
-	fi
-	printf '%s\n' \
-		'[Unit]' \
-		'Description=Lock screen on suspend' \
-		'Before=sleep.target' \
-		'[Service]' \
-		'User=$(SUDO_USER)' \
-		'Type=oneshot' \
-		'Environment=DISPLAY=:0' \
-		'ExecStart=/bin/sh -c \
-			"$(SCREEN_LOCKER_BINARY) & sleep 1 && \
-			pgrep -x $(SCREEN_LOCKER_COMMAND)"' \
-		'KillMode=none' \
-		'[Install]' \
-		'WantedBy=sleep.target' \
-	  | sudo sh -c "touch $@ && chmod 644 $@ && cat > $@"
-	case "$$(systemctl list-unit-files $(@F))" in \
-	  *$(@F)*enabled*) systemctl daemon-reload ;; \
-	  *)               systemctl enable $(@F) ;; \
-	esac
-
-linux-tmpfs-tmp:
-	if ! egrep -q "^\s*tmpfs\s+/tmp/?\s" /etc/fstab; then \
-		echo "tmpfs /tmp/ tmpfs defaults 0" >> /etc/fstab; \
-		echo "- mount -t tmpfs tmpfs /tmp/ (reboot required)"; \
-	fi
-
-/etc/ssh/com.codevat.macos-sshd_config: macos-sshd_config
 	cp $? $@
 
-/Library/LaunchDaemons/com.codevat.macos-sshd.plist: macos-sshd.plist
+/etc/systemd/system/lock-on-suspend.service: linux/lock-on-suspend.service.sh
+	echo "- $@"
+	trap "rm -f $@.tmp" EXIT && \
+	SCREEN_LOCKER=$(SCREEN_LOCKER) SUDO_USER=$(SUDO_USER) $? > $@.tmp && \
+	mv $@.tmp $@
+	case "$$(systemctl list-unit-files $(@F))" in \
+	  *$(@F)*enabled*) \
+		systemctl daemon-reload; \
+	  ;; \
+	  *) \
+		systemctl enable $(@F); \
+	  ;; \
+	esac
+
+#
+#                                --- macOS ---
+#
+
+/etc/ssh/com.codevat.macos-sshd_config: macos/sshd_config
+	cp $? $@
+
+/Library/LaunchDaemons/com.codevat.macos-sshd.plist: macos/sshd.plist
 	cp $? $@
 
 macos-ssh-server: /etc/ssh/com.codevat.macos-sshd_config /Library/LaunchDaemons/com.codevat.macos-sshd.plist

@@ -19,18 +19,7 @@ compton --daemon -C $(
 )
 
 st &
-
-if ! pgrep -x statusline; then
-    case "$(hostname -f 2>/dev/null || uname -n)" in
-      *.google.*)
-        statusline -z US/Pacific \
-                   -z Europe/Dublin &
-      ;;
-      *)
-        statusline -z US/Pacific &
-      ;;
-    esac
-fi
+pgrep -x statusline || statusline -z US/Pacific &
 
 "$where/scripts/hid-monitor" &
 "$where/scripts/media-control" monitor &

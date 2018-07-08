@@ -23,7 +23,6 @@ USER_TARGETS = \
 	$(HOME)/.vim \
 	$(HOME)/.vimrc \
 	$(HOME)/.xsession \
-	$(HOME)/bin \
 
 LOCAL_USER_TARGETS = \
 	$(HOME)/.local.bashrc \
@@ -46,9 +45,6 @@ SCREEN_LOCKER = /usr/local/bin/screen-locker
 
 BACKUP_FOLDER = $(HOME)/config-backups
 
-PLATFORM = $$(uname -s -m | tr "A-Z " "a-z-" | sed "s/x86_64/amd64/g")
-USERLAND = https://www.codevat.com/downloads/static-unix-userland-$(PLATFORM)
-
 # When installing the default GIMP session configuration, "gimp --version" is
 # used to find out which version of GIMP is installed since the configuration
 # path is version dependent. If GIMP has not been installed, this value is used
@@ -56,10 +52,6 @@ USERLAND = https://www.codevat.com/downloads/static-unix-userland-$(PLATFORM)
 FALLBACK_GIMP_VERSION = 2.8
 
 all: user
-	if ! command -v bash | fgrep -q "$(HOME)" && \
-	  wget -q --spider $(USERLAND); then \
-		$(MAKE) userland; \
-	fi
 	$(MAKE) host
 
 user: $(USER_TARGETS) $(LOCAL_USER_TARGETS)
@@ -80,20 +72,6 @@ host:
 		exit 1; \
 	fi; \
 	$(MAKE) $$targets; \
-
-userland:
-	trap 'cd / && rm -rf "$$tempdir"' EXIT; \
-	tempdir="$$(mktemp -d)"; \
-	mkdir "$$tempdir/.gpg"; \
-	export GNUPGHOME="$$tempdir/.gpg"; \
-	gpg --import "public-keys/eric-pruitt.asc"; \
-	cd "$$tempdir"; \
-	wget --max-redirect=0 $(USERLAND); \
-	gpg --use-embedded-filename *; \
-	test ! -e *.xz || unxz *.xz; \
-	tar -x -f *.tar; \
-	cd */; \
-	$(MAKE); \
 
 clean:
 	mkdir -p "$(BACKUP_FOLDER)"
@@ -136,9 +114,6 @@ $(LOCAL_USER_TARGETS):
 # when a .DEFAULT build rule is defined. This no-op build target eliminates
 # that behavior.
 Makefile:
-
-$(HOME)/bin:
-	mkdir $@
 
 $(HOME)/.config/Trolltech.conf: qt.conf
 	mkdir -p $(@D)

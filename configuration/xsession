@@ -1,6 +1,5 @@
 #!/bin/sh
 exec > /dev/null 2>&1
-where="$(dirname "$(readlink -f -- "$0")")"
 
 . ~/.profile
 
@@ -8,7 +7,7 @@ xmodmap -e "remove mod4 = Hyper_L" \
         -e "remove Lock = Caps_Lock" \
         -e "keysym Caps_Lock = Hyper_L" \
         -e "add mod3 = Hyper_L"
-xrdb -load "$where/xrdb.ad"
+xrdb -load "$EMUS/configuration/xrdb.ad"
 xset s off -dpms
 blackwalls
 
@@ -21,8 +20,9 @@ compton --daemon -C $(
 st &
 pgrep -x statusline || statusline -z US/Pacific &
 
-"$where/scripts/hid-monitor" &
-"$where/scripts/media-control" monitor &
+PATH="$EMUS/desktop-environment/scripts:$PATH"
+hid-monitor &
+media-control monitor &
 
-until PATH="$where/scripts:$PATH" dwm; do :; sleep 1; done
+until dwm; do sleep 1; done
 kill -SIGHUP -$$

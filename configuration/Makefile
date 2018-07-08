@@ -6,26 +6,30 @@
 USER_TARGETS = \
 	$(HOME)/.abcde.conf \
 	$(HOME)/.bashrc \
+	$(HOME)/.config/Trolltech.conf \
 	$(HOME)/.dir_colors \
 	$(HOME)/.elinks/elinks.conf \
+	$(HOME)/.fonts.conf \
 	$(HOME)/.gimp/sessionrc \
 	$(HOME)/.gitconfig \
 	$(HOME)/.gitignore \
+	$(HOME)/.gtkrc-2.0 \
 	$(HOME)/.inputrc \
 	$(HOME)/.profile \
 	$(HOME)/.repl.py \
 	$(HOME)/.ssh \
 	$(HOME)/.terminfo \
-	$(HOME)/.terminfo/t/tmux \
 	$(HOME)/.tmux.conf \
 	$(HOME)/.vim \
 	$(HOME)/.vimrc \
+	$(HOME)/.xsession \
 	$(HOME)/bin \
 
 LOCAL_USER_TARGETS = \
 	$(HOME)/.local.bashrc \
 	$(HOME)/.local.gitconfig \
 	$(HOME)/.local.profile \
+	$(HOME)/.local.xsession \
 
 HOST_TARGETS = \
 	/etc/modprobe.d/local.conf \
@@ -136,6 +140,10 @@ Makefile:
 $(HOME)/bin:
 	mkdir $@
 
+$(HOME)/.config/Trolltech.conf: qt.conf
+	mkdir -p $(@D)
+	cp $^ $@
+
 $(HOME)/.elinks:
 	mkdir $(HOME)/.elinks
 
@@ -162,10 +170,9 @@ $(HOME)/.gimp/sessionrc: gimp.sessionrc
 		cp $^ $@; \
 	fi
 
-$(HOME)/.terminfo/t/tmux: terminfo/tmux.info
-	echo "- $@"
-	mkdir -p $(@D)
-	find terminfo/ -name "*.info" -print -exec tic {} ";"
+$(HOME)/.terminfo: terminfo/st.info terminfo/tmux.info
+	mkdir -p $@
+	TERMINFO=$@ find terminfo/ -name "*.info" -print -exec tic -x {} ";"
 	touch $@
 
 #

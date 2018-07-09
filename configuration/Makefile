@@ -110,6 +110,7 @@ $(HOME)/.terminfo: terminfo/st.info terminfo/tmux.info
 /etc/fstab: linux/fstab.awk
 	echo "- $@"
 	trap "rm -f $@.tmp" EXIT && $? > $@.tmp && mv $@.tmp $@
+	chmod 644 $@
 
 /etc/modprobe.d/local.conf: linux/modprobe.conf
 	echo "- $@"

@@ -3,14 +3,16 @@
 .POSIX:
 .SILENT:
 
-USER_TARGETS = \
+BACKUP_FOLDER = $(HOME)/config-backups
+LOCALCONFIGS = $(HOME)/localconfigs
+SCREEN_LOCKER = /usr/local/bin/screen-locker
+
+SYMLINKS = \
 	$(HOME)/.abcde.conf \
 	$(HOME)/.bashrc \
-	$(HOME)/.config/Trolltech.conf \
 	$(HOME)/.dir_colors \
 	$(HOME)/.elinks/elinks.conf \
 	$(HOME)/.fonts.conf \
-	$(HOME)/.gimp/sessionrc \
 	$(HOME)/.gitconfig \
 	$(HOME)/.gitignore \
 	$(HOME)/.gtkrc-2.0 \
@@ -18,141 +20,87 @@ USER_TARGETS = \
 	$(HOME)/.profile \
 	$(HOME)/.repl.py \
 	$(HOME)/.ssh \
-	$(HOME)/.terminfo \
 	$(HOME)/.tmux.conf \
 	$(HOME)/.vim \
 	$(HOME)/.vimrc \
 	$(HOME)/.xsession \
 
-LOCAL_USER_TARGETS = \
+LOCALCONFIGS_SYMLINKS = \
 	$(HOME)/.local.bashrc \
 	$(HOME)/.local.gitconfig \
 	$(HOME)/.local.profile \
 	$(HOME)/.local.xsession \
 
-HOST_TARGETS = \
+TEMPLATES = \
+	$(HOME)/.config/Trolltech.conf \
+	$(HOME)/.gimp-2.8/sessionrc \
+	$(HOME)/.terminfo \
+
+LINUX_TARGETS = \
+	/etc/fstab \
 	/etc/modprobe.d/local.conf \
 	/etc/systemd/system/lock-on-suspend.service \
-	linux-tmpfs-tmp \
+
+MACOS_TARGETS = \
+	/etc/ssh/com.codevat.macos-sshd_config \
+	/Library/LaunchDaemons/com.codevat.macos-sshd.plist \
 	macos-ssh-server \
 
-TARGETS = \
-	$(HOST_TARGETS) \
-	$(LOCAL_USER_TARGETS) \
-	$(USER_TARGETS) \
-
-SCREEN_LOCKER = /usr/local/bin/screen-locker
-
-BACKUP_FOLDER = $(HOME)/config-backups
-
-# When installing the default GIMP session configuration, "gimp --version" is
-# used to find out which version of GIMP is installed since the configuration
-# path is version dependent. If GIMP has not been installed, this value is used
-# as the fallback version number.
-FALLBACK_GIMP_VERSION = 2.8
-
-all: user
-	$(MAKE) host
-
-user: $(USER_TARGETS) $(LOCAL_USER_TARGETS)
+user: $(LOCALCONFIGS_SYMLINKS) $(SYMLINKS) $(TEMPLATES)
 
 host:
-	for target in $(HOST_TARGETS); do \
-		case "$$target" in \
-		  *linux-*) uname | grep -iq linux || continue ;; \
-		  *macos-*) uname | grep -iq darwin || continue ;; \
-		  *) test -d "$$(dirname -- $$target)" || continue ;; \
-		esac; \
-		targets="$$targets $$target"; \
-	done; \
-	test -n "$$targets" || exit 0; \
-	if [ "$$(id -u)" -ne 0 ]; then \
-		command -v sudo > /dev/null && exec sudo $(MAKE) $$targets; \
-		echo "make: $@: target must executed as root" >&2; \
-		exit 1; \
-	fi; \
-	$(MAKE) $$targets; \
+	case "$$(uname)" in \
+	  Darwin) \
+		$(MAKE) $(MACOS_TARGETS); \
+	  ;; \
+	  Linux) \
+		$(MAKE) $(LINUX_TARGETS); \
+	  ;; \
+	esac
 
 clean:
-	mkdir -p "$(BACKUP_FOLDER)"
-	for target in $(TARGETS); do \
-		test -n "$${target##*terminfo*}" || continue; \
+	for target in $(SYMLINKS) $(LOCALCONFIGS_SYMLINKS); do \
 		if [ -h "$$target" ]; then \
 			rm "$$target"; \
 		elif [ -e "$$target" ] && ! [ -d "$$target" ]; then \
+			mkdir -p "$(BACKUP_FOLDER)"; \
 			mv "$$target" "$(BACKUP_FOLDER)"; \
 		fi; \
 	done
-	if ! rmdir "$(BACKUP_FOLDER)" 2>/dev/null; then \
+	if [ -e "$(BACKUP_FOLDER)" ]; then \
 		echo "Existing files backed up in $(BACKUP_FOLDER):"; \
 		ls -l $(BACKUP_FOLDER); \
 	fi
 
-.DEFAULT:
-	for target in $(TARGETS) ""; do \
-		if [ -z "$$target" ]; then \
-			echo "make: no rule to make target '$@'" >&2; \
-			exit 1; \
-		elif [ "$@" = "$$target" ]; then \
-			echo "- $@"; \
-			break; \
-		fi \
-	done
-	basename="$(@F)" && ln -s "$$PWD/$${basename#.}" $@
+$(SYMLINKS):
+	echo "- $@"
+	mkdir -p $(@D)
+	basename="$(@F)" && ln -f -s "$$PWD/$${basename#.}" $@
 	if [ -e "$@/Makefile" ]; then \
 		(cd "$@" && $(MAKE)); \
 	fi
 
-$(LOCAL_USER_TARGETS):
-	mkdir -p $(HOME)/localconfigs
-	stem="$$(echo '$@' | sed 's/.*\.local\.//')" && \
-	source="$(HOME)/localconfigs/$$stem" &&  \
-	test -e "$$source" || touch "$$source" && \
-	ln -s "$$source" $@
-
-# When using "-B" with GNU Make, it attempts to create the target "Makefile"
-# when a .DEFAULT build rule is defined. This no-op build target eliminates
-# that behavior.
-Makefile:
+$(LOCALCONFIGS_SYMLINKS):
+	echo "- $@"
+	mkdir -p $(LOCALCONFIGS)
+	target="$@"; \
+	source="$(HOME)/localconfigs/$${target##*.local.}"; \
+	test -e "$$source" || touch "$$source"; \
+	ln -f -s "$$source" $@
 
 $(HOME)/.config/Trolltech.conf: qt.conf
 	mkdir -p $(@D)
-	cp $^ $@
+	cp $? $@
 
-$(HOME)/.elinks:
-	mkdir $(HOME)/.elinks
-
-$(HOME)/.elinks/elinks.conf: elinks.conf
-	echo "- $@"
-	mkdir -p $(@D)
-	test ! -h $@ || rm $@
-	ln -s "$$PWD/$?" $@
-
-$(HOME)/.gimp/sessionrc: gimp.sessionrc
-	if ! [ -e $(@D) ]; then \
-		major_minor_version="$$( \
-		    LC_ALL=C gimp --version \
-		    | sed -e 's/.* //' -e 's/^\([0-9]\+[.][0-9]\+\)[.].*/\1/' \
-		)"; \
-		test -n "$${major_minor_version:=$(FALLBACK_GIMP_VERSION)}"; \
-		config_directory=".gimp-$$major_minor_version"; \
-		mkdir -p $(HOME)/"$$config_directory"; \
-		ln -s "$$config_directory" $(@D); \
-	fi
-	if [ -e $@ ]; then \
-		touch $@; \
-	else \
-		cp $^ $@; \
-	fi
+$(HOME)/.gimp-2.8/sessionrc: gimp.sessionrc
+	cp $? $@
 
 $(HOME)/.terminfo: terminfo/st.info terminfo/tmux.info
-	mkdir -p $@
-	TERMINFO=$@ find terminfo/ -name "*.info" -print -exec tic -x {} ";"
+	for path in $?; do \
+		echo "- $$path"; \
+		TERMINFO="$@" tic -x "$$path"; \
+	done
 	touch $@
-
-#
-#                                --- Linux ---
-#
 
 /etc/fstab: linux/fstab.awk
 	echo "- $@"
@@ -175,10 +123,6 @@ $(HOME)/.terminfo: terminfo/st.info terminfo/tmux.info
 		systemctl enable $(@F); \
 	  ;; \
 	esac
-
-#
-#                                --- macOS ---
-#
 
 /etc/ssh/com.codevat.macos-sshd_config: macos/sshd_config
 	cp $? $@

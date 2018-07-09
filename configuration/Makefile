@@ -3,7 +3,6 @@
 .POSIX:
 .SILENT:
 
-BACKUP_FOLDER = $(HOME)/config-backups
 LOCALCONFIGS = $(HOME)/localconfigs
 SCREEN_LOCKER = /usr/local/bin/screen-locker
 
@@ -58,19 +57,25 @@ host:
 	  ;; \
 	esac
 
-clean:
-	for target in $(SYMLINKS) $(LOCALCONFIGS_SYMLINKS); do \
-		if [ -h "$$target" ]; then \
-			rm "$$target"; \
-		elif [ -e "$$target" ] && ! [ -d "$$target" ]; then \
-			mkdir -p "$(BACKUP_FOLDER)"; \
-			mv "$$target" "$(BACKUP_FOLDER)"; \
+prepare uninstall:
+	for path in $(SYMLINKS) $(LOCALCONFIGS_SYMLINKS); do \
+		if [ -h "$$path" ]; then \
+			if [ "$@" = "clean" ]; then \
+				case "$$(readlink "$$path")" in \
+				  "$${PWD%/}/"*) ;; \
+				  *) continue ;; \
+				esac; \
+			fi; \
+			echo rm "$$path"; \
+			rm "$$path"; \
+		elif [ "$@" = "prepare"] && [ -e "$$path" ]; then \
+			dirname="$$(dirname "$$path")"; \
+			basename="$$(basename "$$path")"; \
+			destination="$$dirname/_$${basename#.}"; \
+			printf "%s -> %s\n" "$$path" "$$destination"; \
+			mv -i "$$path" "$$destination"; \
 		fi; \
 	done
-	if [ -e "$(BACKUP_FOLDER)" ]; then \
-		echo "Existing files backed up in $(BACKUP_FOLDER):"; \
-		ls -l $(BACKUP_FOLDER); \
-	fi
 
 $(SYMLINKS):
 	echo "- $@"

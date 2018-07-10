@@ -1,3 +1,6 @@
+Disable error 173, "... more files to edit" which is generated when "the last
+item in the argument list has not been edited."
+
 diff --git src/ex_docmd.c src/ex_docmd.c
 index 6802b8b..ea85bf1 100644
 --- src/ex_docmd.c

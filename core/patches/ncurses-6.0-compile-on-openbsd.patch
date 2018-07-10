@@ -1,4 +1,5 @@
-Original patch: https://github.com/rapid7/metasploit-omnibus/blob/21ff5135f19285c81cc167c87bde6d1db6d7921a/config/patches/ncurses/patch-ncurses_tinfo_lib__baudrate.c
+Adjust some preprocessor guards to resolve build failures on OpenBSD.
+
 --- ncurses/tinfo/lib_baudrate.c	2015-06-13 17:34:12.000000000 -0700
 +++ ncurses/tinfo/lib_baudrate.c	2016-10-29 18:34:14.000000000 -0700
 @@ -39,7 +39,7 @@

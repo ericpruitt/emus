@@ -1,5 +1,4 @@
-Title: Status Bar On All Monitors
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 Show the status bar on all monitors -- focused or not, and always use
 "SchemeSel" (the selected-item color scheme) on the focused monitor's status

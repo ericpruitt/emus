@@ -1,5 +1,4 @@
-Title: Custom Rules Hook
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 Let's users to define more complex constraints than what the "rules" array
 allows; the user defines a function as `void ruleshook(Client *c)` in the

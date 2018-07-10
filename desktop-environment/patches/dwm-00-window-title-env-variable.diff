@@ -1,5 +1,4 @@
-Title: Window Title Environment Variable
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 This patch sets the environment variable "DWM_SELECTED_WINDOW_TITLE" to the
 title of the currently selected window when spawning a subprocess.

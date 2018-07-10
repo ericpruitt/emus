@@ -1,3 +1,6 @@
+When "mode-keys" is set to "vi" and there is an active search query in copy
+mode, preserve the search query when using movement commands.
+
 diff --git window-copy.c window-copy.c
 index 7ab26262..a12ac34b 100644
 --- window-copy.c

@@ -1,5 +1,4 @@
-Title: Better Borders
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 Disables borders on tiled windows when only one, non-floating window is
 visible.

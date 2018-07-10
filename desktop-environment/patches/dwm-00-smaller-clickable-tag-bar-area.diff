@@ -1,5 +1,4 @@
-Title: Smaller Clickable Tag-Bar Area
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 Makes clicks on the window title area register only if they happen in the top
 half. This patch was created to reduce the amount of accidental window closures

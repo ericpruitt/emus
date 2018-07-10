@@ -1,3 +1,7 @@
+Refine the heuristics for "substr: start index ... is past end of string" so
+the warning is only shown if the third argument is set or if the start index is
+more than 1 character beyond the end of a string.
+
 --- builtin.c	2016-08-24 12:31:55.000000000 -0700
 +++ builtin.c	2017-11-01 19:35:35.367783718 -0700
 @@ -1742,9 +1742,7 @@

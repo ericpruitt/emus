@@ -1,5 +1,4 @@
-Title: Visibility Removes Urgency
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 Removes urgency hint from any window that is visible. This will not reset most
 applications' internal urgency states which means things like tray icons may

@@ -1,3 +1,10 @@
+When running commands interactively, modify the terminal attributes so the
+suspend character is interpreted as literal sequence at the prompt but produces
+a SIGTSTP signal during command execution. This makes it possible to bind ^Z in
+readline. For example, adding `"\C-z": "\C-afg \C-m"` to "~/.inputrc" would
+make it possible to suspend a program using ^Z then pressing ^Z again to bring
+the program back to the foreground.
+
 --- eval.c	2016-06-02 15:49:27.000000000 -0700
 +++ eval.c	2016-11-20 15:02:23.681680378 -0800
 @@ -31,6 +31,7 @@

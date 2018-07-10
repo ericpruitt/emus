@@ -1,5 +1,4 @@
-Title: Font Array Support
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 Modifies st to support user-defined fallback fonts specified in a NULL
 terminated array defined as `const char *fonts[]`. This change also resolves an

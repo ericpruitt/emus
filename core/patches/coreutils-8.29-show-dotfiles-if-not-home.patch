@@ -1,3 +1,6 @@
+When listing the contents of a folder, "-A" (list all files except "." and
+"..") is implicit unless the directory is the user's home directory.
+
 --- src/ls.c	2016-01-14 04:16:23.000000000 -0800
 +++ src/ls.c	2016-11-03 16:35:12.787371263 -0700
 @@ -245,7 +245,7 @@

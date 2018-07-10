@@ -1,6 +1,5 @@
-Title: Hide Vacant Tags
-Author: Ondřej Grover <ondrej.grover@gmail.com>
-URL: http://dwm.suckless.org/patches/hide_vacant_tags (v. 2016-01-22)
+- Author: Ondřej Grover <ondrej.grover@gmail.com>
+- URL: http://dwm.suckless.org/patches/hide_vacant_tags (v. 2016-01-22)
 
 This patch prevents dwm from drawing tags with no clients (i.e. vacant) on the
 bar. It also makes sure that clicking a tag on the bar behaves accordingly by

@@ -1,3 +1,5 @@
+Remove the lint heuristics for "subscript of array ... is null string."
+
 --- interpret.h.orig	2017-10-17 11:46:48.000000000 -0700
 +++ interpret.h	2017-11-17 00:14:39.127254529 -0800
 @@ -240,8 +240,6 @@

@@ -1,3 +1,7 @@
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+Silence a compiler warning by explicitly defining "ew" in "drw_text".
+
 diff --git drw.c drw.c
 index c1582e7..8876b2c 100644
 --- drw.c

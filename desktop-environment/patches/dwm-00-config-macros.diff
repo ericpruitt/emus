@@ -1,5 +1,4 @@
-Title: Configuration Macros
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 Copies most macros defined in dwm's config.def.h to dwm.c and adds some
 additional helpers. The user must still explicitly map "MODKEY" to their

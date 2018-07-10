@@ -1,5 +1,4 @@
-Title: Center Floating Windows
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 For whatever reason, some windows that should be centered are instead spawned
 in the top left corner at position (0, 0) relative to the dwm bar; this change

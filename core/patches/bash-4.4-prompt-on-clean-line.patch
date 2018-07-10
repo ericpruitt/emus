@@ -1,3 +1,17 @@
+Ensure the prompt will always be displayed on a clean line even if the output
+of the last program did not end with a newline.
+
+**Before:**
+
+    ~$ printf abc
+    abc~$
+
+**After:**
+
+    ~$ printf abc
+    abc
+    ~$
+
 --- parse.y	2016-09-11 08:31:46.000000000 -0700
 +++ parse.y	2017-04-08 14:26:41.425394991 -0700
 @@ -5386,6 +5386,11 @@

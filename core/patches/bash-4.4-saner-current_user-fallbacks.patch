@@ -1,3 +1,6 @@
+If a user's information cannot be queried from the password database, use the
+environment variables "LOGNAME", "HOME" and "SHELL" if they are set.
+
 --- original.shell.c	2016-12-17 20:31:12.930010667 -0800
 +++ shell.c	2016-12-17 20:31:05.362213931 -0800
 @@ -1774,10 +1774,10 @@

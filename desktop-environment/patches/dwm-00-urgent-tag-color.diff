@@ -1,5 +1,4 @@
-Title: Urgent Tag Color
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 Allows customization of colors for tags containing urgent windows. A new color
 scheme should be defined in the "colors" array indexed with `SchemeUrg`:

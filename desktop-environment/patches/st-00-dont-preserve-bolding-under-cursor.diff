@@ -1,5 +1,4 @@
-Title: Don't Preserve Bolding Under Cursor
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 When a character is emboldened, its color may not be the same as the non-bold
 version, so swapping the background color and foreground color will result in

@@ -1,5 +1,4 @@
-Title: Restrict Mouse To Focused Monitor
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 This change adds the option to restrict the mouse to the focused monitor. When
 the mouse reaches the edge of the screen while restriction is enabled, the

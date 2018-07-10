@@ -1,5 +1,4 @@
-Title: User-defined Prompt Colors
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 With this patch, the prompt foreground can be specified with the "-pf" command
 line option, and the background can be specified with "-pb". A new entry must

@@ -1,3 +1,8 @@
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+Replace the deprecated function "XKeycodeToKeysym" with "XkbKeycodeToKeysym" to
+silence a compiler warning.
+
 diff --git dwm.c dwm.c
 index 421bf27..54e3ee8 100644
 --- dwm.c

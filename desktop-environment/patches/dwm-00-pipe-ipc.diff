@@ -1,5 +1,4 @@
-Title: Pipe IPC
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 This patch adds support for interprocess communication to dwm via a named pipe.
 The path of the pipe is defined with `static const char fifopath[]` in the

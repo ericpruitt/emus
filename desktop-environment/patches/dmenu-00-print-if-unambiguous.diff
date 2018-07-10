@@ -1,5 +1,4 @@
-Title: Print Selection If Unambiguous
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 This patch adds a new command line option ("-a") that will make dmenu print the
 current selection and exit if the user input only matches one item.

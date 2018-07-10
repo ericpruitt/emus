@@ -1,5 +1,4 @@
-Title: Tag Rules
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 Adds a new set of rules that can be used to temporarily override the layout,
 nmaster and mfact values when certain tags are active. The new rule structs

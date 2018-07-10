@@ -1,5 +1,4 @@
-Title: Underscore Ascent Scale
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 With certain font configurations, underscores are drawn outside the character
 cell clipping area in st, a problem that also plagues other terminal emulators

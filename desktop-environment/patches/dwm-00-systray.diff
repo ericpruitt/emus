@@ -1,9 +1,8 @@
-Title: System Tray
-Original Patch: http://dwm.suckless.org/patches/systray (v. 20160731-56a31dc)
-Authors: Jan Christoph Ebersbach <jceb@e-jc.de>,
+- Original Patch: http://dwm.suckless.org/patches/systray (v. 20160731-56a31dc)
+- Authors: Jan Christoph Ebersbach <jceb@e-jc.de>,
     Yury Shvedov <shved@lvk.cs.msu.su>,
     Carlo Pita
-Modified By: Eric Pruitt <eric.pruitt@gmail.com>
+- Modified By: Eric Pruitt <eric.pruitt@gmail.com>
 
 Implements a system tray for dwm. The following variables must be defined in
 the configuration header:

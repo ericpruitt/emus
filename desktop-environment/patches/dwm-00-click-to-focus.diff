@@ -1,7 +1,6 @@
-Title: Click to Focus
-Author: Bert Münnich
-URL: http://lists.suckless.org/dev/1212/13833.html
-Modified By: Eric Pruitt <eric.pruitt@gmail.com>
+- Author: Bert Münnich
+- URL: http://lists.suckless.org/dev/1212/13833.html
+- Modified By: Eric Pruitt <eric.pruitt@gmail.com>
 
 Modifies focus behavior so window focus is only changed when a mouse button is
 clicked. The [focusonclick patch][focusonclick] renders `MODKEY` mouse actions

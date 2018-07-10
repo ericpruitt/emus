@@ -1,3 +1,9 @@
+When standard input is a terminal, running _grep(1)_ without any files
+specified as command line arguments implies "-r". A notice is written to
+standard error, and the search is delayed if standard output is also a terminal
+so the user has time to abort the search before the screen is polluted with
+potentially unwanted information.
+
 --- src/grep.c	2017-07-02 10:41:41.000000000 -0700
 +++ src/grep.c	2017-09-09 20:59:05.784140520 -0700
 @@ -26,6 +26,8 @@

@@ -1,5 +1,4 @@
-Title: Select Previous Window
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 Adds function that is used to select the most recently, previously focused
 window that is currently visible. To compile dwm with this patch, the command

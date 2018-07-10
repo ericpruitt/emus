@@ -1,4 +1,7 @@
-Original patch: https://github.com/ricardoquesada/Spidermonkey/blob/b56b8606bd449add2ecff67aead6aa86d1b7e548/ipc/chromium/src/third_party/libevent/openbsd-no-arc4random_addrandom.patch
+Add preprocessor guards to resolve OpenBSD failures caused by conflicting
+definitions of _arc4random_addrandom(3)_. This patch was [submitted to Mozilla
+by Landry Breuil](https://bugzilla.mozilla.org/show_bug.cgi?id=931354).
+
 --- include/event2/util.h	Mon Dec 15 17:10:20 2014
 +++ include/event2/util.h	Mon Oct 17 19:26:17 2016
 @@ -690,6 +690,7 @@

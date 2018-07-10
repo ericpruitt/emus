@@ -1,4 +1,6 @@
-diff -u -r awkgram.c gawk-4.1.4/awkgram.c
+Remove the lint heuristics for "regular expression on right of assignment" and
+"assignment used in conditional context."
+
 --- awkgram.c	2016-08-24 20:16:31.000000000 -0700
 +++ awkgram.c	2016-11-06 16:05:21.090310547 -0800
 @@ -3160,9 +3160,6 @@
@@ -11,7 +13,6 @@ diff -u -r awkgram.c gawk-4.1.4/awkgram.c
  		(yyval) = mk_assignment((yyvsp[-2]), (yyvsp[0]), (yyvsp[-1]));
  	  }
  #line 3169 "awkgram.c" /* yacc.c:1646  */
-diff -u -r interpret.h gawk-4.1.4/interpret.h
 --- interpret.h	2016-08-24 12:31:55.000000000 -0700
 +++ interpret.h	2016-11-06 16:06:21.132700275 -0800
 @@ -373,7 +373,6 @@

@@ -1,5 +1,4 @@
-Title: Regular Expression Rules
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 Enables the use of regular expressions for window rules' "class", "title" and
 "instance" attributes.

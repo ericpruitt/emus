@@ -1,5 +1,4 @@
-Title: Clear Selection When Ownership of X11 "PRIMARY" Buffer Is Lost
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 If text is selected in another window and st loses ownership of the X11
 "PRIMARY" buffer, clear any existing highlighted / selected lines.

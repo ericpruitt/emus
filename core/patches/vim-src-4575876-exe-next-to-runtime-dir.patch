@@ -1,3 +1,6 @@
+Set the default value of "VIMRUNTIME" to `$EXEDIR/vimruntime` where `$EXEDIR`
+is the directory in which the Vim binary resides.
+
 diff --git src/misc1.c src/misc1.c
 index 6bf7d75..9a5c13f 100644
 --- src/misc1.c

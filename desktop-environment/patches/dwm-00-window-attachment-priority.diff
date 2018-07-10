@@ -1,5 +1,4 @@
-Title: Window Attachment Priority
-Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
 
 Adds an additional property named "priority" to window rule definitions. When a
 new window is managed by dwm, its position in the window list is determined by

@@ -128,7 +128,7 @@
             "Character Encoding": 4,
             "Close Sessions On End": true,
             "Columns": 200,
-            "Command": "",
+            "Command": "/bin/sh -c \"test ! -e ~/.profile || . ~/.profile && exec bash\"",
             "Cursor Color": {
                 "Blue Component": 0.7333333492279053,
                 "Green Component": 0.7333333492279053,
@@ -139,7 +139,7 @@
                 "Green Component": 1,
                 "Red Component": 1
             },
-            "Custom Command": "No",
+            "Custom Command": "Yes",
             "Custom Directory": "No",
             "Default Bookmark": "No",
             "Description": "Default",

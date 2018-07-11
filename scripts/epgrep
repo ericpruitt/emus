@@ -1,5 +1,5 @@
 #!/bin/sh
-# Usage: epgrep [--enhance] [PS_ARGUMENT]...
+# Usage: epgrep [--enhance] [--ps-options=...] [PS_ARGUMENT]...
 #
 # Enhanced pgrep (epgrep) is wrapper for pgrep(1) that adds a couple of new
 # features when the "--enhance" is given as the first command line argument:
@@ -8,18 +8,33 @@
 # - When there no other arguments, detailed information about all non-kernel
 #   processes is shown.
 #
+# The option "--ps-options" is used to forward options to ps(1) when the output
+# is being enhanced.
+#
 # If standard output is a terminal, "--enhance" is implied.
 
 set -e -u
 test -t 1 && enhance="x" || enhance=""
 test "${1:-}" = "--enhance" && shift && enhance="x"
+
+case "${1:-}" in
+  --ps-options)
+    ps_options="$2"
+    shift 2
+  ;;
+  --ps-options=*)
+    ps_options="${1#--ps-options=}"
+    shift
+  ;;
+esac
+
 test "$enhance" || exec pgrep "$@"
 
 case "$*" in
   # When no arguments are given, show every non-kernel process.
   "")
-    for arg in $(pgrep -v -P 2); do
-        test "$arg" -eq 2 -o "$arg" -eq "$$" || args="${args:-} $arg"
+    for pid in $(pgrep -v -x kthreadd); do
+        test "$pid" -eq 2 -o "$pid" -eq "$$" || pids="${pids:-} $pid"
     done
   ;;
 
@@ -29,18 +44,20 @@ case "$*" in
     # PID.
     results="$(pgrep "$@" || test "$?" -eq 1)"
     for pid in $results; do
-        test "$pid" -eq "$$" || args="${args:-} $pid"
+        test "$pid" -eq "$$" || pids="${pids:-} $pid"
     done
 
-    # If there were no matching processes, use a dummy argument that should
-    # make ps(1) show no processes.
-    args="${args:--u 123456789}"
+    if [ -z "${pids:-}" ]; then
+        echo "${0##*/}: no processes matching the query \"$*\"" >&2
+        exit 1
+    fi
   ;;
 
   # If the args are numeric, assume they're PIDs.
   *)
-    args="$*"
+    pids="$*"
   ;;
 esac
 
-exec ps --cols="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}" $args
+COLUMNS="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}" \
+exec ps ${ps_options:-} $pids

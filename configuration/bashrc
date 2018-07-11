@@ -75,6 +75,7 @@ function -define-aliases()
     alias mtr='mtr -t'
     alias otr='env HISTFILE=/dev/null bash'
     alias paragrep='-paginate paragrep -T -n'
+    alias pgrep='-paginate epgrep --enhance'
     alias ps='-paginate ps --'
     alias pstree='-paginate pstree -- -a -p -s -U'
     alias readelf='-paginate readelf --'
@@ -138,10 +139,14 @@ function -define-aliases()
       ;;
     esac
 
-    case "$(ps -V 2>/dev/null)" in
+    case "$(uname; ps -V 2>/dev/null)" in
+      Darwin*|FreeBSD*|OpenBSD*)
+        alias pgrep='-paginate epgrep --enhance \
+                         --ps-options="-o user,pid,ppid,start,command"'
+        alias ps="-paginate ps -- -o user,pid,ppid,start,command"
+      ;;
       *procps*)
-        alias pgrep='-paginate epgrep --enhance'
-        alias ps='-paginate ps --cols=$COLUMNS --sort=uid,pid'
+        alias ps='-paginate ps -- --sort=uid,pid'
       ;;
     esac
 

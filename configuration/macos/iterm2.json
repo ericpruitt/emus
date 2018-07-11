@@ -127,7 +127,7 @@
             },
             "Character Encoding": 4,
             "Close Sessions On End": true,
-            "Columns": 80,
+            "Columns": 200,
             "Command": "",
             "Cursor Color": {
                 "Blue Component": 0.7333333492279053,
@@ -325,7 +325,7 @@
             "Option Key Sends": 0,
             "Prompt Before Closing 2": false,
             "Right Option Key Sends": 0,
-            "Rows": 25,
+            "Rows": 48,
             "Screen": -1,
             "Scrollback Lines": 1000,
             "Selected Text Color": {

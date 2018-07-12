@@ -53,6 +53,7 @@ function -define-aliases()
     alias awk='-paginate awk --'
     alias back='test -z "${OLDPWD:-}" || cd "$OLDPWD"'
     alias cat='-paginate cat --'
+    alias cmark='-paginate cmark --'
     alias cp='cp -p -R'
     alias df='-paginate df -- -h'
     alias diff='-paginate diff -- -u'
@@ -97,6 +98,7 @@ function -define-aliases()
     alias whois='-paginate whois --'
     alias wmctrl='-paginate env -- DISPLAY="${DISPLAY:-:0.0}" wmctrl'
     alias xargs='-paginate xargs -- --verbose'
+    alias xmllint='-paginate xmllint --format'
     alias xxd='-paginate xxd --'
 
     # This alias is used to allow the user to execute a command without adding

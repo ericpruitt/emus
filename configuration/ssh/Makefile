@@ -32,7 +32,6 @@ TARGETS = \
 	$(DEFAULT_IDENTITY) \
 	$(HOST_KEYS) \
 	$(LOCAL_CONFIGS) \
-	keygen \
 	keyscan \
 	untracked \
 

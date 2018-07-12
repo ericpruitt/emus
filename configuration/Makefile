@@ -68,7 +68,7 @@ prepare uninstall:
 			fi; \
 			echo rm "$$path"; \
 			rm "$$path"; \
-		elif [ "$@" = "prepare"] && [ -e "$$path" ]; then \
+		elif [ "$@" = "prepare" ] && [ -e "$$path" ]; then \
 			dirname="$$(dirname "$$path")"; \
 			basename="$$(basename "$$path")"; \
 			destination="$$dirname/_$${basename#.}"; \

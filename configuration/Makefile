@@ -94,10 +94,12 @@ $(LOCALCONFIGS_SYMLINKS):
 	ln -f -s "$$source" $@
 
 $(HOME)/.config/Trolltech.conf: qt.conf
+	echo "- $@"
 	mkdir -p $(@D)
 	cp $? $@
 
 $(HOME)/.gimp-2.8/sessionrc: gimp.sessionrc
+	echo "- $@"
 	cp $? $@
 
 $(HOME)/.terminfo: terminfo/st.info terminfo/tmux.info

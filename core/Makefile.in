@@ -84,9 +84,9 @@ BINARIES = \
 	$(VIM)/src/vim \
 	$(VIM)/src/xxd/xxd \
 
-# Distributable archive installation defaults:
-DIST_BIN = ~/.local/bin
-DIST_MAN = ~/.local/share/man
+# Installation directories:
+BIN = $$HOME/.local/bin
+MAN = $$HOME/.local/share/man
 
 FOLDER_CLEAN_TARGETS = \
 	clean-bash \
@@ -310,8 +310,8 @@ dist.tar.xz: $(BINARIES) $(COMPAT) dist.mk
 	rm -f -r dist.tmp "$@.tmp"
 	mkdir -p dist.tmp/bin dist.tmp/man
 	sed < dist.mk > dist.tmp/Makefile \
-		-e 's:<BIN>:$(DIST_BIN):g' \
-		-e 's:<MAN>:$(DIST_MAN):g' \
+		-e 's:<BIN>:$(BIN):g' \
+		-e 's:<MAN>:$(MAN):g' \
 		-e "s:<PLATFORM>:$$($(MAKE) platform):g"
 	chmod +x dist.tmp/Makefile
 	$(MAKE) -s BIN=dist.tmp/bin MAN=dist.tmp/man install

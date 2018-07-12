@@ -67,7 +67,7 @@ autocmd Syntax * syntax sync fromstart
 
 set wildignore+=*.o,*.pyc,*.swp,*~,*.jpg,*.jpeg,*.png,*.gif,*.luac,*.manifest,
 \*.bmp,__pycache__,*.tif,.DS_Store,Thumbs.db,*.pywc,*.exe,*.dll,*.class,*.jar,
-\*.xcf,*.pdf
+\*.xcf,*.pdf,*.so
 
 " Emacs-style bindings for command mode.
 cnoremap <C-a> <Home>

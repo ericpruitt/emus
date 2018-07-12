@@ -119,6 +119,9 @@ endfor
 " compile-time options.
 autocmd BufEnter * silent! lcd %:p:h
 
+" Disable automatic comment insertion.
+autocmd FileType * setlocal formatoptions-=c formatoptions-=r formatoptions-=o
+
 " Select the last changed text or the text that was just pasted
 nnoremap gp `[v`]
 

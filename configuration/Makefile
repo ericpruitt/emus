@@ -100,6 +100,7 @@ $(HOME)/.config/Trolltech.conf: qt.conf
 
 $(HOME)/.gimp-2.8/sessionrc: gimp.sessionrc
 	echo "- $@"
+	mkdir -p $(@D)
 	cp $? $@
 
 $(HOME)/.terminfo: terminfo/st.info terminfo/tmux.info

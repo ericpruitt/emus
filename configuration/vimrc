@@ -1,6 +1,7 @@
 colorscheme ron
 silent! colorscheme d3contrast
-filetype plugin indent off
+filetype plugin on
+filetype indent off
 syntax on
 
 set autoindent
@@ -59,9 +60,6 @@ if !&diff
     autocmd BufLeave * let b:view = winsaveview()
 endif
 
-autocmd FileType gitcommit setlocal textwidth=72 spell
-autocmd FileType make,gitconfg,go,gitconfig setlocal noexpandtab
-autocmd FileType markdown setlocal formatprg=
 autocmd InsertEnter * set nohlsearch
 autocmd InsertLeave * file
 autocmd InsertLeave * set hlsearch

@@ -1,6 +1,21 @@
 EMUS: Eric's Multi-platform UNIX Stack
 ======================================
 
+This repository consists of configuration files, various programs and patches
+used to tailor UNIX and UNIX-like operating systems to [my][about-eric-pruitt]
+liking. The core components -- various command line and text interface
+applications -- support [Linux][linux], [macOS][macos], [FreeBSD][freebsd] and
+[OpenBSD][openbsd]. Although the [applications that act as the cornerstones of
+my desktop environment](#desktop-environment) support FreeBSD and OpenBSD, I
+have only used and configured them for Linux because it is the only operating
+system I use with X11.
+
+  [about-eric-pruitt]: https://www.codevat.com/about-me/ "About Eric Pruitt"
+  [linux]: https://www.kernel.org/linux.html
+  [macos]: https://www.apple.com/macos/
+  [freebsd]: https://www.freebsd.org/
+  [openbsd]: https://www.openbsd.org/
+
 Makefile
 --------
 

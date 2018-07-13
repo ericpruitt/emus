@@ -1,6 +1,27 @@
 EMUS: Eric's Multi-platform UNIX Stack
 ======================================
 
+Makefile
+--------
+
+The Makefile at the root of this repository is used for (mostly) automatic
+installation based on whether the current host is a "pet" (`make pet`) or
+"cattle" (`make cattle`):
+
+- **pet:**
+  - Install system-wide configuration files.
+  - Automatically install build dependencies and compile all binaries available
+    on the host's platform. For all operating system, this includes the tools
+    in the "core/" folder. On Linux, the applications in the
+    "desktop-environment/" folder are also built.
+  - Install user-specific configuration files.
+- **cattle:**
+  - Download and install precompiled binaries for the current platform.
+  - Install user-specific configuration files.
+
+On Linux, macOS and FreeBSD, _sudo(8)_ is used to elevate privileges whereas
+_doas(1)_ is used on OpenBSD.
+
 configuration/
 --------------
 

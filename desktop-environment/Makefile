@@ -3,7 +3,7 @@
 .POSIX:
 
 CC = cc
-PREFIX = $(HOME)
+PREFIX = $(HOME)/.local
 SUPERUSER_PREFIX = /usr/local
 RUN_COMMAND_AS_ROOT = $$( \
 	{ command -v sudo && echo "/bin/sh"; } || \
@@ -33,6 +33,7 @@ UTILITIES = \
 	bin/statusline \
 	bin/xidletime \
 
+QUIETMAKE = MAKEFLAGS= $(MAKE) -s
 BASENAME = $(@F)
 
 .SILENT: all deps clean cleaner config.mk install printvar
@@ -76,8 +77,8 @@ BASENAME = $(@F)
 	  ;; \
 	  dmenu-src|dwm-src|st-src) \
 		prefix="$$(echo $${target%-src} | tr 'a-z-' 'A-Z_')"; \
-		url="$$($(MAKE) -s printvar VARIABLE=$${prefix}_URL)"; \
-		commit="$$($(MAKE) -s printvar VARIABLE=$${prefix}_COMMIT)"; \
+		url="$$($(QUIETMAKE) printvar VARIABLE=$${prefix}_URL)"; \
+		commit="$$($(QUIETMAKE) printvar VARIABLE=$${prefix}_COMMIT)"; \
 		git clone "$$url" "$(BASENAME).tmp"; \
 		(cd "$(BASENAME).tmp" && git reset --hard $$commit); \
 		rm -f "$(BASENAME).tmp/config.mk"; \
@@ -201,7 +202,7 @@ ALWAYS_RUN:
 
 $(HOME)/.del: $(PREFIX)/bin/del
 	echo "- launcher list"
-	printf "%s\n" $(USER_LAUNCHER_ENTRIES) | del -r > /dev/null
+	printf "%s\n" $(USER_LAUNCHER_ENTRIES) | $? -r > /dev/null
 
 # The combination of the "+" command prefix and "-n" is used to force make to
 # display the command being executed even if "-s" is inherited from the
@@ -214,9 +215,9 @@ $(UTILITIES): ALWAYS_RUN
 
 dmenu-src/config.mk dwm-src/config.mk:
 	lxinerama="$$(pkg-config --silence-errors --libs xinerama)"; \
-	$(MAKE) -s config.mk \
+	$(QUIETMAKE) -s config.mk \
 		CFLAGS="$${lxinerama:+-DXINERAMA}" \
-		LDFLAGS="$$lxinerama $$($(MAKE) -s cc-test ARGS=-lrt)" \
+		LDFLAGS="$$lxinerama $$($(QUIETMAKE) cc-test ARGS=-lrt)" \
 		LIBRARIES="fontconfig x11 xft" \
 	  > $@.tmp
 	mv $@.tmp $@
@@ -244,8 +245,8 @@ bin/dwm: dwm-src/dwm
 dwm: bin/dwm
 
 screen-locker/screen-locker:
-	cc_shadow_h="$$($(MAKE) -s cc-test ARGS=shadow.h)"; \
-	LDFLAGS="$$($(MAKE) -s cc-test ARGS='-lcrypt -lpam')"; \
+	cc_shadow_h="$$($(QUIETMAKE) cc-test ARGS=shadow.h)"; \
+	LDFLAGS="$$($(QUIETMAKE) cc-test ARGS='-lcrypt -lpam')"; \
 	echo "$$LDFLAGS" | grep -q -e -lpam && pam_cflags="-DHAVE_PAM_AUTH"; \
 	(cd $(@D) && \
 	$(MAKE) $(@F) \
@@ -262,7 +263,7 @@ $(SUPERUSER_PREFIX)/bin/screen-locker: screen-locker/screen-locker
 st-src/config.mk:
 	$(MAKE) -s config.mk \
 		CFLAGS="-D_XOPEN_SOURCE" \
-		LDFLAGS="-lm -lutil $$($(MAKE) -s cc-test ARGS=-lrt)" \
+		LDFLAGS="-lm -lutil $$($(QUIETMAKE) cc-test ARGS=-lrt)" \
 		LIBRARIES="fontconfig x11 xft" \
 	  > $@.tmp
 	mv $@.tmp $@

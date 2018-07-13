@@ -30,9 +30,9 @@ cattle: cattle-ascii-art
 	$(MAKE) user-configuration
 
 pet: pet-ascii-art
-	$(MAKE) host-configuration
 	case "$$(uname)" in \
 	  Darwin|FreeBSD|Linux) \
+		sudo $(MAKE) host-configuration; \
 		sudo $(MAKE) core-make-deps; \
 		if command -v Xorg >/dev/null 2>&1; then \
 			sudo $(MAKE) desktop-environment-make-deps; \
@@ -41,6 +41,7 @@ pet: pet-ascii-art
 		fi; \
 	  ;; \
 	  OpenBSD) \
+		doas $(MAKE) host-configuration; \
 		doas $(MAKE) core-make-deps; \
 	  ;; \
 	esac

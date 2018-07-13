@@ -106,7 +106,7 @@ configure_cc()
 
     case "$PLATFORM" in
       *-linux-*)
-        CC="$PWD/$(make -s -f Makefile.in musl-cc)"
+        CC="$PWD/$(MAKEFLAGS= make -s -f Makefile.in musl-cc)"
 
         test -z "$DRY_RUN" || return 0
         test -n "$GMAKE" || die "GNU Make needed for musl; set GMAKE or MAKE"

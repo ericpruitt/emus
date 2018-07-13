@@ -137,6 +137,7 @@ GPG = $$(which gpg2 || which gpgv2 || echo gpg) --homedir="$(GNUPGHOME)"
 MUSL_CC = $(MUSL)/bin/musl-cc
 PUBRING = $(GNUPGHOME)/pubring.kbx
 WGET = wget --no-use-server-timestamps -nv
+QUIETMAKE = MAKEFLAGS= $(MAKE) -s
 
 UTF8PROC_WCWIDTH = utf8proc-wcwidth
 UTF8PROC_WCWIDTH_SO = $(UTF8PROC_WCWIDTH)/utf8proc-wcwidth.so
@@ -245,7 +246,7 @@ openbsd-deps:
 	| xargs pkg_add
 
 deps:
-	platform="$$($(MAKE) platform)" && \
+	platform="$$($(QUIETMAKE) platform)" && \
 	 case "$$platform" in \
 	  debian-*) \
 		$(MAKE) debian-deps; \
@@ -312,7 +313,7 @@ dist.tar.xz: $(BINARIES) $(COMPAT) dist.mk
 	sed < dist.mk > dist.tmp/Makefile \
 		-e 's:<BIN>:$(BIN):g' \
 		-e 's:<MAN>:$(MAN):g' \
-		-e "s:<PLATFORM>:$$($(MAKE) platform):g"
+		-e "s:<PLATFORM>:$$($(QUIETMAKE) platform):g"
 	chmod +x dist.tmp/Makefile
 	$(MAKE) -s BIN=dist.tmp/bin MAN=dist.tmp/man install
 	printf "\n%s\n" "Compressing..."

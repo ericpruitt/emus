@@ -1,6 +1,9 @@
 EMUS: Eric's Multi-platform UNIX Stack
 ======================================
 
+![ASCII art mural of two emus facing inward flanking a cat using a computer to
+the left of a confused cow](mural.png)
+
 This repository consists of configuration files, various programs and patches
 used to tailor UNIX and UNIX-like operating systems to [my][about-eric-pruitt]
 liking. The core components -- various command line and text interface

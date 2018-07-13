@@ -58,7 +58,7 @@ host:
 	esac
 
 prepare uninstall:
-	for path in $(SYMLINKS) $(LOCALCONFIGS_SYMLINKS); do \
+	for path in $(SYMLINKS) $(LOCALCONFIGS_SYMLINKS) $(TEMPLATES); do \
 		if [ -h "$$path" ]; then \
 			if [ "$@" = "clean" ]; then \
 				case "$$(readlink "$$path")" in \

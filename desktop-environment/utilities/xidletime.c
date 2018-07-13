@@ -1,4 +1,6 @@
 /**
+ * X Idle Time
+ *
  * Print the amount of time in milliseconds the display has been idle.
  *
  * Make: c99 -o $@ $? $$(pkg-config --cflags --libs x11 xscrnsaver)

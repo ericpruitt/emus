@@ -10,7 +10,7 @@ Configuration files ("dot files") for various applications and libraries.
 
 - **user:** Install user-specific configuration files for various applications.
   This is the default target.
-- **host:** Install host-specific configuration files. This target requires
+- **host:** Install system-wide configuration files. This target requires
   elevated privileges to execute i.e. `sudo make host`.
   - **Linux:**
     - Configure "/etc/fstab" to mount "/tmp/" using [tmpfs][tmpfs.5].

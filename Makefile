@@ -75,8 +75,11 @@ $(GIT_INFO_EXCLUDE): ALWAYS_RUN
 	done)
 	touch $@
 
-host-configuration user-configuration:
-	(cd configuration && $(MAKE) $(@:-configuration=))
+user-configuration:
+	(cd configuration && $(MAKE) prepare && $(MAKE) user)
+
+host-configuration:
+	(cd configuration && $(MAKE) host)
 
 core-make-deps:
 	(cd core && $(MAKE) deps)

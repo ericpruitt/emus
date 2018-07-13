@@ -19,7 +19,7 @@ GIT_EXCLUDE_PATTERNS= \
 PLATFORM = $$(uname -s -m | tr "A-Z " "a-z-" | sed "s/x86_64/amd64/g")
 PRECOMPILED_BINARIES = https://www.codevat.com/downloads/emus-core-$(PLATFORM)
 
-default: emus-ascii-art
+default: ascii-art-mural
 	-tput bold 2>/dev/null
 	echo "Run \"make pet\" or \"make cattle\" to begin installation." >&2
 	-tput sgr0 2>/dev/null
@@ -99,34 +99,26 @@ build-desktop-environment:
 install-desktop-environment:
 	(cd desktop-environment && $(MAKE) install)
 
-cattle-ascii-art:
-	printf "%s\n" \
-	"$$(hostname | tr a-z A-Z): Cattle!" \
-	"     ___" \
-	" _.-|   |       ^__^  ???" \
-	"{   |   |       (oo)\\_______" \
-	" \"-.|___|       (__)\\       )\\/\\" \
-	"  .--'-\`-.     ___  ||----w |" \
-	".+|______|__.-||__) ||     ||"
+ascii-art-mural: mural.txt
+	cat $?
 
-emus-ascii-art:
-	printf "%s\n" \
-	"O\\    O-             EMUS: Eric's Multi-platform UNIX Stack            -O    /O" \
-	"\\|__ /                                                                   \\ __|/" \
-	" ( _)                                                                     (_ )" \
-	" /                                                                           \\" \
-	" \\_                                                                         _/" \
+# Delete the cat from the mural.
+cattle-ascii-art: mural.txt
+	sed < $? \
+		-e '3s/|\\.*\\/             /' \
+		-e '4s/|o.* )/              /' \
+		-e '5s/_\..* \//               /' \
+		-e '6s/((.*<  \\/__              /' \
+		-e '7s/`.*(\//             /'
 
-pet-ascii-art:
-	printf "%s\n" \
-	"$$(hostname | tr a-z A-Z): Pet!" \
-	"     ___" \
-	" _.-|   |          |\\__/,|   (\`\\" \
-	"{   |   |          |o o  |__ _) )" \
-	" \"-.|___|        _.( T   )  \`  /" \
-	"  .--'-\`-.     _((_ \`^--' /_<  \\" \
-	".+|______|__.-||__)\`-'(((/  (((/"
-
+# Delete the cow from the mural.
+pet-ascii-art: mural.txt
+	sed < $? \
+		-e '3s/\^.*[?]/         /' \
+		-e '4s/([^ ]*_/            /' \
+		-e '5s/(_.*\\/                /' \
+		-e '6s/|.*|/         /' \
+		-e '7s/|| .*|/         /'
 
 # Dummy target used to ensure a recipe is always executed even if it is
 # otherwise up to date.

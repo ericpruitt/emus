@@ -106,13 +106,13 @@ configure_cc()
 
     case "$PLATFORM" in
       *-linux-*)
-        CC="$PWD/$(MAKEFLAGS= make -s -f Makefile.in musl-cc)"
+        CC="$PWD/$(MAKEFLAGS= make -s -f makefile.in musl-cc)"
 
         test -z "$DRY_RUN" || return 0
         test -n "$GMAKE" || die "GNU Make needed for musl; set GMAKE or MAKE"
         test "$GMAKE" = '$(MAKE)' && make="make" || make="$GMAKE"
 
-        $make -s -f Makefile.in CC="cc" musl
+        $make -s -f makefile.in CC="cc" musl
       ;;
     esac
 }
@@ -175,8 +175,8 @@ uses_one_shell()
     | env -i ${MAKE:-make} "$@" -f - >/dev/null 2>&1
 }
 
-# Edit the Makefile template and insert configured variables as needed. The
-# generated Makefile is written to standard output.
+# Edit the makefile template and insert configured variables as needed. The
+# generated makefile is written to standard output.
 #
 generate_makefile()
 {
@@ -186,7 +186,7 @@ generate_makefile()
     # Make might otherwise fail. If GNU Make is not installed, a shim is used
     # to emulate GNU Make's behavior.
     if [ -z "$GMAKE" ]; then
-        GMAKE='$(MAKE) MAKE="$(MAKE) -f Makefile -f $(PWD)/fake-gmake.mk"'
+        GMAKE='$(MAKE) MAKE="$(MAKE) -f makefile -f $(PWD)/fake-gmake.mk"'
     fi
 
     # BSD Make implementations that support parallel recipe execution disable
@@ -229,7 +229,7 @@ generate_makefile()
         esac
 
         printf "%s\n" "$line"
-    done < Makefile.in
+    done < makefile.in
 }
 
 # Write configuration script documentation to standard output.
@@ -237,7 +237,7 @@ generate_makefile()
 usage()
 {
     echo "Usage: $SELF [OPTION] [VARIABLE=[VALUE]]..."
-    echo "Generate a Makefile configured for this platform."
+    echo "Generate a makefile configured for this platform."
     echo
     echo "Options:"
     echo "  -h  Display this text and exit."
@@ -286,7 +286,7 @@ main()
         esac
     done
 
-    PLATFORM="$(make -f Makefile.in platform)"
+    PLATFORM="$(make -f makefile.in platform)"
     test -n "$PLATFORM"
 
     configure_compat
@@ -301,17 +301,17 @@ main()
 
     test -z "$DRY_RUN" || return 0
 
-    generate_makefile > Makefile.new
+    generate_makefile > makefile.new
 
-    if [ -e Makefile ] && diff -u Makefile Makefile.new; then
+    if [ -e makefile ] && diff -u makefile makefile.new; then
         echo
-        echo "$SELF: Makefile contents unchanged"
-        rm -f Makefile.new
+        echo "$SELF: makefile contents unchanged"
+        rm -f makefile.new
     else
-        mv -f Makefile.new Makefile
-        chmod u-w+rx Makefile
+        mv -f makefile.new makefile
+        chmod u-w+rx makefile
         echo "--"
-        echo "$SELF: configuration written to Makefile"
+        echo "$SELF: configuration written to makefile"
     fi
 }
 

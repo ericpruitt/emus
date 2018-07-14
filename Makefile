@@ -8,7 +8,7 @@ GIT_EXCLUDE_PATTERNS= \
 	core/*-patches \
 	core/*-src \
 	core/*.tar.* \
-	core/Makefile \
+	core/makefile \
 	core/common \
 	core/gnupghome \
 	core/libevent* \

@@ -206,7 +206,7 @@ purge:
 pristine:
 	$(MAKE) clean
 	$(MAKE) purge
-	rm -f Makefile
+	rm -f makefile
 
 platform:
 	if [ -e /etc/debian_version ]; then \

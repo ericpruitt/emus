@@ -84,13 +84,6 @@ GNU and BSD Make, GNU Make must be installed to compile musl.
   [musl]: https://www.musl-libc.org/
   [nss]: https://en.wikipedia.org/wiki/Name_Service_Switch
 
-**Supported Operating Systems:**
-
-- Linux
-- macOS
-- OpenBSD
-- FreeBSD
-
 **Applications:**
 
 - [Bash][bash]

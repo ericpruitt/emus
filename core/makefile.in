@@ -357,7 +357,7 @@ $(DEFAULT):
 $(PUBRING):
 	rm -f -r "$(@D)"
 	mkdir -m 700 $(@D)
-	$(GPG) --homedir="$(@D)" --import public-keys/*
+	$(GPG) --homedir="$(@D)" --import public-keys/*.asc
 	if ! [ -e $(PUBRING) ]; then \
 		echo "$(PUBRING) not found after importing keys. Is GPG" \
 		     "version 2.1 or newer?" >&2; \

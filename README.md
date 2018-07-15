@@ -80,9 +80,15 @@ without making changes to the code that depends on those functions or by hybrid
 linking against both musl libc and glibc. Although the build system supports
 GNU and BSD Make, GNU Make must be installed to compile musl.
 
+The _wcwidth(3)_ function in musl has been reimplemented with
+[utf8proc][utf8proc]. The replacement code can also be compiled as a shared
+library that can be used with "LD_PRELOAD" so other, dynamically linked
+applications "agree" on the width of characters.
+
   [QA1118]: https://developer.apple.com/library/content/qa/qa1118/_index.html
   [musl]: https://www.musl-libc.org/
   [nss]: https://en.wikipedia.org/wiki/Name_Service_Switch
+  [utf8proc]: https://github.com/JuliaLang/utf8proc
 
 **Applications:**
 
@@ -96,6 +102,8 @@ GNU and BSD Make, GNU Make must be installed to compile musl.
 - [musl libc][musl]
 - [tmux][tmux]
 - [Tree][tree]
+- utf8proc-wcwidth.so, an "LD_PRELOAD" library that reimplements _wcwidth(3)_
+  using [utf8proc][utf8proc].
 - [Vim][vim]
 
   [bash]: https://www.gnu.org/software/bash/

@@ -8,6 +8,7 @@ SCREEN_LOCKER = /usr/local/bin/screen-locker
 
 SYMLINKS = \
 	$(HOME)/.abcde.conf \
+	$(HOME)/.aqua-session \
 	$(HOME)/.bashrc \
 	$(HOME)/.dir_colors \
 	$(HOME)/.elinks/elinks.conf \
@@ -80,7 +81,10 @@ prepare uninstall:
 $(SYMLINKS):
 	echo "- $@"
 	mkdir -p $(@D)
-	basename="$(@F)" && ln -f -s "$$PWD/$${basename#.}" $@
+	basename="$(@F)"; \
+	source="$$PWD/$${basename#.}"; \
+	test -e "$$source" || source="$$PWD/*/$${basename#.}"; \
+	ln -s $$source $@
 	if [ -e "$@/Makefile" ]; then \
 		(cd "$@" && $(MAKE)); \
 	fi

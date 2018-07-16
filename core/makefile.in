@@ -85,8 +85,8 @@ BINARIES = \
 	$(VIM)/src/xxd/xxd \
 
 # Installation directories:
-BIN = $$HOME/.local/bin
-MAN = $$HOME/.local/share/man
+BIN = ~/.local/bin
+MAN = ~/.local/share/man
 
 FOLDER_CLEAN_TARGETS = \
 	clean-bash \

@@ -3,10 +3,10 @@
 .POSIX:
 .SILENT:
 
-LOCALCONFIGS = $(HOME)/localconfigs
-SCREEN_LOCKER = /usr/local/bin/screen-locker
-
-SYMLINKS = \
+# Dotfiles follow a simple pattern: the source file is the basename of the
+# destination with the leading dot removed, and installation consists of
+# creating a single symlink.
+DOTFILES = \
 	$(HOME)/.abcde.conf \
 	$(HOME)/.aqua-session \
 	$(HOME)/.bashrc \
@@ -25,41 +25,57 @@ SYMLINKS = \
 	$(HOME)/.vimrc \
 	$(HOME)/.xsession \
 
-LOCALCONFIGS_SYMLINKS = \
+# Local dotfiles are secondary configuration files that are not tracked by the
+# EMUS repository. These are loaded by the main configuration file (the path
+# with ".local" removed from the basename) and generally contain configuration
+# options that shouldn't be used everywhere e.g. for changing the Git author
+# email on work systems.
+LOCAL_DOTFILES = \
 	$(HOME)/.local.bashrc \
 	$(HOME)/.local.gitconfig \
 	$(HOME)/.local.profile \
 	$(HOME)/.local.xsession \
 
-TEMPLATES = \
+# The $(LOCAL_DOTFILES) symlinks will be pointed to paths in this directory.
+LOCALCONFIGS = $(HOME)/localconfigs
+
+# Templated configuration files are installed by copying a template to the
+# installation directory or by generating the output file from a script.
+TEMPLATED = \
 	$(HOME)/.config/Trolltech.conf \
 	$(HOME)/.gimp-2.8/sessionrc \
 	$(HOME)/.terminfo \
 
-LINUX_TARGETS = \
+# The ..._HOST_TARGETS are platform-specific templated targets that make
+# system-wide changes. When running "make host", only the targets that apply to
+# the current platform are installed.
+LINUX_HOST_TARGETS = \
 	/etc/fstab \
 	/etc/modprobe.d/local.conf \
 	/etc/systemd/system/lock-on-suspend.service \
 
-MACOS_TARGETS = \
+MACOS_HOST_TARGETS = \
 	/etc/ssh/com.codevat.macos-sshd_config \
 	/Library/LaunchDaemons/com.codevat.macos-sshd.plist \
 	macos-ssh-server \
 
-user: $(LOCALCONFIGS_SYMLINKS) $(SYMLINKS) $(TEMPLATES)
+# Absolute path to the program used to lock X11 displays.
+SCREEN_LOCKER = /usr/local/bin/screen-locker
+
+user: $(DOTFILES) $(LOCAL_DOTFILES) $(TEMPLATED)
 
 host:
 	case "$$(uname)" in \
 	  Darwin) \
-		$(MAKE) $(MACOS_TARGETS); \
+		$(MAKE) $(MACOS_HOST_TARGETS); \
 	  ;; \
 	  Linux) \
-		$(MAKE) $(LINUX_TARGETS); \
+		$(MAKE) $(LINUX_HOST_TARGETS); \
 	  ;; \
 	esac
 
 prepare uninstall:
-	for path in $(SYMLINKS) $(LOCALCONFIGS_SYMLINKS) $(TEMPLATES); do \
+	for path in $(DOTFILES) $(LOCAL_DOTFILES) $(TEMPLATED); do \
 		if [ -h "$$path" ]; then \
 			if [ "$@" = "clean" ]; then \
 				case "$$(readlink "$$path")" in \
@@ -78,7 +94,7 @@ prepare uninstall:
 		fi; \
 	done
 
-$(SYMLINKS):
+$(DOTFILES):
 	echo "- $@"
 	mkdir -p $(@D)
 	basename="$(@F)"; \
@@ -89,7 +105,7 @@ $(SYMLINKS):
 		(cd "$@" && $(MAKE)); \
 	fi
 
-$(LOCALCONFIGS_SYMLINKS):
+$(LOCAL_DOTFILES):
 	echo "- $@"
 	mkdir -p $(LOCALCONFIGS)
 	target="$@"; \

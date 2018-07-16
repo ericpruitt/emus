@@ -17,6 +17,10 @@ test "$PROFILE_INCLUDE_GUARD" || source "$HOME/.profile" 2>&-
 # The rest of this file should only be loaded for interactive sessions.
 test "$PS1" || return 0
 
+# If the current Bash interpreter is not the first entry in a $PATH, re-execute
+# Bash to pivot into the user's preferred Bash shell.
+test "$BASH" -ef "$(command -v bash || echo "$BASH")" || exec bash ${-:+-$-}
+
 # Integral representation of Bash version useful for conditionally using
 # features associated with certain versions of Bash.
 #

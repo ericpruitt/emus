@@ -130,9 +130,9 @@
             "Columns": 200,
             "Command": "/bin/sh -c \"test ! -e ~/.profile || . ~/.profile && exec bash\"",
             "Cursor Color": {
-                "Blue Component": 0.7333333492279053,
-                "Green Component": 0.7333333492279053,
-                "Red Component": 0.7333333492279053
+                "Blue Component": 1,
+                "Green Component": 0,
+                "Red Component": 1
             },
             "Cursor Text Color": {
                 "Blue Component": 1,

@@ -1,0 +1,13 @@
+#!/bin/sh
+exec > ~/.aqua-session.log 2>&1
+. ~/.profile
+set -x
+
+$EMUS/configuration/macos/configurator.sh user-keyboard-mappings
+
+if [ -z "$(pgrep -x discrete-scroll)" ]; then
+    $EMUS/platform/macos/discrete-scroll < /dev/null >/dev/null >&2 &
+fi
+
+test -e ~/.local.aqua-session && . ~/.local.aqua-session
+wait

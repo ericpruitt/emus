@@ -8,7 +8,7 @@
     <array>
         <string>/bin/sh</string>
         <string>-c</string>
-        <string>exec &gt;~/.aqua-session.log 2&gt;&amp;1; . ~/.profile; . ~/.aqua-session</string>
+        <string>exec &gt;&gt;~/.aqua-session.log 2&gt;&amp;1; . ~/.profile; . ~/.aqua-session</string>
     </array>
     <key>RunAtLoad</key>
     <true/>

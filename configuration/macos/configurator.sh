@@ -86,6 +86,7 @@ function user-configure-iterm2()
 
     local iterm2_json="$OLDPWD/iterm2.json"
     local -a option_set=(
+        "CopySelection -integer 1"
         "Control -integer 7"
         "LeftCommand -integer 1"
         "moveToApplicationsFolderAlertSuppress -integer 1"

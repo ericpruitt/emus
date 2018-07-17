@@ -8,7 +8,6 @@
 # creating a single symlink.
 DOTFILES = \
 	$(HOME)/.abcde.conf \
-	$(HOME)/.aqua-session \
 	$(HOME)/.bashrc \
 	$(HOME)/.dir_colors \
 	$(HOME)/.elinks/elinks.conf \
@@ -25,6 +24,9 @@ DOTFILES = \
 	$(HOME)/.vimrc \
 	$(HOME)/.xsession \
 
+MACOS_DOTFILES = \
+	$(HOME)/.aqua-session \
+
 # Local dotfiles are secondary configuration files that are not tracked by the
 # EMUS repository. These are loaded by the main configuration file (the path
 # with ".local" removed from the basename) and generally contain configuration
@@ -35,6 +37,9 @@ LOCAL_DOTFILES = \
 	$(HOME)/.local.gitconfig \
 	$(HOME)/.local.profile \
 	$(HOME)/.local.xsession \
+
+LOCAL_MACOS_DOTFILES = \
+	$(HOME)/.local.aqua-session \
 
 # The $(LOCAL_DOTFILES) symlinks will be pointed to paths in this directory.
 LOCALCONFIGS = $(HOME)/localconfigs
@@ -62,7 +67,23 @@ MACOS_HOST_TARGETS = \
 # Absolute path to the program used to lock X11 displays.
 SCREEN_LOCKER = /usr/local/bin/screen-locker
 
+#                                     ---
+
+ALL_USER_TARGETS = \
+	$(DOTFILES) \
+	$(LOCAL_DOTFILES) \
+	$(LOCAL_MACOS_DOTFILES) \
+	$(MACOS_DOTFILES) \
+	$(TEMPLATED) \
+
 user: $(DOTFILES) $(LOCAL_DOTFILES) $(TEMPLATED)
+	case "$$(uname)" in \
+	  Darwin) \
+		$(MAKE) macos-user; \
+	  ;; \
+	esac
+
+macos-user: $(LOCAL_MACOS_DOTFILES) $(MACOS_DOTFILES)
 
 host:
 	case "$$(uname)" in \
@@ -75,7 +96,7 @@ host:
 	esac
 
 prepare uninstall:
-	for path in $(DOTFILES) $(LOCAL_DOTFILES) $(TEMPLATED); do \
+	for path in $(ALL_USER_TARGETS); do \
 		if [ -h "$$path" ]; then \
 			if [ "$@" = "clean" ]; then \
 				case "$$(readlink "$$path")" in \
@@ -94,7 +115,7 @@ prepare uninstall:
 		fi; \
 	done
 
-$(DOTFILES):
+$(DOTFILES) $(MACOS_DOTFILES):
 	echo "- $@"
 	mkdir -p $(@D)
 	basename="$(@F)"; \
@@ -105,7 +126,7 @@ $(DOTFILES):
 		(cd "$@" && $(MAKE)); \
 	fi
 
-$(LOCAL_DOTFILES):
+$(LOCAL_DOTFILES) $(LOCAL_MACOS_DOTFILES):
 	echo "- $@"
 	mkdir -p $(LOCALCONFIGS)
 	target="$@"; \

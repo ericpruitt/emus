@@ -100,10 +100,10 @@ applications "agree" on the width of characters.
 - [GNU sed][sed]
 - [Less][less]
 - [musl libc][musl]
+  - utf8proc-wcwidth.so, an "LD_PRELOAD" library for Linux that reimplements
+    _wcwidth(3)_ using [utf8proc][utf8proc].
 - [tmux][tmux]
 - [Tree][tree]
-- utf8proc-wcwidth.so, an "LD_PRELOAD" library that reimplements _wcwidth(3)_
-  using [utf8proc][utf8proc].
 - [Vim][vim]
 
   [bash]: https://www.gnu.org/software/bash/

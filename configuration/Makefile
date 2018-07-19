@@ -59,11 +59,6 @@ LINUX_HOST_TARGETS = \
 	/etc/modprobe.d/local.conf \
 	/etc/systemd/system/lock-on-suspend.service \
 
-MACOS_HOST_TARGETS = \
-	/etc/ssh/com.codevat.macos-sshd_config \
-	/Library/LaunchDaemons/com.codevat.macos-sshd.plist \
-	macos-ssh-server \
-
 # Absolute path to the program used to lock X11 displays.
 SCREEN_LOCKER = /usr/local/bin/screen-locker
 
@@ -173,12 +168,3 @@ $(HOME)/.terminfo: terminfo/st.info terminfo/tmux.info
 		systemctl enable $(@F); \
 	  ;; \
 	esac
-
-/etc/ssh/com.codevat.macos-sshd_config: macos/sshd_config
-	cp $? $@
-
-/Library/LaunchDaemons/com.codevat.macos-sshd.plist: macos/sshd.plist
-	cp $? $@
-
-macos-ssh-server: /etc/ssh/com.codevat.macos-sshd_config /Library/LaunchDaemons/com.codevat.macos-sshd.plist
-	launchctl load -w /Library/LaunchDaemons/com.codevat.macos-sshd.plist

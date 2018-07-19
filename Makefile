@@ -10,6 +10,7 @@ GIT_EXCLUDE_PATTERNS= \
 	core/*.tar.* \
 	core/makefile \
 	core/common \
+	core/GNUmakefile \
 	core/gnupghome \
 	core/libevent* \
 	desktop-environment/*-src \

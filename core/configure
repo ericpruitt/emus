@@ -12,7 +12,7 @@ SELF="${0##*/}"
 #
 die()
 {
-    echo "$SELF: $1" >&2 && return 1
+    echo "$SELF: $*" >&2 && return 1
 }
 
 # Configure the value of SHA256.
@@ -301,17 +301,26 @@ main()
 
     test -z "$DRY_RUN" || return 0
 
-    generate_makefile > makefile.new
-
-    if [ -e makefile ] && diff -u makefile makefile.new; then
-        echo
-        echo "$SELF: makefile contents unchanged"
-        rm -f makefile.new
+    if ! [ -e MAKEFILE.IN ]; then
+        MAKEFILE=makefile
+    elif ! ${MAKE:=make} -v 2>&1 | grep -q "GNU Make"; then
+        die "the filesystem appears to be case insensitive; \$(MAKE) must be" \
+            "GNU Make to implement work-around"
     else
-        mv -f makefile.new makefile
-        chmod u-w+rx makefile
+        MAKEFILE=GNUmakefile
+    fi
+
+    generate_makefile > "$MAKEFILE.new"
+
+    if [ -e "$MAKEFILE" ] && diff -u "$MAKEFILE" "$MAKEFILE.new"; then
+        echo
+        echo "$SELF: $MAKEFILE contents unchanged"
+        rm -f "$MAKEFILE.new"
+    else
+        mv -f "$MAKEFILE.new" "$MAKEFILE"
+        chmod u-w+rx "$MAKEFILE"
         echo "--"
-        echo "$SELF: configuration written to makefile"
+        echo "$SELF: configuration written to $MAKEFILE"
     fi
 }
 

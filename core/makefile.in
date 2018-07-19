@@ -206,7 +206,11 @@ purge:
 pristine:
 	$(MAKE) clean
 	$(MAKE) purge
-	rm -f makefile
+	if [ -e MAKEFILE.IN ]; then \
+		rm -f GNUmakefile; \
+	else \
+		rm -f makefile; \
+	fi
 
 platform:
 	if [ -e /etc/debian_version ]; then \

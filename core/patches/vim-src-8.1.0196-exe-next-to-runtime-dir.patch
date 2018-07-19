@@ -27,7 +27,7 @@ index f0e629b5b..041d52f06 100644
      if (!vimruntime && STRCMP(name, "VIM") != 0)
  	return NULL;
  
-+	if (vimruntime && !p && executable_path(path, sizeof(path))) {
++	if (vimruntime && !p && executable_path(path)) {
 +	    *mustfree = TRUE;
 +	    STRCPY(rindex(path, '/') + 1, "vimruntime");
 +	    vim_setenv((char_u *) "VIMRUNTIME", path);

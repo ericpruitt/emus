@@ -12,18 +12,17 @@
  *
  * Returns: Path to the executable or `NULL` if it could not be determined.
  */
-static char *executable_path(char *path, uint32_t bufsize)
+static char *executable_path(char *path)
 {
     #if defined(__APPLE__) && __APPLE__
     char apple_executable_path[PATH_MAX];
+    uint32_t bufsize = sizeof(apple_executable_path);
 
     if (_NSGetExecutablePath(apple_executable_path, &bufsize) != -1 &&
         realpath(apple_executable_path, path)) {
 
         return path;
     }
-    #else
-    (void) &bufsize;
     #endif
 
     // TODO: Support OpenBSD and FreeBSD when procfs is not mounted.

@@ -21,7 +21,7 @@ Set the default value of "AWKPATH" and "AWKLIBPATH" to `.:$EXEDIR/awklib` where
  	const char *initial_locale;
  #endif
  
-+	if (executable_path(path, sizeof(path)))
++	if (executable_path(path))
 +		defpath = deflibpath = path, strcpy(rindex(path, '/') + 1, "awklib");
 +
  	/* do these checks early */

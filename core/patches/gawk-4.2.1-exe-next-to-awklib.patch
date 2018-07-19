@@ -1,9 +1,18 @@
 Set the default value of "AWKPATH" and "AWKLIBPATH" to `.:$EXEDIR/awklib` where
 `$EXEDIR` is the directory in which the GAWK binary resides.
 
---- main.c	2016-08-24 12:31:55.000000000 -0700
-+++ main.c	2016-10-30 20:03:03.759259233 -0700
-@@ -221,10 +221,15 @@
+--- main.c	2018-07-19 12:37:36.000000000 -0700
++++ main.c	2018-07-19 12:39:02.000000000 -0700
+@@ -43,6 +43,8 @@
+ #define stackoverflow_install_handler(catchstackoverflow, extra_stack, STACK_SIZE) 0
+ #endif
+ 
++#include "../exepath.c"
++
+ #define DEFAULT_PROFILE		"awkprof.out"	/* where to put profile */
+ #define DEFAULT_VARFILE		"awkvars.out"	/* where to put vars */
+ #define DEFAULT_PREC		53
+@@ -222,10 +224,14 @@
  	int have_srcfile = 0;
  	SRCFILE *s;
  	char *cp;
@@ -12,8 +21,7 @@ Set the default value of "AWKPATH" and "AWKLIBPATH" to `.:$EXEDIR/awklib` where
  	const char *initial_locale;
  #endif
  
-+	if ((readlink("/proc/self/exe", path + 2, PATH_MAX) != -1) ||
-+	    (getenv("_") && realpath(getenv("_"), path + 2)))
++	if (executable_path(path, sizeof(path)))
 +		defpath = deflibpath = path, strcpy(rindex(path, '/') + 1, "awklib");
 +
  	/* do these checks early */

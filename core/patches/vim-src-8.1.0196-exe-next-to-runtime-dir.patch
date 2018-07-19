@@ -1,0 +1,40 @@
+Set the default value of "VIMRUNTIME" to `$EXEDIR/vimruntime` where `$EXEDIR`
+is the directory in which the Vim binary resides.
+
+diff --git src/misc1.c src/misc1.c
+index f0e629b5b..041d52f06 100644
+--- src/misc1.c
++++ src/misc1.c
+@@ -30,6 +30,9 @@ static int copy_indent(int size, char_u	*src);
+ static garray_T	ga_users;
+ #endif
+ 
++#include <string.h>
++#include "../../exepath.c"
++
+ /*
+  * Count the size (in window cells) of the indent in the current line.
+  */
+@@ -4412,6 +4415,7 @@ vim_getenv(char_u *name, int *mustfree)
+     char_u	*p;
+     char_u	*pend;
+     int		vimruntime;
++    char_u	path[PATH_MAX + 10]; // 10 == strlen("vimruntime");
+ 
+ #if defined(MSWIN)
+     /* use "C:/" when $HOME is not set */
+@@ -4448,6 +4452,14 @@ vim_getenv(char_u *name, int *mustfree)
+     if (!vimruntime && STRCMP(name, "VIM") != 0)
+ 	return NULL;
+ 
++	if (vimruntime && !p && executable_path(path, sizeof(path))) {
++	    *mustfree = TRUE;
++	    STRCPY(rindex(path, '/') + 1, "vimruntime");
++	    vim_setenv((char_u *) "VIMRUNTIME", path);
++	    didset_vimruntime = 1;
++	    return strdup(path);
++	}
++
+     /*
+      * When expanding $VIMRUNTIME fails, try using $VIM/vim<version> or $VIM.
+      * Don't do this when default_vimruntime_dir is non-empty.

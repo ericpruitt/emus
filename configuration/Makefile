@@ -27,6 +27,9 @@ DOTFILES = \
 MACOS_DOTFILES = \
 	$(HOME)/.aqua-session \
 
+MACOS_LAUNCH_AGENTS = \
+	$(HOME)/Library/LaunchAgents/com.codevat.aqua-session.plist \
+
 # Local dotfiles are secondary configuration files that are not tracked by the
 # EMUS repository. These are loaded by the main configuration file (the path
 # with ".local" removed from the basename) and generally contain configuration
@@ -69,6 +72,7 @@ ALL_USER_TARGETS = \
 	$(LOCAL_DOTFILES) \
 	$(LOCAL_MACOS_DOTFILES) \
 	$(MACOS_DOTFILES) \
+	$(MACOS_LAUNCH_AGENTS) \
 	$(TEMPLATED) \
 
 user: $(DOTFILES) $(LOCAL_DOTFILES) $(TEMPLATED)
@@ -78,7 +82,7 @@ user: $(DOTFILES) $(LOCAL_DOTFILES) $(TEMPLATED)
 	  ;; \
 	esac
 
-macos-user: $(LOCAL_MACOS_DOTFILES) $(MACOS_DOTFILES)
+macos-user: $(LOCAL_MACOS_DOTFILES) $(MACOS_DOTFILES) $(MACOS_LAUNCH_AGENTS)
 
 host:
 	case "$$(uname)" in \
@@ -168,3 +172,8 @@ $(HOME)/.terminfo: terminfo/st.info terminfo/tmux.info
 		systemctl enable $(@F); \
 	  ;; \
 	esac
+
+$(HOME)/Library/LaunchAgents/com.codevat.aqua-session.plist: macos/aqua-session.plist
+	echo "- $@"
+	mkdir -p $(@D)
+	ln -s $(PWD)/$? $@

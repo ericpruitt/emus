@@ -29,7 +29,6 @@ LOCAL_CONFIGS = \
 	$(HOME)/localconfigs/ssh-post-config.local \
 
 TARGETS = \
-	$(DEFAULT_IDENTITY) \
 	$(HOST_KEYS) \
 	$(LOCAL_CONFIGS) \
 	keyscan \

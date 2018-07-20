@@ -86,6 +86,8 @@ function user-configure-iterm2()
 
     local iterm2_json="$OLDPWD/iterm2.json"
     local -a option_set=(
+        "AlternateMouseScrollStringForDown -string \\x5"
+        "AlternateMouseScrollStringForUp -string \\x19"
         "CopySelection -integer 1"
         "Control -integer 7"
         "LeftCommand -integer 1"

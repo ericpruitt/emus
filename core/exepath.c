@@ -26,10 +26,10 @@ static char *executable_path(char *path)
     #endif
 
     // TODO: Support OpenBSD and FreeBSD when procfs is not mounted.
-    if ((getenv("_") && realpath(getenv("_"), path)) ||
-        realpath("/proc/self/exe", path) ||
+    if (realpath("/proc/self/exe", path) ||
         realpath("/proc/curproc/exe", path) ||
-        realpath("/proc/curproc/file", path)) {
+        realpath("/proc/curproc/file", path) ||
+        (getenv("_") && realpath(getenv("_"), path))) {
 
         return path;
     }

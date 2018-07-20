@@ -200,6 +200,14 @@
                     "Action": 41,
                     "Text": "{\"ConvertUnicodePunctuation\":false,\"WaitForPrompts\":false,\"Substitution\":\"\",\"EscapeForShell\":false,\"Base64\":false,\"TabStopSize\":4,\"Delay\":0.01,\"RemoveNewlines\":false,\"Regex\":\"\",\"ConvertNewlines\":true,\"TabTransform\":0,\"BracketAllowed\":true,\"UseRegexSubstitution\":false,\"ChunkSize\":1024,\"RemoveControls\":true}"
                 },
+                "0x5b-0x40000": {
+                    "Action": 10,
+                    "Text": "[1;5D"
+                },
+                "0x5d-0x40000": {
+                    "Action": 10,
+                    "Text": "[1;5C"
+                },
                 "0x9-0x40000": {
                     "Action": 10,
                     "Text": "[27;5;9~"

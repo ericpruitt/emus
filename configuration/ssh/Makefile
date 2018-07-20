@@ -52,6 +52,7 @@ $(LOCAL_CONFIGS):
 		      -e 's:.*localconfigs/ssh:local:' \
 	)" && \
 	test -e "$$untracked" || ln -s "$@" "$$untracked" && \
+	mkdir -p $(@D)
 	touch $@
 
 $(UNTRACKED_FILES):

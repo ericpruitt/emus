@@ -5,6 +5,9 @@
 
 #if defined(__APPLE__) && __APPLE__
 #include <mach-o/dyld.h>
+#elif defined(__FreeBSD__) && __FreeBSD__
+#include <sys/types.h>
+#include <sys/sysctl.h>
 #endif
 
 /**
@@ -23,9 +26,16 @@ static char *executable_path(char *path)
 
         return path;
     }
+    #elif defined(__FreeBSD__) && __FreeBSD__
+    size_t bufsize = PATH_MAX;
+    int names[] = {CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
+
+    if (sysctl(names, 4, path, &bufsize, NULL, 0) != -1) {
+        return path;
+    }
     #endif
 
-    // TODO: Support OpenBSD and FreeBSD when procfs is not mounted.
+    // TODO: Support OpenBSD.
     if (realpath("/proc/self/exe", path) ||
         realpath("/proc/curproc/exe", path) ||
         realpath("/proc/curproc/file", path) ||

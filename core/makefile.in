@@ -768,7 +768,7 @@ $(BIN)/tmux: $(TMUX)/tmux
 		printf "%s\n" > $@ \
 		'#!/bin/sh' \
 		'export DYLD_FALLBACK_LIBRARY_PATH="'"$$bin_path"'"' \
-		'exec _tmux "$$@"'; \
+		'exec _$(@F) "$$@"'; \
 		chmod +x $@; \
 	else \
 		cp -f $? $@; \

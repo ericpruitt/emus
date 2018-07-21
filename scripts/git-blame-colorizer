@@ -557,7 +557,7 @@ BEGIN {
     if (ANNOTATION == "who") {
         MARGIN_WIDTH = MARGIN_WIDTH > 0 ? MARGIN_WIDTH : 25
     } else if (ANNOTATION == "what") {
-        MARGIN_WIDTH = MARGIN_WIDTH > 0 ? MARGIN_WIDTH : 50
+        MARGIN_WIDTH = MARGIN_WIDTH > 0 ? MARGIN_WIDTH : 60
     } else if (ANNOTATION == "when") {
         MARGIN_WIDTH = MARGIN_WIDTH > 0 ? MARGIN_WIDTH : length(unix2iso(0, 0))
     } else {

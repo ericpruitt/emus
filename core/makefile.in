@@ -300,11 +300,11 @@ install:
 		echo "BIN must be set to install" >&2; \
 		exit 1; \
 	fi
-	mkdir -p "$(BIN)"
-	test -z "$(MAN)" || mkdir -p "$(MAN)/man1/"
+	mkdir -p $(BIN)
+	test -z "$(MAN)" || mkdir -p $(MAN)/man1/
 	for binary in $$(ls $(BINARIES) $(COMPAT) 2>/dev/null); do \
 		echo "- $$binary"; \
-		$(MAKE) BIN="$(BIN)" MAN="$(MAN)" "$(BIN)/$${binary##*/}"; \
+		$(MAKE) BIN=$(BIN) MAN=$(MAN) $(BIN)"/$${binary##*/}"; \
 	done; \
 	if [ -z "$$binary" ]; then \
 		echo "$@: no binaries built; nothing to install" >&2; \
@@ -548,10 +548,10 @@ bash: $(BASH)/bash
 
 $(BIN)/bash: $(BASH)/bash
 	if [ -n "$(MAN)" ]; then \
-		cp -f "$(BASH)/doc/bash.1" "$(MAN)/man1/"; \
-		cp -f "$(BASH)/doc/rbash.1" "$(MAN)/man1/"; \
+		cp -f "$(BASH)/doc/bash.1" $(MAN)/man1/; \
+		cp -f "$(BASH)/doc/rbash.1" $(MAN)/man1/; \
 	fi
-	ln -f -s bash "$(BIN)/rbash"
+	ln -f -s bash $(BIN)/rbash
 	cp -f $? $@
 
 $(COREUTILS)/Makefile: $(COREUTILS)/.FOLDER $(GMP)/.BUILT
@@ -573,15 +573,15 @@ coreutils: $(COREUTILS)/src/coreutils
 
 $(BIN)/coreutils: $(COREUTILS)/src/coreutils
 	if [ -n "$(MAN)" ]; then \
-		ln -f -s test.1 "$(MAN)/man1/[.1"; \
-		ln -s -f install.1 "$(MAN)/man1/ginstall.1"; \
+		ln -f -s test.1 $(MAN)/man1/[.1; \
+		ln -s -f install.1 $(MAN)/man1/ginstall.1; \
 		($? --help | grep cp && echo install) \
 		| xargs printf "$(COREUTILS)/man/%s.1\n" \
 		| xargs ls -1 2>/dev/null \
 		| xargs sh -c "cp -f \"\$$@\" $(MAN)/man1/"; \
 	fi
-	$? --help | grep cp | (cd "$(BIN)" && xargs -n1 ln -f -s coreutils)
-	ln -f -s ginstall "$(BIN)/install"
+	$? --help | grep cp | (cd $(BIN) && xargs -n1 ln -f -s coreutils)
+	ln -f -s ginstall $(BIN)/install
 	cp -f $? $@
 
 $(FINDUTILS).tar.gz.unverified:
@@ -626,11 +626,11 @@ $(FINDUTILS)/find/find $(FINDUTILS)/xargs/xargs: $(FINDUTILS)/lib/libfind.a
 findutils: $(FINDUTILS)/find/find $(FINDUTILS)/xargs/xargs
 
 $(BIN)/find: $(FINDUTILS)/find/find
-	test -z "$(MAN)" || cp -f $?.1 "$(MAN)/man1/"
+	test -z "$(MAN)" || cp -f $?.1 $(MAN)/man1/
 	cp -f $? $@
 
 $(BIN)/xargs: $(FINDUTILS)/xargs/xargs
-	test -z "$(MAN)" || cp -f $?.1 "$(MAN)/man1/"
+	test -z "$(MAN)" || cp -f $?.1 $(MAN)/man1/
 	cp -f $? $@
 
 # For whatever reason, autotools considers FreeBSD's mktime(3) implementation
@@ -658,11 +658,11 @@ gawk: $(GAWK)/gawk
 
 $(BIN)/gawk: $(GAWK)/gawk
 	if [ -n "$(MAN)" ]; then \
-		ln -f -s gawk.1 "$(MAN)/man1/awk.1"; \
-		cp -f $(GAWK)/doc/gawk.1 "$(MAN)/man1/"; \
+		ln -f -s gawk.1 $(MAN)/man1/awk.1; \
+		cp -f $(GAWK)/doc/gawk.1 $(MAN)/man1/; \
 	fi
-	cp -f -r $(GAWK)/awklib/eg/lib/ "$(BIN)/awklib"
-	ln -f -s gawk "$(BIN)/awk"
+	cp -f -r $(GAWK)/awklib/eg/lib/ $(BIN)/awklib
+	ln -f -s gawk $(BIN)/awk
 	cp -f $? $@
 
 $(GREP)/Makefile: $(GREP)/.FOLDER
@@ -683,12 +683,12 @@ grep: $(GREP)/src/grep
 
 $(BIN)/grep: $(GREP)/src/grep
 	if [ -n "$(MAN)" ]; then \
-		cp -f $(GREP)/doc/grep.1 "$(MAN)/man1/"; \
-		ln -f -s grep.1 "$(MAN)/man1/egrep.1"; \
-		ln -f -s grep.1 "$(MAN)/man1/fgrep.1"; \
+		cp -f $(GREP)/doc/grep.1 $(MAN)/man1/; \
+		ln -f -s grep.1 $(MAN)/man1/egrep.1; \
+		ln -f -s grep.1 $(MAN)/man1/fgrep.1; \
 	fi
-	cp -f $(GREP)/src/egrep "$(BIN)"
-	cp -f $(GREP)/src/fgrep "$(BIN)"
+	cp -f $(GREP)/src/egrep $(BIN)
+	cp -f $(GREP)/src/fgrep $(BIN)
 	cp -f $? $@
 
 $(LESS).tar.gz $(LESS).sig:
@@ -711,15 +711,15 @@ $(LESS)/less $(LESS)/lessecho $(LESS)/lesskey: $(LESS)/Makefile
 less: $(LESS)/less $(LESS)/lessecho $(LESS)/lesskey
 
 $(BIN)/less: $(LESS)/less
-	test -z "$(MAN)" || cp -f $?.nro "$(MAN)/man1/$(@F).1"
+	test -z "$(MAN)" || cp -f $?.nro $(MAN)/man1/$(@F).1
 	cp -f $? $@
 
 $(BIN)/lessecho: $(LESS)/lessecho
-	test -z "$(MAN)" || cp -f $?.nro "$(MAN)/man1/$(@F).1"
+	test -z "$(MAN)" || cp -f $?.nro $(MAN)/man1/$(@F).1
 	cp -f $? $@
 
 $(BIN)/lesskey: $(LESS)/lesskey
-	test -z "$(MAN)" || cp -f $?.nro "$(MAN)/man1/$(@F).1"
+	test -z "$(MAN)" || cp -f $?.nro $(MAN)/man1/$(@F).1
 	cp -f $? $@
 
 $(TMUX)/.git:
@@ -754,7 +754,7 @@ $(BIN)/tmux: $(TMUX)/tmux
 		cd $(?D) && \
 		$(MAKE) mkdir_p=true INSTALL_DATA=true install-exec-hook && \
 		cd .. && \
-		cp -f "$$OLDPWD"/tmux.1.* "$(MAN)/man1/tmux.1"; \
+		cp -f "$$OLDPWD"/tmux.1.* $(MAN)/man1/tmux.1; \
 	fi
 	if [ "$$(uname)" = "Darwin" ]; then \
 		cp -f $(COMMON_PREFIX)/lib/libevent-*.dylib $(@D)/; \
@@ -790,7 +790,7 @@ $(SED)/sed/sed: $(SED)/Makefile
 sed: $(SED)/sed/sed
 
 $(BIN)/sed: $(SED)/sed/sed
-	test -z "$(MAN)" || cp -f "$(SED)/doc/sed.1" "$(MAN)/man1/"
+	test -z "$(MAN)" || cp -f "$(SED)/doc/sed.1" $(MAN)/man1/
 	cp -f $? $@
 
 $(TREE).tar.gz.unverified:
@@ -812,7 +812,7 @@ tree: $(TREE)/tree
 $(BIN)/tree: $(TREE)/tree
 	if [ -n "$(MAN)" ]; then \
 		sed 's/^ \.TP$$/.TP/' $(TREE)/doc/tree.1 \
-		  > "$(MAN)/man1/tree.1"; \
+		  > $(MAN)/man1/tree.1; \
 	fi
 	cp -f $? $@
 
@@ -882,16 +882,16 @@ $(BIN)/vimruntime: $(VIM)/runtime-files
 	(cd $(VIM) && \
 	ls -1 $$(cat $(PWD)/$?) 2>/dev/null \
 	| sed -n "s/^runtime/vimruntime/p" \
-	| tar -c $$from_file - -f -) | (cd "$(BIN)" && tar -x -m -f -)
+	| tar -c $$from_file - -f -) | (cd $(BIN) && tar -x -m -f -)
 
 $(BIN)/vim: $(BIN)/vimruntime $(VIM)/src/vim
 	if [ -n "$(MAN)" ]; then \
-		ln -f -s vim.1 "$(MAN)/man1/vi.1"; \
-		cp -f "$(VIM)/runtime/doc/vim.1" "$(MAN)/man1/"; \
+		ln -f -s vim.1 $(MAN)/man1/vi.1; \
+		cp -f "$(VIM)/runtime/doc/vim.1" $(MAN)/man1/; \
 	fi
-	ln -f -s vim "$(BIN)/vi"
+	ln -f -s vim $(BIN)/vi
 	cp -f $(VIM)/src/vim $@
 
 $(BIN)/xxd: $(VIM)/src/xxd/xxd
-	test -z "$(MAN)" || cp -f "$(VIM)/runtime/doc/xxd.1" "$(MAN)/man1/"
+	test -z "$(MAN)" || cp -f "$(VIM)/runtime/doc/xxd.1" $(MAN)/man1/
 	cp -f $? $@

@@ -756,7 +756,23 @@ $(BIN)/tmux: $(TMUX)/tmux
 		cd .. && \
 		cp -f "$$OLDPWD"/tmux.1.* "$(MAN)/man1/tmux.1"; \
 	fi
-	cp -f $? $@
+	if [ "$$(uname)" = "Darwin" ]; then \
+		cp -f $(COMMON_PREFIX)/lib/libevent-*.dylib $(@D)/; \
+		cp -f $? $(@D)/_$(@F); \
+		bin_path="$(@D)/"; \
+		case "$$bin_path" in \
+		  "$$HOME/"*) \
+			bin_path="\$$HOME$${bin_path#$$HOME}"; \
+		  ;; \
+		esac; \
+		printf "%s\n" > $@ \
+		'#!/bin/sh' \
+		'export DYLD_FALLBACK_LIBRARY_PATH="'"$$bin_path"'"' \
+		'exec _tmux "$$@"'; \
+		chmod +x $@; \
+	else \
+		cp -f $? $@; \
+	fi
 
 $(SED)/Makefile: $(SED)/.FOLDER
 	(cd $(@D) && \

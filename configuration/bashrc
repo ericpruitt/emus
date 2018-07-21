@@ -30,6 +30,11 @@ test "$BASH" -ef "$(command -v bash || echo "$BASH")" || exec bash ${-:+-$-}
 #   <https://lists.gnu.org/archive/html/bug-bash/2016-04/msg00090.html>
 declare -r BASH_MAJOR_MINOR="$((BASH_VERSINFO[0] * 1000 + BASH_VERSINFO[1]))"
 
+# This regex is used to determine whether a username are included in the shell
+# prompt and title; if the current username does not match this pattern, the
+# username and hostname are inserted in the text.
+declare -r EPONYMS='^e(ric)?pruitt$'
+
 # If the "TERM" environment variable matches this regular expression, tmux will
 # not be launched automatically.
 declare -r NO_AUTO_TMUX='^(tmux|screen|linux|vt[0-9]+|dumb)([+-].+)?$'
@@ -393,6 +398,10 @@ function -setup()
         tput -S 2>&- < /dev/null || export TERM="screen"
     elif [[ "${TERM:-}" ]] && ! [[ "$TERM" =~ $NO_AUTO_TMUX ]]; then
         exec tmux new -A -s 0
+    fi
+
+    if [[ -z "${SSH_TTY:-}" ]] && ! [[ "${LOGNAME:-$USER}" =~ $EPONYMS ]]; then
+        SSH_TTY="/dev/null"
     fi
 
     HISTFILESIZE="2147483647"

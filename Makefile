@@ -31,14 +31,19 @@ cattle: cattle-ascii-art
 	$(MAKE) user-configuration
 
 pet: pet-ascii-art
-	case "$$(uname)" in \
+	case "$${uname:=$$(uname)}" in \
 	  Darwin|FreeBSD|Linux) \
 		sudo $(MAKE) host-configuration; \
-		sudo $(MAKE) core-make-deps; \
+		if [ "$$uname" != "Darwin" ]; then \
+			sudo $(MAKE) core-make-deps; \
+		fi; \
 		if command -v Xorg >/dev/null 2>&1; then \
 			sudo $(MAKE) desktop-environment-make-deps; \
 			$(MAKE) build-desktop-environment; \
 			$(MAKE) install-desktop-environment; \
+		fi; \
+		if [ "$$uname" = "Darwin" ]; then \
+			$(MAKE) core-make-deps; \
 		fi; \
 	  ;; \
 	  OpenBSD) \

@@ -746,6 +746,13 @@ $(TMUX)/Makefile: $(TMUX)/configure
 
 $(TMUX)/tmux: $(TMUX)/Makefile
 	(cd $(?D) && $(MAKE) -S)
+	if [ "$$(uname)" = "Darwin" ]; then \
+		dylib="$$(cd $(COMMON_PREFIX)/lib && echo libevent-*.dylib)"; \
+		ln -f -s "$(COMMON_PREFIX)/lib/$$dylib" $(@D); \
+		install_name_tool -change \
+			"$(COMMON_PREFIX)/lib/$$dylib" \
+			"@executable_path/$$dylib" $@; \
+	fi
 
 tmux: $(TMUX)/tmux
 
@@ -757,22 +764,9 @@ $(BIN)/tmux: $(TMUX)/tmux
 		cp -f "$$OLDPWD"/tmux.1.* $(MAN)/man1/tmux.1; \
 	fi
 	if [ "$$(uname)" = "Darwin" ]; then \
-		cp -f $(COMMON_PREFIX)/lib/libevent-*.dylib $(@D)/; \
-		cp -f $? $(@D)/_$(@F); \
-		bin_path="$(@D)/"; \
-		case "$$bin_path" in \
-		  "$$HOME/"*) \
-			bin_path="\$$HOME$${bin_path#$$HOME}"; \
-		  ;; \
-		esac; \
-		printf "%s\n" > $@ \
-		'#!/bin/sh' \
-		'export DYLD_FALLBACK_LIBRARY_PATH="'"$$bin_path"'"' \
-		'exec _$(@F) "$$@"'; \
-		chmod +x $@; \
-	else \
-		cp -f $? $@; \
+		cp -f $(COMMON_PREFIX)/lib/libevent-*.dylib $(@D); \
 	fi
+	cp -f $? $@
 
 $(SED)/Makefile: $(SED)/.FOLDER
 	(cd $(@D) && \

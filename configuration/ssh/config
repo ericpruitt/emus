@@ -19,6 +19,7 @@ Host github.com
 CheckHostIP no
 StrictHostKeyChecking yes
 UserKnownHostsFile ~/.ssh/known-hosts/github.com
+ControlMaster no
 
 # rsync.net
 Host *.rsync.net

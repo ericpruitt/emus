@@ -304,6 +304,10 @@ function user-misc-gui-tweaks()
     # Disable mouse acceleration.
     defaults write -g com.apple.mouse.scaling -1
 
+    # Disable rotating cube animation triggered by locking the screen or
+    # switching users.
+    defaults write -g userMenuExtraStyle 0
+
     kill-system-ui-server
 }
 

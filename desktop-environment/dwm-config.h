@@ -163,7 +163,7 @@ static Key keys[] = {
     { HyperKey,                     XK_r,                   view,            {.ui = TAG(8) } },
 
     // Application launchers
-    { HyperKey,                     XK_space,               spawn,           EXECL("del") },
+    { HyperKey,                     XK_space,               spawn,           EXECL("del", "--", "-i") },
     { HyperKey,                     XK_p,                   spawn,           EXECL("getpass") },
     { HyperKey,                     XK_q,                   spawn,           EXECL("session-control", "menu") },
     { HyperKey,                     XK_b,                   spawn,           EXECL("media-control", "bass-toggle") },

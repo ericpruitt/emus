@@ -401,7 +401,7 @@ function -setup()
         SSH_TTY="/dev/null"
     fi
 
-    HISTFILESIZE="2147483647"
+    HISTFILESIZE=""
     HISTIGNORE="history?( -[acdnrw]*):@(fg|help|history)?( ):@(silent|fg) *"
     HISTSIZE="2147483647"
     HISTTIMEFORMAT=""

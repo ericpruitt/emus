@@ -293,7 +293,7 @@ mode, preserve the search query when using movement commands.
 Disable error 173, "... more files to edit" which is generated when "the last
 item in the argument list has not been edited."
 
-#### vim-src-4575876-exe-next-to-runtime-dir.patch ####
+#### vim-src-8.1.0196-exe-next-to-runtime-dir.patch ####
 
 Set the default value of "VIMRUNTIME" to `$EXEDIR/vimruntime` where `$EXEDIR`
 is the directory in which the Vim binary resides.

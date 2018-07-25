@@ -220,8 +220,8 @@ use the environment variables "LOGNAME" and "USER" as fallbacks for
 
 #### coreutils-8.29-show-dotfiles-if-not-home.patch ####
 
-When listing the contents of a folder, "-A" (list all files except "." and
-"..") is implicit unless the directory is the user's home directory.
+Add support for a new option, "--almost-all-if-not-home", that implicitly shows
+dotfiles for every directory except `$HOME`.
 
 #### coreutils-8.29-use-asm-extension.patch ####
 

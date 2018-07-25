@@ -134,14 +134,11 @@ function -define-aliases()
         BASH_ALIASES[find]+=" -xdev"
     fi
 
-    # My modified version of ls (which is typically under my home directory)
-    # has been patched to make "-A" implicit for any directory other than
-    # "$HOME," so there's no need for the flag to be in the alias.
-    case "$(which ls)" in
-      "$HOME"/*)
-        BASH_ALIASES[ls]="${BASH_ALIASES[ls]% -A}"
-      ;;
-    esac
+    # My modified version of ls supports "--almost-all-if-not-home", an
+    # alternative to "-A".
+    if ls --almost-all-if-not-home /dev/null &>/dev/null; then
+        BASH_ALIASES[ls]="${BASH_ALIASES[ls]/% -A/ --almost-all-if-not-home}"
+    fi
 
     # Disable hyphenated word-breaks when showing manuals.
     case "$(man -h 2>/dev/null)" in

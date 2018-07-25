@@ -1,5 +1,5 @@
-When listing the contents of a folder, "-A" (list all files except "." and
-"..") is implicit unless the directory is the user's home directory.
+Add support for a new option, "--almost-all-if-not-home", that implicitly shows
+dotfiles for every directory except `$HOME`.
 
 --- src/ls.c	2016-01-14 04:16:23.000000000 -0800
 +++ src/ls.c	2016-11-03 16:35:12.787371263 -0700
@@ -23,16 +23,63 @@ When listing the contents of a folder, "-A" (list all files except "." and
  /* Current time in seconds and nanoseconds since 1970, updated as
     needed when deciding whether a file is recent.  */
  
-@@ -1436,6 +1440,9 @@
+@@ -832,7 +836,8 @@
+   SI_OPTION,
+   SORT_OPTION,
+   TIME_OPTION,
+-  TIME_STYLE_OPTION
++  TIME_STYLE_OPTION,
++  ALMOST_ALL_IF_NOT_HOME
+ };
+ 
+ static struct option const long_options[] =
+@@ -880,6 +885,7 @@
+   {"block-size", required_argument, NULL, BLOCK_SIZE_OPTION},
+   {"context", no_argument, 0, 'Z'},
+   {"author", no_argument, NULL, AUTHOR_OPTION},
++  {"almost-all-if-not-home", no_argument, NULL, ALMOST_ALL_IF_NOT_HOME},
+   {GETOPT_HELP_OPTION_DECL},
+   {GETOPT_VERSION_OPTION_DECL},
+   {NULL, 0, NULL, 0}
+@@ -940,6 +946,8 @@
+   size_t *col_arr;
+ };
+ 
++static bool almost_all_if_not_home;
++
+ /* Array with information about column filledness.  */
+ static struct column_info *column_info;
+ 
+@@ -1466,6 +1474,8 @@
+   current_time.tv_sec = TYPE_MINIMUM (time_t);
+   current_time.tv_nsec = -1;
+ 
++  almost_all_if_not_home = false;
++
+   i = decode_switches (argc, argv);
+ 
+   if (print_with_color)
+@@ -1573,6 +1583,9 @@
    else if (n_files <= 1 && pending_dirs && pending_dirs->next == 0)
      print_dir_name = false;
  
-+  if (!getenv("HOME") || stat(getenv("HOME"), &homedir_stat) < 0)
++  if (!almost_all_if_not_home || !getenv("HOME") || stat(getenv("HOME"), &homedir_stat) < 0)
 +    homedir_stat.st_dev = homedir_stat.st_ino = 0;
 +
    while (pending_dirs)
      {
        thispend = pending_dirs;
+@@ -2096,6 +2109,10 @@
+           print_scontext = true;
+           break;
+ 
++        case ALMOST_ALL_IF_NOT_HOME:
++          almost_all_if_not_home = true;
++          break;
++
+         case_GETOPT_HELP_CHAR;
+ 
+         case_GETOPT_VERSION_CHAR (PROGRAM_NAME, AUTHORS);
 @@ -2580,22 +2587,24 @@
        return;
      }
@@ -91,7 +138,7 @@ When listing the contents of a folder, "-A" (list all files except "." and
    return ((ignore_mode != IGNORE_MINIMAL
             && name[0] == '.'
 -           && (ignore_mode == IGNORE_DEFAULT || ! name[1 + (name[1] == '.')]))
-+           && (ignore_mode == IGNORE_DEFAULT && is_home || ! name[1 + (name[1] == '.')]))
++           && (ignore_mode == IGNORE_DEFAULT && (!almost_all_if_not_home || is_home || ! name[1 + (name[1] == '.')])))
            || (ignore_mode == IGNORE_DEFAULT
                && patterns_match (hide_patterns, name))
            || patterns_match (ignore_patterns, name));

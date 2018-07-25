@@ -212,16 +212,16 @@ of the last program did not end with a newline.
 If a user's information cannot be queried from the password database, use the
 environment variables "LOGNAME", "HOME" and "SHELL" if they are set.
 
+#### coreutils-8.29-almost-all-if-not-home.patch ####
+
+Add support for a new option, "--almost-all-if-not-home", that implicitly shows
+dotfiles for every directory except `$HOME`.
+
 #### coreutils-8.29-pw_name-from-environment.patch ####
 
 If the current user's information cannot be queried from the password database,
 use the environment variables "LOGNAME" and "USER" as fallbacks for
 `pwent->pw_name`.
-
-#### coreutils-8.29-show-dotfiles-if-not-home.patch ####
-
-Add support for a new option, "--almost-all-if-not-home", that implicitly shows
-dotfiles for every directory except `$HOME`.
 
 #### coreutils-8.29-use-asm-extension.patch ####
 

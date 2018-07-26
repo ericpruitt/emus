@@ -60,6 +60,7 @@ TEMPLATED = \
 LINUX_HOST_TARGETS = \
 	/etc/fstab \
 	/etc/modprobe.d/local.conf \
+	/etc/sudoers.d/keyboard-leds \
 	/etc/systemd/system/lock-on-suspend.service \
 
 # Absolute path to the program used to lock X11 displays.
@@ -157,6 +158,11 @@ $(HOME)/.terminfo: terminfo/st.info terminfo/tmux.info
 
 /etc/modprobe.d/local.conf: linux/modprobe.conf
 	echo "- $@"
+	cp $? $@
+
+/etc/sudoers.d/keyboard-leds: linux/keyboard-leds.sudoers
+	echo "- $@"
+	mkdir -p $(@D)
 	cp $? $@
 
 /etc/systemd/system/lock-on-suspend.service: linux/lock-on-suspend.service.sh

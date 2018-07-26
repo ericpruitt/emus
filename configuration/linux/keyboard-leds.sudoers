@@ -1,0 +1,10 @@
+ALL ALL = NOPASSWD: \
+    /usr/bin/tee /sys/class/leds/input[0-9]\:\:capslock/brightness, \
+    /usr/bin/tee /sys/class/leds/input[0-9][0-9]\:\:capslock/brightness, \
+    /usr/bin/tee /sys/class/leds/input[0-9][0-9][0-9]\:\:capslock/brightness, \
+    /usr/bin/tee /sys/class/leds/input[0-9]\:\:numlock/brightness, \
+    /usr/bin/tee /sys/class/leds/input[0-9][0-9]\:\:numlock/brightness, \
+    /usr/bin/tee /sys/class/leds/input[0-9][0-9][0-9]\:\:numlock/brightness, \
+    /usr/bin/tee /sys/class/leds/input[0-9]\:\:scrolllock/brightness, \
+    /usr/bin/tee /sys/class/leds/input[0-9][0-9]\:\:scrolllock/brightness, \
+    /usr/bin/tee /sys/class/leds/input[0-9][0-9][0-9]\:\:scrolllock/brightness

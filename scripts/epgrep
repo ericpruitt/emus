@@ -34,7 +34,8 @@ case "$*" in
   # When no arguments are given, show every non-kernel process.
   "")
     for pid in $(pgrep -v -x kthreadd); do
-        test "$pid" -eq 2 -o "$pid" -eq "$$" || pids="${pids:-} $pid"
+        test "$pid" -eq 2 -o "$pid" -eq "$$" && continue
+        test -n "${pids:-}" && pids="$pids,$pid" || pids="-p $pid"
     done
   ;;
 
@@ -44,7 +45,8 @@ case "$*" in
     # PID.
     results="$(pgrep "$@" || test "$?" -eq 1)"
     for pid in $results; do
-        test "$pid" -eq "$$" || pids="${pids:-} $pid"
+        test "$pid" -eq "$$" && continue
+        test -n "${pids:-}" && pids="$pids,$pid" || pids="-p $pid"
     done
 
     if [ -z "${pids:-}" ]; then

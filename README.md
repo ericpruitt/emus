@@ -283,22 +283,22 @@ by Landry Breuil](https://bugzilla.mozilla.org/show_bug.cgi?id=931354).
 
 Adjust some preprocessor guards to resolve build failures on OpenBSD.
 
-#### tmux-src-bd71cbb-preserve-search-with-vi-mode-motions.patch ####
+#### tmux-src-preserve-search-with-vi-mode-motions.patch ####
 
 When "mode-keys" is set to "vi" and there is an active search query in copy
 mode, preserve the search query when using movement commands.
 
-#### vim-src-156919f-disable-check_more.patch ####
+#### vim-src-disable-check_more.patch ####
 
 Disable error 173, "... more files to edit" which is generated when "the last
 item in the argument list has not been edited."
 
-#### vim-src-8.1.0196-exe-next-to-runtime-dir.patch ####
+#### vim-src-exe-next-to-runtime-dir.patch ####
 
 Set the default value of "VIMRUNTIME" to `$EXEDIR/vimruntime` where `$EXEDIR`
 is the directory in which the Vim binary resides.
 
-#### vim-src-da5116da4-no-timestamp-in-version.patch ####
+#### vim-src-no-timestamp-in-version.patch ####
 
 Do not include the build time in the binary to improve reproducibility.
 

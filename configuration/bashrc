@@ -79,6 +79,8 @@ function -define-aliases()
     alias help='-paginate help --'
     alias history='-paginate history --'
     alias info='info --vi-keys'
+    alias iotrace='strace -s 100000 \
+                       -e open,close,read,write,send,recv,sendto,recvfrom'
     alias ldd='-paginate ldd --'
     alias ls='-paginate ls -C -A -F -h'
     alias make='gmake'

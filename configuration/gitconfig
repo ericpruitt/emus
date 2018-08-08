@@ -9,12 +9,12 @@
 [alias]
 	wdiff = diff --color-words
 	cdiff = diff --color-words --word-diff-regex=.
-	what = blame-colorizer what
-	when = blame-colorizer when
-	who = blame-colorizer who
+	what = colorized-blame what
+	when = colorized-blame when
+	who = colorized-blame who
 
 [pager]
-	blame-colorizer = true
+	colorized-blame = true
 
 [color]
 	diff = true

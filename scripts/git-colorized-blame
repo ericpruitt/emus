@@ -6,6 +6,11 @@
 # can be "who", "what" (default) or "when".
 #
 # Options:
+#   --configure
+#                   Update Git configuration to enable pagination of this
+#                   script and setup three aliases, "who", "what" and "when",
+#                   that launch this script with the respective annotation
+#                   mode.
 #   -m, --margin=COLUMNS
 #                   Set the width of the commit summary margin.
 #   -N              Hide working-copy line numbers.
@@ -157,6 +162,50 @@ function optarg()
     return ARGV[OPTIND++]
 }
 
+# Enable pagination for "git colorized-blame" and configure the aliases "what",
+# "when" and "who".
+#
+function configure_git(    format, name, settings, status, value)
+{
+    settings["alias.what"] = "colorized-blame what"
+    settings["alias.when"] = "colorized-blame when"
+    settings["alias.who"] = "colorized-blame who"
+    settings["pager.colorized-blame"] = "true"
+
+    print "Configuring Git:"
+
+    for (name in settings) {
+        printf "- %s: ", name
+
+        status = system("git config --global --get " name " >/dev/null")
+
+        if (status == 0) {
+            print "already defined; skipping"
+            continue
+        } else if (status != 1) {
+            exit status
+        }
+
+        value = settings[name]
+        status = system("git config --global " name " " shell_escape(value))
+
+        if (status != 0) {
+            print "error; aborting operation"
+            exit 1
+        }
+
+        if (index(name, "alias.") == 1) {
+            format = "defined as \"%s\"\n"
+        } else {
+            format = "set to \"%s\"\n"
+        }
+
+        printf format, value
+    }
+
+    exit
+}
+
 # Parse parameters in "ARGV" and set the corresponding AWK variables. Values in
 # "ARGV" are deleted after being read.
 #
@@ -185,6 +234,8 @@ function getopts(    argument, git, optind0)
             DATETIME = optarg()
         } else if (argument ~ /^(who|what|when)$/) {
             ANNOTATION = ARGV[OPTIND]
+        } else if (argument == "--configure") {
+            configure_git()
 
         # Forward Git-specific short flags that accept arguments. They are
         # parsed by this wrapper so Git's short flags can be combined with this

@@ -1,6 +1,6 @@
 #!/usr/bin/awk -f
 
-# Usage: git blame-colorizer [ANNOTATION_MODE] [OPTIONS] FILE
+# Usage: git colorized-blame [ANNOTATION_MODE] [OPTIONS] FILE
 #
 # The annotation mode controls what information is displayed in the margin. It
 # can be "who", "what" (default) or "when".
@@ -120,7 +120,7 @@ BEGIN {
 #
 function abort(text)
 {
-    print "colorizer:", text > "/dev/fd/2"
+    print "colorized-blame:", text > "/dev/fd/2"
     close("/dev/fd/2")
     exit 1
 }

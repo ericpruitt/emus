@@ -9,9 +9,9 @@
 [alias]
 	wdiff = diff --color-words
 	cdiff = diff --color-words --word-diff-regex=.
-	what = "! cd \"$GIT_PREFIX\" && git-blame-colorizer what"
-	when = "! cd \"$GIT_PREFIX\" && git blame-colorizer when"
-	who = "! cd \"$GIT_PREFIX\" && git blame-colorizer who"
+	what = blame-colorizer what
+	when = blame-colorizer when
+	who = blame-colorizer who
 
 [pager]
 	blame-colorizer = true

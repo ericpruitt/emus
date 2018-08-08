@@ -164,7 +164,7 @@ function optarg()
 #
 function getopts(    argument, git, optind0)
 {
-    git = "git blame --porcelain"
+    git = "cd \"./${GIT_PREFIX:-.}\" && git blame --porcelain"
 
     for (OPTIND = 1; (optind0 = OPTIND) < ARGC; ) {
         if ((argument = ARGV[OPTIND]) == "--") {

@@ -300,7 +300,12 @@ function setaf(n)
 function unix2iso(unixtime, tz,   leap, day, y_end, n, D, HH, M, MM, Y)
 {
     unixtime += 3600 * int(tz / 100) + 60 * (tz % 100)
-    tz = SHOW_TIMEZONE ? (int(tz) ? tz : "±0000") : ""
+
+    if (!SHOW_TIMEZONE) {
+        tz = ""
+    } else if ((0 + tz) == 0) {
+        tz = MULTIBYTE_SAFE ? "±0000" : "+0000"
+    }
 
     Y = 1970
     for (day = leap = y_end = 0; unixtime > y_end; Y += (y_end <= unixtime)) {

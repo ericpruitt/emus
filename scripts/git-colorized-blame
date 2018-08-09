@@ -3,21 +3,22 @@
 # Usage: git colorized-blame [ANNOTATION_MODE] [OPTIONS] FILE
 #
 # The annotation mode controls what information is displayed in the margin. It
-# can be "who", "what" (default) or "when".
+# can be "who", "what" (the default) or "when".
 #
-# Options:
+# Options (and Defaults):
 #   --configure
 #         Update Git configuration to enable pagination of this script and
-#         setup three aliases, "who", "what" and "when", that launch this
-#         script with the respective annotation mode.
+#         setup three aliases, "git who", "git what" and "git when", that
+#         launch this script with the respective annotation mode.
 #   -m, --margin=COLUMNS
-#         Set the width of the commit summary margin.
+#         Set the width of the commit summary margin. When this is unspecified,
+#         the width varies based on the annotation mode.
 #   -N    Hide working-copy line numbers.
 #   -n, --show-number
 #         Show line numbers from the original commit.
-#   --palette=NAME
+#   --palette=NAME ("vivid")
 #         Set the color scheme. The following palettes are supported:
-#         - vivd: Very saturated colors of varying hues. This is the default.
+#         - vivd: Very saturated colors of varying hues.
 #         - table: Alternates between a soft purple and gray similar to colors
 #           often used for alternating rows in textbook tables.
 #         - mode4: Low-intensity yellow, magenta, green and cyan reminiscent of
@@ -32,10 +33,10 @@
 #         Show summaries using one line instead of two.
 #   -u, --utc
 #         Display commit times in UTC.
-#   -y, --time=TYPE
-#         Controls how dates and times are displayed. This can be "host"
-#         (default) to indicate they should be displayed using the host's
-#         timezone, "author" for the author's time zone or "utc" for UTC.
+#   -y, --time=TYPE ("host")
+#         Controls how dates and times are displayed. This can be "host" to
+#         indicate they should be displayed using the host's timezone, "author"
+#         for the author's time zone or "utc" for UTC.
 #
 # Any unrecognized arguments will be passed to git-blame.
 #

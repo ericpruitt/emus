@@ -3,7 +3,10 @@
 # Usage: git colorized-blame [ANNOTATION_MODE] [OPTIONS] FILE
 #
 # The annotation mode controls what information is displayed in the margin. It
-# can be "who", "what" (the default) or "when".
+# can be "who", "what" (the default) or "when". To install this script, copy it
+# into a "$PATH" directory, make it executable ("chmod +x git-colorized-blame")
+# then run "git colorized-blame --configure" to configure pagination and create
+# a few aliases.
 #
 # Options (and Defaults):
 #   --configure

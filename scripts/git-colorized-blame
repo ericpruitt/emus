@@ -255,7 +255,7 @@ function getopts(    argument, git, optind0)
         # Forward Git-specific short flags that accept arguments. They are
         # parsed by this wrapper so Git's short flags can be combined with this
         # script's short flags.
-        } else if (argument ~ /^-L/) {
+        } else if (argument ~ /^-[LS]/) {
             git = git " -" substr(argument, 2, 1) " " shell_escape(optarg())
 
         # Unrecognized options and positional parameters are forwarded to Git.

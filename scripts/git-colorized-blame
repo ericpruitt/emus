@@ -16,8 +16,18 @@
 #   -n, --show-number
 #         Show line numbers from the original commit.
 #   --palette=NAME
-#         Set the color palette. For a list of palettes, search for "Predefined
-#         Color Palettes" in the AWK script source.
+#         Set the color scheme. The following palettes are supported:
+#         - vivd: Very saturated colors of varying hues. This is the default.
+#         - table: Alternates between a soft purple and gray similar to colors
+#           often used for alternating rows in textbook tables.
+#         - mode4: Low-intensity yellow, magenta, green and cyan reminiscent of
+#           early 8-bit hardware color palettes.
+#         - red-weak: Palette optimized for red-weak vision.
+#         - green-weak: Palette optimized for green-weak vision.
+#         - blue-weak: Palette optimized for blue-weak vision.
+#         - red-blind: Palette optimized for red-blind vision.
+#         - green-blind: Palette optimized for green-blind vision.
+#         - blue-blind: Palette optimized for blue-blind vision.
 #   -s, --short
 #         Show summaries using one line instead of two.
 #   -u, --utc

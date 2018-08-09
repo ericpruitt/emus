@@ -7,24 +7,25 @@
 #
 # Options:
 #   --configure
-#                   Update Git configuration to enable pagination of this
-#                   script and setup three aliases, "who", "what" and "when",
-#                   that launch this script with the respective annotation
-#                   mode.
+#         Update Git configuration to enable pagination of this script and
+#         setup three aliases, "who", "what" and "when", that launch this
+#         script with the respective annotation mode.
 #   -m, --margin=COLUMNS
-#                   Set the width of the commit summary margin.
-#   -N              Hide working-copy line numbers.
+#         Set the width of the commit summary margin.
+#   -N    Hide working-copy line numbers.
 #   -n, --show-number
-#                   Show line numbers from the original commit.
-#   --palette=NAME  Set the color palette. For a list of palettes, search for
-#                   "Predefined Color Palettes" in the AWK script source.
-#   -s, --short     Show summaries using one line instead of two.
-#   -u, --utc       Display commit times in UTC.
+#         Show line numbers from the original commit.
+#   --palette=NAME
+#         Set the color palette. For a list of palettes, search for "Predefined
+#         Color Palettes" in the AWK script source.
+#   -s, --short
+#         Show summaries using one line instead of two.
+#   -u, --utc
+#         Display commit times in UTC.
 #   -y, --time=TYPE
-#                   Controls how dates and times are displayed. This can be
-#                   "host" (default) to indicate they should be displayed using
-#                   the host's timezone, "author" for the author's time zone or
-#                   "utc" for UTC.
+#         Controls how dates and times are displayed. This can be "host"
+#         (default) to indicate they should be displayed using the host's
+#         timezone, "author" for the author's time zone or "utc" for UTC.
 #
 # Any unrecognized arguments will be passed to git-blame.
 #

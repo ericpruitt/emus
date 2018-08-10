@@ -1,18 +1,19 @@
 #!/usr/bin/awk -f
 
 # Usage: git colorized-blame [ANNOTATION_MODE] [OPTIONS] FILE
+#        git colorized-blame configure
 #
-# The annotation mode controls what information is displayed in the margin. It
-# can be "who", "what" (the default) or "when". To install this script, copy it
-# into a "$PATH" directory, make it executable ("chmod +x git-colorized-blame")
-# then run "git colorized-blame --configure" to configure pagination and create
-# a few aliases.
+# This script displays colorized blame information for a file. The annotation
+# mode controls what information is displayed in the margins. It can be "who",
+# "what" (the default) or "when".
+#
+# To install this script, copy it into a "$PATH" directory, make it executable
+# ("chmod +x git-colorized-blame") then run "git colorized-blame configure"
+# which will update Git's configuration to enable pagination of this script and
+# setup three aliases, "git who", "git what" and "git when", that launch this
+# script with the respective annotation mode.
 #
 # Options (and Defaults):
-#   --configure
-#         Update Git configuration to enable pagination of this script and
-#         setup three aliases, "git who", "git what" and "git when", that
-#         launch this script with the respective annotation mode.
 #   -m, --margin=COLUMNS
 #         Set the width of the commit summary margin. When this is unspecified,
 #         the width varies based on the annotation mode.
@@ -249,7 +250,7 @@ function getopts(    argument, git, optind0)
             DATETIME = optarg()
         } else if (argument ~ /^(who|what|when)$/) {
             ANNOTATION = ARGV[OPTIND]
-        } else if (argument == "--configure") {
+        } else if (argument == "configure") {
             configure_git()
 
         # Forward Git-specific short flags that accept arguments. They are

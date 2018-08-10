@@ -49,6 +49,13 @@
 #   every commit without regard to things that change the offset like daylight
 #   savings or changes by governing / regulatory organizations.
 #
+#   Due to the way many AWK interpreters handle command line arguments, the
+#   annotation mode may need to be explicitly defined to pass options to this
+#   script. For example, if "/usr/bin/awk" is MAWK (currently v1.3.3), running
+#   "git colorized-blame --palette=table ..." fails with "mawk: not an option:
+#   --palette=table" but "git colorized-blame who --palette=table ..." works as
+#   expected. GNU Awk (currently v4.2.1) accepts either form.
+#
 # Portability:
 #   Although the syntax and features of the script itself are POSIX-compliant,
 #   date(1) is invoked with "%z" which is specified for strftime(3) but

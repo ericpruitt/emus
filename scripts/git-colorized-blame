@@ -310,19 +310,21 @@ function setaf(n)
     }
 }
 
-# Convert a Unix timestamp into an ISO 8601-formatted date and time.
+# Convert a Unix timestamp into an ISO 8601-formatted date and time. This
+# function was derived from Julian day calculations on Wikipedia
+# (https://en.wikipedia.org/w/index.php?title=Julian_day&oldid=850807575).
 #
 # Arguments:
-# - unixtime: Unix timestamp representing the time to be displayed.
+# - timestamp: Unix timestamp representing the time to be displayed.
 # - tz: Offset from UTC of the time to be displayed. This should be in the form
 #   of `/[+-]HHMM/`.
 #   returned string.
 #
 # Returns: A string formatted as specified by ISO 8601.
 #
-function unix2iso(unixtime, tz,   leap, day, y_end, n, D, HH, M, MM, Y)
+function unix2iso(timestamp, tz,    D, e, f, g, HH, h, J, M, MM, Y)
 {
-    unixtime += 3600 * int(tz / 100) + 60 * (tz % 100)
+    timestamp += 3600 * int(tz / 100) + 60 * (tz % 100)
 
     if (!SHOW_TIMEZONE) {
         tz = ""
@@ -330,31 +332,24 @@ function unix2iso(unixtime, tz,   leap, day, y_end, n, D, HH, M, MM, Y)
         tz = MULTIBYTE_SAFE ? "±0000" : "+0000"
     }
 
-    Y = 1970
-    for (day = leap = y_end = 0; unixtime > y_end; Y += (y_end <= unixtime)) {
-        day = int((unixtime - y_end) / 86400) + 1
-        leap = (!(Y % 4) && (Y % 100)) || !(Y % 400)
-        y_end += (365 + leap) * 86400
+    J = 2440588 + int(timestamp / 86400)
+
+    if (timestamp < 0) {
+        timestamp += 86400
+        J--
     }
 
-    # The value of "n" is the day of the year on which a month ends.
-    M = day > (n = 335 + leap) ? 12 : \
-        day > (n = 305 + leap) ? 11 : \
-        day > (n = 274 + leap) ? 10 : \
-        day > (n = 244 + leap) ?  9 : \
-        day > (n = 213 + leap) ?  8 : \
-        day > (n = 182 + leap) ?  7 : \
-        day > (n = 152 + leap) ?  6 : \
-        day > (n = 121 + leap) ?  5 : \
-        day > (n =  91 + leap) ?  4 : \
-        day > (n =  60 + leap) ?  3 : \
-        day > (n =  31       ) ?  2 : \
-              (n =   0       ) +  1
+    HH = int((timestamp % 86400) / 3600)
+    MM = int((timestamp % 3600) / 60)
 
-    D = day - n + 1
-    HH = int((unixtime % 86400) / 3600)
-    MM = int((unixtime % 3600) / 60)
+    f = J + 1401 + int(int((4 * J + 274277) / 146097) * 0.75) - 38
+    e = 4 * f + 3
+    g = int((e % 1461) / 4)
+    h = 5 * g + 2
 
+    D = int((h % 153) / 5) + 1
+    M = ((int(h / 153) + 2) % 12) + 1
+    Y = int(e / 1461) - 4716 + int((12 + 2 - M) / 12)
     return sprintf("%4s-%02d-%02d %02d:%02d", Y, M, D, HH, MM) tz
 }
 

@@ -1,0 +1,30 @@
+#!/bin/sh
+# This script is used to re-open files in the current Git repo that were
+# edited. By default, it launches a text editor with all files that have been
+# modified, but untracked files can also be included using "-u", and the user
+# may also specify additional files as command line arguments.
+PATTERN="[MA]"
+
+while getopts ahV option; do
+    case "$option" in
+      a)
+        PATTERN="[MA?]"
+      ;;
+      \?|h|V)
+        echo "Usage: git vi [-a] [FILENAME]..."
+        echo
+        echo "Options:"
+        echo "  -a    Edit all files; include untracked files."
+        test "$option" = "?" && exit 1 || exit 0
+      ;;
+    esac
+done
+
+shift "$((OPTIND - 1))"
+
+(test "$#" -eq 0 || printf ' M %s\000' "$@"; git status --porcelain -z) \
+| gawk -v RS='\000' -v PATTERN="$PATTERN" '
+    $1 ~ PATTERN {
+        printf "%s\000", substr($0, 4)
+    }' \
+| xargs -0 sh -c '${VISUAL:-${EDITOR:-vi}} < /dev/tty -- "$@"' --

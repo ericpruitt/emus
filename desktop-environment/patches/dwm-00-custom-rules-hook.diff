@@ -7,7 +7,9 @@ window dwm manages. Two new properties, "class" and "instance", are added to
 the `Client` _struct_, and a global variable named "scanning" is also added
 which can be used to differentiate between windows that already exist when dwm
 is started from those that were created afterward. The value of "scanning" is 1
-while dwm is initializing and 0 thereafter.
+while dwm is initializing and 0 thereafter. This patch also gives untitled
+windows more descriptive fallback names based on the window class and/or
+instance.
 
 In the following example, windows that are created on unselected tags after dwm
 is started are marked urgent:
@@ -20,7 +22,7 @@ is started are marked urgent:
     }
 
 diff --git a/dwm.c b/dwm.c
-index b2bc9bd..322b9aa 100644
+index d27cb67..4711d81 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -92,6 +92,8 @@ struct Client {
@@ -38,34 +40,89 @@ index b2bc9bd..322b9aa 100644
  static int running = 1;
 +static int scanning = 1;
  static Cur *cursor[CurLast];
- static Scm scheme[SchemeLast];
+ static Scm *scheme;
  static Display *dpy;
-@@ -290,7 +293,11 @@ applyrules(Client *c)
+@@ -283,14 +286,12 @@ applyrules(Client *c)
+ 	unsigned int i;
+ 	const Rule *r;
+ 	Monitor *m;
+-	XClassHint ch = { NULL, NULL };
+ 
+ 	/* rule matching */
+ 	c->isfloating = 0;
  	c->tags = 0;
- 	XGetClassHint(dpy, c->win, &ch);
- 	class    = ch.res_class ? ch.res_class : broken;
-+	strncpy(c->class, class,  sizeof(c->class));
-+	c->class[sizeof(c->class) - 1] = '\0';
- 	instance = ch.res_name  ? ch.res_name  : broken;
-+	strncpy(c->instance, instance,  sizeof(c->instance));
-+	c->instance[sizeof(c->instance) - 1] = '\0';
+-	XGetClassHint(dpy, c->win, &ch);
+-	class    = ch.res_class ? ch.res_class : broken;
+-	instance = ch.res_name  ? ch.res_name  : broken;
++	class = c->class;
++	instance = c->instance;
  
  	for (i = 0; i < LENGTH(rules); i++) {
  		r = &rules[i];
-@@ -310,6 +317,7 @@ applyrules(Client *c)
- 	if (ch.res_name)
- 		XFree(ch.res_name);
+@@ -305,11 +306,8 @@ applyrules(Client *c)
+ 				c->mon = m;
+ 		}
+ 	}
+-	if (ch.res_class)
+-		XFree(ch.res_class);
+-	if (ch.res_name)
+-		XFree(ch.res_name);
  	c->tags = c->tags & TAGMASK ? c->tags & TAGMASK : c->mon->tagset[c->mon->seltags];
 +	ruleshook(c);
  }
  
  int
-@@ -1425,6 +1433,8 @@ scan(void)
+@@ -1410,6 +1408,8 @@ scan(void)
  		if (wins)
  			XFree(wins);
  	}
 +
 +	scanning = 0;
+ }
+ 
+ void
+@@ -1994,10 +1994,42 @@ updatesizehints(Client *c)
+ void
+ updatetitle(Client *c)
+ {
++	(void) broken; // Supress "defined but not used" warning.
++
++	const char *class, *instance;
++	XClassHint ch = { NULL, NULL };
++
++	XGetClassHint(dpy, c->win, &ch);
++
++	class = ch.res_class ? ch.res_class : "Untitled";
++	strncpy(c->class, class,  sizeof(c->class));
++	c->class[sizeof(c->class) - 1] = '\0';
++
++	instance = ch.res_name ? ch.res_name : "Untitled";
++	strncpy(c->instance, instance,  sizeof(c->instance));
++	c->instance[sizeof(c->instance) - 1] = '\0';
++
+ 	if (!gettextprop(c->win, netatom[NetWMName], c->name, sizeof c->name))
+ 		gettextprop(c->win, XA_WM_NAME, c->name, sizeof c->name);
+-	if (c->name[0] == '\0') /* hack to mark broken clients */
+-		strcpy(c->name, broken);
++
++	if (ch.res_class)
++		XFree(ch.res_class);
++	if (ch.res_name)
++		XFree(ch.res_name);
++
++	if (c->name[0] != '\0') {
++		return;
++	}
++
++	if (c->class[0] != '\0' && c->instance[0] != '\0' && strcasecmp(c->class, c->instance)) {
++		snprintf(c->name, sizeof(c->name), "Untitled [%s/%s]", c->class, c->instance);
++	} else if (c->class[0] != '\0' && strcasecmp(c->class, "Untitled")) {
++		snprintf(c->name, sizeof(c->name), "Untitled [%s]", c->class);
++	} else if (c->instance[0] != '\0' && strcasecmp(c->instance, "Untitled")) {
++		snprintf(c->name, sizeof(c->name), "Untitled [%s]", c->instance);
++	} else {
++		strcpy(c->name, "Untitled");
++	}
  }
  
  void

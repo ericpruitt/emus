@@ -115,6 +115,20 @@ for s:c in ["#", "g#", "*", "g#", "N", "n"]
 \                          . ":echo (v:searchforward ? '/' : '?') . @/<CR>"
 endfor
 
+" Use Ctrl+{F1..F12} to select buffer number N.
+nnoremap <F1> :silent b1 \| echo<Enter>
+nnoremap <F2> :silent b2 \| echo<Enter>
+nnoremap <F3> :silent b3 \| echo<Enter>
+nnoremap <F4> :silent b4 \| echo<Enter>
+nnoremap <F5> :silent b5 \| echo<Enter>
+nnoremap <F6> :silent b6 \| echo<Enter>
+nnoremap <F7> :silent b7 \| echo<Enter>
+nnoremap <F8> :silent b8 \| echo<Enter>
+nnoremap <F9> :silent b9 \| echo<Enter>
+nnoremap <F10> :silent b10 \| echo<Enter>
+nnoremap <F11> :silent b11 \| echo<Enter>
+nnoremap <F12> :silent b12 \| echo<Enter>
+
 " Replacement for autochdir that doesn't require netbeans_intg or sun_workshop
 " compile-time options.
 autocmd BufEnter * silent! lcd %:p:h

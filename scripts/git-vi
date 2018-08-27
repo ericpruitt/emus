@@ -1,20 +1,20 @@
 #!/bin/sh
 # This script is used to re-open files in the current Git repo that were
-# edited. By default, it launches a text editor with all files that have been
-# modified, but untracked files can also be included using "-a", and the user
-# may also specify additional files as command line arguments.
-PATTERN="[MA]"
+# edited. By default, it launches a text editor with all untracked or modified
+# files, but untracked files may be elided by using "-m". The user may also
+# specify additional files as command line arguments.
+PATTERN="[MA?]"
 
-while getopts ahV option; do
+while getopts hmV option; do
     case "$option" in
-      a)
-        PATTERN="[MA?]"
+      m)
+        PATTERN="[MA]"
       ;;
       \?|h|V)
-        echo "Usage: git vi [-a] [FILENAME]..."
+        echo "Usage: git vi [-m] [FILENAME]..."
         echo
         echo "Options:"
-        echo "  -a    Edit all files; include untracked files."
+        echo "  -m    Modified files only; do not include untracked files"
         test "$option" = "?" && exit 1 || exit 0
       ;;
     esac

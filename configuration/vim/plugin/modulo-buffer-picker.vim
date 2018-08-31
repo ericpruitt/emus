@@ -1,12 +1,12 @@
 " Jump through buffers based on the modulus of the input. For input values
-" less than 10, this function advances to the next buffer that ends in the
-" same digit as the input. For example, if "n" is 5, the open buffers are [1,
-" 2, 5, 7, 15] and the current buffer is 2, ModuloBufferPicker(5) will jump to
-" buffer 5 then 15 then wrap around to 5 again. If "n" is greater than 10,
-" buffer selection is based on multiples of the input; with a buffer list of
-" [12, 13, 14, 24, 27, 36] and the current buffer is 24,
-" ModuloBufferPicker(12) will jump to buffer 36 then wrap around to 12 then 24
-" again.
+" less than or equal to 10, this function advances to the next buffer that
+" ends in the same digit as the input. For example, if "n" is 5, the open
+" buffers are [1, 2, 5, 7, 15] and the current buffer is 2,
+" ModuloBufferPicker(5) will jump to buffer 5 then 15 then wrap around to 5
+" again. If "n" is greater than 10, buffer selection is based on multiples of
+" the input; with a buffer list of [12, 13, 14, 24, 27, 36] and the current
+" buffer is 24, ModuloBufferPicker(12) will jump to buffer 36 then wrap around
+" to 12 then 24 again.
 function ModuloBufferPicker(n)
     let l:bufnr = bufnr("%")
     let l:inflection = 0

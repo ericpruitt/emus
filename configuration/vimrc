@@ -116,18 +116,18 @@ for s:c in ["#", "g#", "*", "g#", "N", "n"]
 endfor
 
 " Use Ctrl+{F1..F12} to select buffer number N.
-nnoremap <F1> :call ModuloBufferPicker(1)<Enter>
-nnoremap <F2> :call ModuloBufferPicker(2)<Enter>
-nnoremap <F3> :call ModuloBufferPicker(3)<Enter>
-nnoremap <F4> :call ModuloBufferPicker(4)<Enter>
-nnoremap <F5> :call ModuloBufferPicker(5)<Enter>
-nnoremap <F6> :call ModuloBufferPicker(6)<Enter>
-nnoremap <F7> :call ModuloBufferPicker(7)<Enter>
-nnoremap <F8> :call ModuloBufferPicker(8)<Enter>
-nnoremap <F9> :call ModuloBufferPicker(9)<Enter>
-nnoremap <F10> :call ModuloBufferPicker(10)<Enter>
-nnoremap <F11> :call ModuloBufferPicker(11)<Enter>
-nnoremap <F12> :call ModuloBufferPicker(12)<Enter>
+nnoremap <silent> <F1> :call ModuloBufferPicker(1)<Enter>
+nnoremap <silent> <F2> :call ModuloBufferPicker(2)<Enter>
+nnoremap <silent> <F3> :call ModuloBufferPicker(3)<Enter>
+nnoremap <silent> <F4> :call ModuloBufferPicker(4)<Enter>
+nnoremap <silent> <F5> :call ModuloBufferPicker(5)<Enter>
+nnoremap <silent> <F6> :call ModuloBufferPicker(6)<Enter>
+nnoremap <silent> <F7> :call ModuloBufferPicker(7)<Enter>
+nnoremap <silent> <F8> :call ModuloBufferPicker(8)<Enter>
+nnoremap <silent> <F9> :call ModuloBufferPicker(9)<Enter>
+nnoremap <silent> <F10> :call ModuloBufferPicker(10)<Enter>
+nnoremap <silent> <F11> :call ModuloBufferPicker(11)<Enter>
+nnoremap <silent> <F12> :call ModuloBufferPicker(12)<Enter>
 
 " Replacement for autochdir that doesn't require netbeans_intg or sun_workshop
 " compile-time options.

@@ -27,7 +27,6 @@ function ModuloBufferPicker(n)
         elseif l:inflection && ((a:n <= 10 && (a:n % 10) == (l:index % 10)) ||
 \         (a:n > 10 && !(l:index % a:n)))
             exec "b" . l:index
-            echo
             break
         endif
     endfor

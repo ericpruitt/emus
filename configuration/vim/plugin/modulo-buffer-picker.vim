@@ -14,8 +14,8 @@ function ModuloBufferPicker(n)
     let l:bufs = map(filter(copy(getbufinfo()), "v:val.listed"), "v:val.bufnr")
     let l:max = max(l:bufs)
 
-    if l:bufnr > l:max
-        let l:bufs = l:bufs + [l:bufnr]
+    if index(l:bufs, l:bufnr) == -1
+        let l:bufs = sort(l:bufs + [l:bufnr])
     endif
 
     " Append the buffer number list to itself to simplify wrap-around handling.

@@ -401,7 +401,9 @@ window dwm manages. Two new properties, "class" and "instance", are added to
 the `Client` _struct_, and a global variable named "scanning" is also added
 which can be used to differentiate between windows that already exist when dwm
 is started from those that were created afterward. The value of "scanning" is 1
-while dwm is initializing and 0 thereafter.
+while dwm is initializing and 0 thereafter. This patch also gives untitled
+windows more descriptive fallback names based on the window class and/or
+instance.
 
 In the following example, windows that are created on unselected tags after dwm
 is started are marked urgent:

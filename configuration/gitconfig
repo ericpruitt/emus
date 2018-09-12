@@ -8,7 +8,9 @@
 
 [alias]
 	wdiff = diff --color-words
+	wlog = log --word-diff=color -p --diff-filter=M
 	cdiff = diff --color-words --word-diff-regex=.
+	clog = log --word-diff-regex=. -p --diff-filter=M
 	what = colorized-blame what
 	when = colorized-blame when
 	who = colorized-blame who

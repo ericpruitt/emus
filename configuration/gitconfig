@@ -13,6 +13,7 @@
 	when = colorized-blame when
 	who = colorized-blame who
 	mine = log --author=^Eric\\ Pruitt\\ < -p
+	others = log --author=^Eric\\ Pruitt\\ < -p --invert-grep
 
 [pager]
 	colorized-blame = true

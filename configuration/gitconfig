@@ -12,6 +12,7 @@
 	what = colorized-blame what
 	when = colorized-blame when
 	who = colorized-blame who
+	mine = log --author=^Eric\\ Pruitt\\ < -p
 
 [pager]
 	colorized-blame = true

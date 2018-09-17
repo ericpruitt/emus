@@ -56,8 +56,6 @@ Configuration files ("dot files") for various applications and libraries.
     - Install a custom kernel module configuration at
       "/etc/modprobe.d/local.conf".
     - Create a systemd service to lock the screen when the host is suspended.
-  - **macOS:**
-    - Setup an SSH server that only allows key-based authentication.
 - **prepare:** Make preparations to setup user-specific configuration files.
   This process entails checking to see if there any files existing in locations
   where symlinks would be created. Existing files are simply deleted if they

@@ -309,6 +309,9 @@ function user-misc-gui-tweaks()
     # switching users.
     defaults write -g userMenuExtraStyle 0
 
+    # Disable OS sound effects.
+    defaults write -g com.apple.sound.uiaudio.enabled -integer 0
+
     kill-system-ui-server
 }
 

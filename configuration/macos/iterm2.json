@@ -360,7 +360,7 @@
             },
             "Send Code When Idle": false,
             "Shortcut": "",
-            "Silence Bell": false,
+            "Silence Bell": true,
             "Sync Title": false,
             "Tags": [],
             "Terminal Type": "xterm-256color",

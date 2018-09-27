@@ -164,7 +164,6 @@ static MouseShortcut mshortcuts[] = {
 /* Internal keyboard shortcuts. */
 #define MODKEY Mod1Mask
 #define ShiftControl (ShiftMask | ControlMask)
-#define UNUSED(function) {0, 0, function, {.i = 0}}
 
 static Shortcut shortcuts[] = {
 	/* mask                 keysym          function        argument */
@@ -180,8 +179,6 @@ static Shortcut shortcuts[] = {
 	{ MODKEY|ShiftMask,     XK_C,           clipcopy,       {.i =  0} },
 	{ MODKEY|ShiftMask,     XK_V,           clippaste,      {.i =  0} },
 	{ MODKEY,               XK_Num_Lock,    numlock,        {.i =  0} },
-
-	UNUSED(iso14755),
 };
 
 /*

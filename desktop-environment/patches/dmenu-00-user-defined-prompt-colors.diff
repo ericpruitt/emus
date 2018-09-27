@@ -32,14 +32,6 @@ index df51e76..dea1700 100644
  		x = drw_text(drw, x, 0, promptw, bh, lrpad / 2, prompt, 0);
  	}
  	/* draw input field */
-@@ -530,6 +530,7 @@ setup(void)
- 	scheme[SchemeNorm] = drw_scm_create(drw, colors[SchemeNorm], 2);
- 	scheme[SchemeSel] = drw_scm_create(drw, colors[SchemeSel], 2);
- 	scheme[SchemeOut] = drw_scm_create(drw, colors[SchemeOut], 2);
-+	scheme[SchemePrompt] = drw_scm_create(drw, colors[SchemePrompt], 2);
- 
- 	clip = XInternAtom(dpy, "CLIPBOARD",   False);
- 	utf8 = XInternAtom(dpy, "UTF8_STRING", False);
 @@ -637,6 +638,10 @@ main(int argc, char *argv[])
  			colors[SchemeNorm][ColBg] = argv[++i];
  		else if (!strcmp(argv[i], "-nf"))  /* normal foreground color */

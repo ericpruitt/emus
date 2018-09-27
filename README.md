@@ -331,7 +331,7 @@ as a front-end so the user can select a command to execute.
 
   [desktop-entry]: https://specifications.freedesktop.org/desktop-entry-spec/latest/
 
-### statusline.c ###
+#### statusline.c ####
 
 This program is used to set the X11 root window name which dwm uses as its
 status bar. It supports displaying clocks for multiple time zones, battery

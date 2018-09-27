@@ -312,6 +312,10 @@ function user-misc-gui-tweaks()
     # Disable OS sound effects.
     defaults write -g com.apple.sound.uiaudio.enabled -integer 0
 
+    # Disable font smoothing to restore apperance pre-Mojave fonts on
+    # non-retina displays.
+    defaults write -g CGFontRenderingFontSmoothingDisabled -bool NO
+
     kill-system-ui-server
 }
 

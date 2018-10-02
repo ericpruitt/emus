@@ -10,4 +10,10 @@ set -e
         test -t 0 && echo "${0##*/}: awaiting input from TTY" >&2
         cat
     fi
-} | printf "$(tr -d "[:space:]" | sed 's/../\\x\0/g' | tr -d "[:cntrl:]")"
+} | {
+    if [ -t 1 ]; then
+        printf "$(tr -d "[:space:]" | sed 's/../\\x\0/g' | tr -d "[:cntrl:]")"
+    else
+        printf "$(tr -d "[:space:]" | sed 's/../\\x\0/g')"
+    fi
+}

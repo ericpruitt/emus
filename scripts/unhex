@@ -1,0 +1,13 @@
+#!/bin/sh
+# Usage: unhex TEXT...
+#        echo ... | unhex
+set -e
+
+{
+    if [ "$#" -gt 0 ]; then
+        printf "%s" "$@"
+    else
+        test -t 0 && echo "${0##*/}: awaiting input from TTY" >&2
+        cat
+    fi
+} | printf "$(tr -d "[:space:]" | sed 's/../\\x\0/g' | tr -d "[:cntrl:]")"

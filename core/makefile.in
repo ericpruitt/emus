@@ -44,7 +44,7 @@ VIM_VERSION = 8.1.0196
 
 # Patch level for Chet Ramey's packages:
 BASH_PATCH_LEVEL = 19
-READLINE_PATCH_LEVEL = 3
+READLINE_PATCH_LEVEL = 5
 
 # Hashes of unsigned files:
 SHA_HASHES = \

@@ -24,9 +24,9 @@ the program back to the foreground.
    int our_indirection_level;
    COMMAND * volatile current_command;
  
-@@ -82,6 +85,13 @@
-     {
-       int code;
+@@ -84,6 +87,13 @@
+ 
+       code = setjmp_nosigs (top_level);
  
 +      if (!vsusp && indirection_level == 1 && interactive &&
 +       !tcgetattr(STDERR_FILENO, &ttyattr)) {
@@ -35,9 +35,9 @@ the program back to the foreground.
 +	tcsetattr(STDERR_FILENO, TCSADRAIN, &ttyattr);
 +      }
 +
-       code = setjmp_nosigs (top_level);
- 
  #if defined (PROCESS_SUBSTITUTION)
+       unlink_fifo_list ();
+ #endif /* PROCESS_SUBSTITUTION */
 @@ -177,6 +187,13 @@
  		  free (ps0_string);
  		}

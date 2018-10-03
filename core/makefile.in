@@ -43,7 +43,7 @@ UTF8PROC_VERSION = 2.1.0
 VIM_VERSION = 8.1.0196
 
 # Patch level for Chet Ramey's packages:
-BASH_PATCH_LEVEL = 19
+BASH_PATCH_LEVEL = 23
 READLINE_PATCH_LEVEL = 5
 
 # Hashes of unsigned files:

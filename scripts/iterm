@@ -1,0 +1,37 @@
+#!/bin/sh
+# Usage: iterm [COMMAND [ARGUMENT]...]
+#
+# Launch an iTerm2 window using the default profile. The default profile's
+# launch command may be overridden by specifying an alternative command the
+# argument to this script.
+set -e
+
+# Convert a command and its arguments to a string literal that can be used in
+# AppleScript to run the command with iTerm2. This entails escaping single
+# quotes, double quotes and backslashes in each argument then enclosing each
+# escaped argument with single quotes and, finally, enclosing the concatenated
+# escaped arguments with double quotes.
+#
+# Arguments:
+# - $1: Command name.
+# - $@: Optional list of command arguments.
+#
+argv_to_iterm_applescript_command()
+{
+    printf '"'
+
+    for argument in "$@"; do
+        printf "'"
+        # XXX: This doesn't work with macOS (BSD?) sed because macOS's sed
+        # appends a newline even if the input was not newline-terminated.
+        printf "%s" "$argument" | sed -e "s/'/\\\\'/g" -e 's/\([\\"]\)/\\\1/g'
+        printf "' "
+    done
+
+    printf '"'
+}
+
+test "$#" -eq 0 || command="$(argv_to_iterm_applescript_command "$@")"
+osascript -e "tell application \"iTerm2\"
+    create window with default profile ${command:+"command $command"}
+end tell"

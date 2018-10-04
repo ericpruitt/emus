@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Usage: iterm [COMMAND [ARGUMENT]...]
 #
 # Launch an iTerm2 window using the default profile. The default profile's
@@ -6,7 +6,7 @@
 # argument to this script.
 set -e
 
-# Convert a command and its arguments to a string literal that can be used in
+# Convert a command and its arguments to an infix that can be used in
 # AppleScript to run the command with iTerm2. This entails escaping single
 # quotes, double quotes and backslashes in each argument then enclosing each
 # escaped argument with single quotes and, finally, enclosing the concatenated
@@ -16,22 +16,23 @@ set -e
 # - $1: Command name.
 # - $@: Optional list of command arguments.
 #
-argv_to_iterm_applescript_command()
+function argv-to-iterm-applescript-infix()
 {
-    printf '"'
+    local argument
+
+    printf 'command "'
 
     for argument in "$@"; do
-        printf "'"
-        # XXX: This doesn't work with macOS (BSD?) sed because macOS's sed
-        # appends a newline even if the input was not newline-terminated.
-        printf "%s" "$argument" | sed -e "s/'/\\\\'/g" -e 's/\([\\"]\)/\\\1/g'
-        printf "' "
+        argument="${argument//\\/\\\\\\\\}"
+        argument="${argument//\'/\\\\\'}"
+        argument="${argument//\"/\\\"}"
+        printf "'%s' " "$argument"
     done
 
     printf '"'
 }
 
-test "$#" -eq 0 || command="$(argv_to_iterm_applescript_command "$@")"
+test "$#" -eq 0 || infix="$(argv-to-iterm-applescript-infix "$@")"
 osascript -e "tell application \"iTerm2\"
-    create window with default profile ${command:+"command $command"}
+    create window with default profile ${infix:-}
 end tell"

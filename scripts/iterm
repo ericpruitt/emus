@@ -146,7 +146,7 @@ def main(argv):
             print("%s: osascript: command not found" % SELF, file=sys.stderr)
             return 1
 
-    print(script)
+    print(script.rstrip())
 
 
 if __name__ == "__main__":

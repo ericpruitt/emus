@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Usage: iterm [-i] [-w] [COMMAND [ARGUMENT]...]
+Usage: iterm [-i] [-W] [-w] [-x] [COMMAND [ARGUMENT]...]
 
 Launch an iTerm2 window using the default profile. The default profile's launch
 command may be overridden by specifying an alternative command the argument to

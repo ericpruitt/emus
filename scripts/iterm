@@ -69,6 +69,7 @@ def iterm2_launcher_applescript(argv=None):
         infix = ""
 
     return (
+        "#!/usr/bin/env osascript\n"
         "tell application \"iTerm2\"\n"
         "    create window with default profile %s\n"
         "end tell\n" % infix

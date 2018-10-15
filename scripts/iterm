@@ -128,6 +128,7 @@ def main(argv):
                 'tput setaf "$((exit_status ? 1 : 2))"\n'
                 'echo "(\$?=$exit_status)"\n'
                 'tput sgr0\n'
+                'printf "\\a"\n'
                 'read -n 1 -s\n'
                 % (" ".join(map(pipes.quote, args)), success_command)
             )

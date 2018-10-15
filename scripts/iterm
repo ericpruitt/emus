@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Usage: iterm [-i] [-W] [-w] [-x] [COMMAND [ARGUMENT]...]
+Usage: iterm [-i] [-n] [-W] [-w] [-x] [COMMAND [ARGUMENT]...]
 
 Launch an iTerm2 window using the default profile. The default profile's launch
 command may be overridden by specifying an alternative command the argument to
@@ -8,18 +8,16 @@ this script.
 
 Options:
   --help, -h, -V
-            Show this text and exit.
+        Show this text and exit.
 
-  -i        Ignore environment variables; do not pass environment variables to
-            the iTerm2 subprocess.
-  -n        Print the generated AppleScript program instead of executing it.
-  -W        Wait for user input before closing iTerm2 after executing a
-            command.
-  -w        Wait for user input before closing iTerm2 after executing a
-            command, but only if the command failed (finished with a non-zero
-            exit status).
-  -x        Let iTerm2 exit immediately after executing a command. This is the
-            default behavior.
+  -i    Ignore environment variables; do not pass environment variables to the
+        iTerm2 subprocess.
+  -n    Print the generated AppleScript program instead of executing it.
+  -W    Wait for user input before closing iTerm2 after executing a command.
+  -w    Wait for user input before closing iTerm2 after executing a command,
+        but only if the command failed (finished with a non-zero exit status).
+  -x    Let iTerm2 exit immediately after executing a command. This is the
+        default behavior.
 """
 from __future__ import print_function
 

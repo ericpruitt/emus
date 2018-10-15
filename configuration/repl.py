@@ -15,6 +15,8 @@ def _install_eager_iterable_shims():
     if sys.version_info < (3, ):
         return
 
+    import builtins
+
     for function in [filter, map, range, zip]:
         # A closure is used so each shim function sees a different "name".
         def closure(name):

@@ -18,6 +18,8 @@ Options:
   -w        Wait for user input before closing iTerm2 after executing a
             command, but only if the command failed (finished with a non-zero
             exit status).
+  -x        Let iTerm2 exit immediately after executing a command. This is the
+            default behavior.
 """
 from __future__ import print_function
 
@@ -82,7 +84,7 @@ def usage():
 
 def main(argv):
     try:
-        options, args = getopt.getopt(argv, "hinVWw", ["help"])
+        options, args = getopt.getopt(argv, "hinVWwx", ["help"])
     except getopt.GetoptError as error:
         print('%s: %s; try "%s --help"' % (SELF, error, SELF), file=sys.stderr)
         return 1
@@ -100,6 +102,8 @@ def main(argv):
             wait_mode = WAIT_ALWAYS
         elif option == "-w":
             wait_mode = WAIT_ON_ERROR
+        elif option == "-x":
+            wait_mode = WAIT_NEVER
         elif option in ("-h", "-V", "--help"):
             usage()
             return

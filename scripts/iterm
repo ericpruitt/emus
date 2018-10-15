@@ -1,38 +1,135 @@
-#!/usr/bin/env bash
-# Usage: iterm [COMMAND [ARGUMENT]...]
-#
-# Launch an iTerm2 window using the default profile. The default profile's
-# launch command may be overridden by specifying an alternative command the
-# argument to this script.
-set -e
+#!/usr/bin/env python
+"""
+Usage: iterm [-i] [-w] [COMMAND [ARGUMENT]...]
 
-# Convert a command and its arguments to an infix that can be used in
-# AppleScript to run the command with iTerm2. This entails escaping single
-# quotes, double quotes and backslashes in each argument then enclosing each
-# escaped argument with single quotes and, finally, enclosing the concatenated
-# escaped arguments with double quotes.
-#
-# Arguments:
-# - $1: Command name.
-# - $@: Optional list of command arguments.
-#
-function argv-to-iterm-applescript-infix()
-{
-    local argument
+Launch an iTerm2 window using the default profile. The default profile's launch
+command may be overridden by specifying an alternative command the argument to
+this script.
 
-    printf 'command "'
+Options:
+  --help, -h, -V
+            Show this text and exit.
 
-    for argument in "$@"; do
-        argument="${argument//\\/\\\\\\\\}"
-        argument="${argument//\'/\\\\\'}"
-        argument="${argument//\"/\\\"}"
-        printf "'%s' " "$argument"
-    done
+  -i        Ignore environment variables; do not pass environment variables to
+            the iTerm2 subprocess.
+  -n        Print the generated AppleScript program instead of executing it.
+  -w        Wait for user input before closing iTerm2 after executing a
+            command.
+"""
+from __future__ import print_function
 
-    printf '"'
-}
+import errno
+import getopt
+import os
+import pipes
+import sys
 
-test "$#" -eq 0 || infix="$(argv-to-iterm-applescript-infix "$@")"
-osascript -e "tell application \"iTerm2\"
-    create window with default profile ${infix:-}
-end tell"
+SELF = os.path.basename(__file__)
+
+
+def iterm2_launcher_applescript(argv=None):
+    """
+    Generate an AppleScript program to launch iTerm2.
+
+    Arguments:
+    - argv: Optional command and arguments to execute. If this is unspecified,
+      iTerm2 is launched using the command associated with the default profile.
+
+    Returns: A string.
+    """
+    if argv:
+        # Convert a command and its arguments to an infix that can be used in
+        # AppleScript to run the command with iTerm2. This entails escaping
+        # single quotes, double quotes and backslashes in each argument with
+        # varying number of slashes then enclosing each escaped argument with
+        # single quotes and, finally, enclosing the concatenated escaped
+        # arguments with double quotes.
+        parts = list()
+
+        for argument in argv:
+            parts.append(
+                "'" +
+                argument.replace("\\", "\\\\\\\\")
+                        .replace("'", "\\\\'")
+                        .replace('"', '\\"')
+                + "'"
+            )
+
+        infix = 'command "%s"' % " ".join(parts)
+    else:
+        infix = ""
+
+    return (
+        "tell application \"iTerm2\"\n"
+        "    create window with default profile %s\n"
+        "end tell\n" % infix
+    )
+
+
+def usage():
+    """
+    Print script documentation.
+    """
+    print(__doc__.strip())
+
+
+def main(argv):
+    try:
+        options, args = getopt.getopt(argv, "hinVw", ["help"])
+    except getopt.GetoptError as error:
+        print('%s: %s; try "%s --help"' % (SELF, error, SELF), file=sys.stderr)
+        return 1
+
+    preserve_env = True
+    wait_after_exit = False
+    dry_run = False
+
+    for option, value in options:
+        if option == "-i":
+            preserve_env = False
+        elif option == "-n":
+            dry_run = True
+        elif option == "-w":
+            wait_after_exit = True
+        elif option in ("-h", "-V", "--help"):
+            usage()
+            return
+
+    if args:
+        if preserve_env:
+            env_argv = ["env"]
+
+            for name, value in os.environ.items():
+                env_argv.append("%s=%s" % (name, value))
+
+            args = env_argv + args
+
+        if wait_after_exit:
+            script = (
+                'command -- %s && exit_status=0 || exit_status="$?"\n'
+                'tput bold\n'
+                'tput setaf "$((exit_status ? 1 : 2))"\n'
+                'echo "(\$?=$exit_status)"\n'
+                'tput sgr0\n'
+                'read -n 1 -s\n'
+                % " ".join(map(pipes.quote, args))
+            )
+            args = ["bash", "-c", script]
+
+    script = iterm2_launcher_applescript(args)
+
+    if not dry_run:
+        try:
+            os.execvp("osascript", ["osascript", "-e", script])
+        except OSError as error:
+            if error.errno != errno.ENOENT:
+                raise
+
+            print("%s: osascript: command not found" % SELF, file=sys.stderr)
+            return 1
+
+    print(script)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

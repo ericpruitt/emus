@@ -13,8 +13,11 @@ Options:
   -i        Ignore environment variables; do not pass environment variables to
             the iTerm2 subprocess.
   -n        Print the generated AppleScript program instead of executing it.
-  -w        Wait for user input before closing iTerm2 after executing a
+  -W        Wait for user input before closing iTerm2 after executing a
             command.
+  -w        Wait for user input before closing iTerm2 after executing a
+            command, but only if the command failed (finished with a non-zero
+            exit status).
 """
 from __future__ import print_function
 
@@ -25,6 +28,10 @@ import pipes
 import sys
 
 SELF = os.path.basename(__file__)
+
+WAIT_NEVER = 0
+WAIT_ALWAYS = 1
+WAIT_ON_ERROR = 2
 
 
 def iterm2_launcher_applescript(argv=None):
@@ -75,22 +82,24 @@ def usage():
 
 def main(argv):
     try:
-        options, args = getopt.getopt(argv, "hinVw", ["help"])
+        options, args = getopt.getopt(argv, "hinVWw", ["help"])
     except getopt.GetoptError as error:
         print('%s: %s; try "%s --help"' % (SELF, error, SELF), file=sys.stderr)
         return 1
 
     preserve_env = True
-    wait_after_exit = False
     dry_run = False
+    wait_mode = WAIT_NEVER
 
     for option, value in options:
         if option == "-i":
             preserve_env = False
         elif option == "-n":
             dry_run = True
+        elif option == "-W":
+            wait_mode = WAIT_ALWAYS
         elif option == "-w":
-            wait_after_exit = True
+            wait_mode = WAIT_ON_ERROR
         elif option in ("-h", "-V", "--help"):
             usage()
             return
@@ -104,15 +113,20 @@ def main(argv):
 
             args = env_argv + args
 
-        if wait_after_exit:
+        if wait_mode != WAIT_NEVER:
+            if wait_mode == WAIT_ON_ERROR:
+                success_command = "exit"
+            else:
+                success_command = "exit_status=0"
+
             script = (
-                'command -- %s && exit_status=0 || exit_status="$?"\n'
+                'command -- %s && %s || exit_status="$?"\n'
                 'tput bold\n'
                 'tput setaf "$((exit_status ? 1 : 2))"\n'
                 'echo "(\$?=$exit_status)"\n'
                 'tput sgr0\n'
                 'read -n 1 -s\n'
-                % " ".join(map(pipes.quote, args))
+                % (" ".join(map(pipes.quote, args)), success_command)
             )
             args = ["bash", "-c", script]
 

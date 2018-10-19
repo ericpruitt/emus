@@ -22,6 +22,7 @@
 BASH = bash-4.4
 COREUTILS = coreutils-8.29
 FINDUTILS = findutils-4.6.0
+FLOCK = flock-src
 GAWK = gawk-4.2.1
 GMP = gmp-6.1.2
 GREP = grep-3.1
@@ -41,6 +42,8 @@ VIM = vim-src
 TMUX_VERSION = 2.7
 UTF8PROC_VERSION = 2.1.0
 VIM_VERSION = 8.1.0196
+
+FLOCK_COMMIT = 4148b86be01bbfad45ceef1f835cc12ff395d3c0
 
 # Patch level for Chet Ramey's packages:
 BASH_PATCH_LEVEL = 23
@@ -73,6 +76,7 @@ BINARIES = \
 	$(COREUTILS)/src/coreutils \
 	$(FINDUTILS)/find/find \
 	$(FINDUTILS)/xargs/xargs \
+	$(FLOCK)/flock \
 	$(GAWK)/gawk \
 	$(GREP)/src/grep \
 	$(LESS)/less \
@@ -105,6 +109,7 @@ FOLDER_CLEAN_TARGETS = \
 	clean-tree \
 
 GIT_CLEAN_TARGETS = \
+	clean-flock \
 	clean-tmux \
 	clean-utf8proc \
 	clean-vim \
@@ -631,6 +636,31 @@ $(BIN)/find: $(FINDUTILS)/find/find
 
 $(BIN)/xargs: $(FINDUTILS)/xargs/xargs
 	test -z "$(MAN)" || cp -f $?.1 $(MAN)/man1/
+	cp -f $? $@
+
+$(FLOCK)/.git:
+	git clone https://github.com/discoteq/flock $(FLOCK)
+	(cd $(FLOCK) && git reset --hard $(FLOCK_COMMIT))
+
+$(FLOCK)/configure: $(FLOCK)/.git
+	(cd $(@D) && ./autogen.sh)
+
+$(FLOCK)/Makefile: $(FLOCK)/configure
+	(cd $(@D) && \
+	(git diff --quiet src && cat $(PWD)/patches/$(FLOCK)-*) \
+	| patch -p0 && \
+	./configure \
+		CC="$(CC)" \
+		CFLAGS="$(CFLAGS)" \
+		LDFLAGS="$(LDFLAGS)" \
+	)
+
+$(FLOCK)/flock: $(FLOCK)/Makefile
+	(cd $(?D) && $(MAKE) -S flock)
+
+flock: $(FLOCK)/flock
+
+$(BIN)/flock: $(FLOCK)/flock
 	cp -f $? $@
 
 # For whatever reason, autotools considers FreeBSD's mktime(3) implementation

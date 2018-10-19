@@ -1,0 +1,17 @@
+Explicitly cast arithmetic result to fix "error: format ‘%u’ expects argument
+of type ‘unsigned int’, but argument 2 has type ‘__suseconds_t {aka long int}’
+[-Werror=format=]" when compiling with musl.
+
+diff --git a/src/flock.c b/src/flock.c
+index 0f8d07c..7f0696d 100644
+--- src/flock.c
++++ src/flock.c
+@@ -309,7 +309,7 @@ int main(int argc, char *argv[]) {
+ 	}
+ 	if (verbose) {
+ 		gettimeofday(&t_l_acq,NULL);
+-		printf("took %1u microseconds\n", (t_l_acq.tv_usec - t_l_req.tv_usec)); // not adding due to time constraints
++		printf("took %1u microseconds\n", (unsigned int) (t_l_acq.tv_usec - t_l_req.tv_usec)); // not adding due to time constraints
+ 	}
+ 
+ 	if (have_timeout) {

@@ -91,6 +91,8 @@ applications "agree" on the width of characters.
 **Applications:**
 
 - [Bash][bash]
+- A portable [flock][flock] implementation; **not** from
+  [util-linux][util-linux].
 - [GNU Core Utilities][coreutils] with [GMP][gmp] support sans _stdbuf(1)_
 - _find(1)_ and _xargs(1)_ from [GNU Find Utilities][findutils]
 - [GNU Awk][gawk] with GMP and [MPFR][mpfr] support
@@ -105,6 +107,8 @@ applications "agree" on the width of characters.
 - [Vim][vim]
 
   [bash]: https://www.gnu.org/software/bash/
+  [flock]: https://github.com/discoteq/flock
+  [util-linux]: https://en.wikipedia.org/wiki/Util-linux
   [coreutils]: https://www.gnu.org/software/coreutils/
   [gmp]: https://gmplib.org/ "GNU Multiple Precision Bignum Library"
   [findutils]: https://www.gnu.org/software/findutils/
@@ -137,8 +141,8 @@ applications "agree" on the width of characters.
                       ,
     (libevent) -------
 
-**Note:** Tree, GNU Find Utilities and GNU sed do not appear because they do
-not have dependencies on any libraries built from this repository.
+**Note:** Tree, flock, GNU Find Utilities and GNU sed do not appear because
+they do not have dependencies on any libraries built from this repository.
 
 ### Makefile ###
 

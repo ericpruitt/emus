@@ -316,6 +316,9 @@ function user-misc-gui-tweaks()
     # non-retina displays.
     defaults write -g CGFontRenderingFontSmoothingDisabled -bool NO
 
+    # Always show scrollbars.
+    defaults write -g AppleShowScrollBars -string Always
+
     kill-system-ui-server
 }
 

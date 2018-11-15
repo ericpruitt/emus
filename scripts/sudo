@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# sudo(8) wrapper that sets the umask to 0022 before running sudo(8).
+set -e -u
+
+function main()
+{
+    local directory
+
+    local basename="${0##*/}"
+    local found_self=""
+    local IFS=":"
+
+    for directory in ${PATH:-}; do
+        test -n "$directory" || directory="."
+
+        if [[ "$0" -ef "$directory/$basename" ]]; then
+            found_self="x"
+        elif [[ "$found_self" ]] && [[ -e "$directory/$basename" ]]; then
+            umask 0022
+            exec -- "$directory/$basename" "$@"
+        fi
+    done
+
+    printf "%s: %s\n" "$basename" "no other implementation found" >&2
+    return 127
+}
+
+main "$@"

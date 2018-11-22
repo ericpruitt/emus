@@ -233,6 +233,12 @@ use the environment variables "LOGNAME" and "USER" as fallbacks for
 Use the C extension keyword "\_\_asm\_\_" instead of "asm" so compilation will
 succeed with compilers that do not recognize "asm" as a keyword.
 
+#### flock-src-explicit-format-string-type.patch ####
+
+Explicitly cast arithmetic result to fix "error: format ‘%u’ expects argument
+of type ‘unsigned int’, but argument 2 has type ‘__suseconds_t {aka long int}’
+[-Werror=format=]" when compiling with musl.
+
 #### gawk-4.2.1-changed-compatibility-handling.patch ####
 
 Change the handling of various implementation compatibility options. Most

@@ -3,7 +3,7 @@
 	pet-ascii-art
 
 GIT_INFO_EXCLUDE = .git/info/exclude
-GIT_EXCLUDE_PATTERNS= \
+GIT_EXCLUDE_PATTERNS = \
 	core/*-*[0-9] \
 	core/*-patches \
 	core/*-src \

@@ -85,8 +85,8 @@ BINARIES = \
 	$(LESS)/less \
 	$(LESS)/lessecho \
 	$(LESS)/lesskey \
-	$(TMUX)/tmux \
 	$(SED)/sed/sed \
+	$(TMUX)/tmux \
 	$(TREE)/tree \
 	$(VIM)/src/vim \
 	$(VIM)/src/xxd/xxd \

@@ -91,6 +91,7 @@ applications "agree" on the width of characters.
 **Applications:**
 
 - [Bash][bash]
+- [cmark][cmark]
 - A portable [flock][flock] implementation; **not** from
   [util-linux][util-linux].
 - [GNU Core Utilities][coreutils] with [GMP][gmp] support sans _stdbuf(1)_
@@ -107,6 +108,7 @@ applications "agree" on the width of characters.
 - [Vim][vim]
 
   [bash]: https://www.gnu.org/software/bash/
+  [cmark]: https://github.com/commonmark/cmark
   [flock]: https://github.com/discoteq/flock
   [util-linux]: https://en.wikipedia.org/wiki/Util-linux
   [coreutils]: https://www.gnu.org/software/coreutils/
@@ -141,8 +143,9 @@ applications "agree" on the width of characters.
                       ,
     (libevent) -------
 
-**Note:** Tree, flock, GNU Find Utilities and GNU sed do not appear because
-they do not have dependencies on any libraries built from this repository.
+**Note:** Tree, cmark, flock, GNU Find Utilities and GNU sed do not appear
+because they do not have dependencies on any libraries built from this
+repository.
 
 ### Makefile ###
 

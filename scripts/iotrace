@@ -1,0 +1,17 @@
+#!/bin/sh
+# Usage: iotrace [STRACE_OPTION]... COMMAND [ARGUMENT]...
+IO_SYSCALLS="
+    accept accept4 access bind chdir chmod chown close connect creat dup dup2
+    dup3 execve faccessat fchdir fchmod fchmodat fchown fchownat fcntl
+    fdatasync fgetxattr flistxattr flock fremovexattr fsetxattr fstat fstatfs
+    fsync ftruncate getdents getdents64 getxattr lchown lgetxattr link linkat
+    listen listxattr llistxattr lremovexattr lseek lsetxattr lstat mkdirat
+    mknod mknodat mount name_to_handle_at newfstatat open open_by_handle_at
+    openat pipe pipe2 ppoll pread64 preadv pselect6 pwrite64 pwritev read
+    readahead readlink readlinkat readv recv recvfrom removexattr rename
+    renameat select send sendto setxattr splice stat statfs swapoff swapon
+    symlink symlinkat sync sync_file_range syncfs sysfs syslog tee truncate
+    umount2 unlink unlinkat ustat vmsplice write writev
+"
+
+strace -s 100000 -e $(echo $IO_SYSCALLS | tr " " ",") "$@"

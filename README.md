@@ -304,6 +304,10 @@ mode, preserve the search query when using movement commands.
 Disable error 173, "... more files to edit" which is generated when "the last
 item in the argument list has not been edited."
 
+#### vim-src-disable-default-digraphs.patch ####
+
+Disable Vim's default/built-in digraphs.
+
 #### vim-src-exe-next-to-runtime-dir.patch ####
 
 Set the default value of "VIMRUNTIME" to `$EXEDIR/vimruntime` where `$EXEDIR`

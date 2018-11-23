@@ -1,0 +1,94 @@
+Disable Vim's default/built-in digraphs.
+
+diff --git src/digraph.c src/digraph.c
+index 6909c5b9c..892ca3a40 100644
+--- src/digraph.c
++++ src/digraph.c
+@@ -1983,7 +1983,6 @@ get_digraph_for_char(int val_arg)
+ {
+     int		val = val_arg;
+     int		i;
+-    int		use_defaults;
+     digr_T	*dp;
+     static      char_u      r[3];
+ 
+@@ -2010,14 +2009,8 @@ get_digraph_for_char(int val_arg)
+     }
+ #endif
+ 
+-    for (use_defaults = 0; use_defaults <= 1; use_defaults++)
+-    {
+-	if (use_defaults == 0)
+ 	    dp = (digr_T *)user_digraphs.ga_data;
+-	else
+-	    dp = digraphdefault;
+-	for (i = 0; use_defaults ? dp->char1 != NUL
+-					       : i < user_digraphs.ga_len; ++i)
++	for (i = 0; i < user_digraphs.ga_len; ++i)
+ 	{
+ 	    if (dp->result == val)
+ 	    {
+@@ -2028,7 +2021,6 @@ get_digraph_for_char(int val_arg)
+ 	    }
+ 	    ++dp;
+ 	}
+-    }
+     return NULL;
+ }
+ 
+@@ -2105,22 +2097,6 @@ getexactdigraph(int char1, int char2, int meta_char)
+ 	++dp;
+     }
+ 
+-    /*
+-     * Search default digraphs.
+-     */
+-    if (retval == 0)
+-    {
+-	dp = digraphdefault;
+-	for (i = 0; dp->char1 != 0; ++i)
+-	{
+-	    if ((int)dp->char1 == char1 && (int)dp->char2 == char2)
+-	    {
+-		retval = dp->result;
+-		break;
+-	    }
+-	    ++dp;
+-	}
+-    }
+ #ifdef FEAT_MBYTE
+ # ifdef USE_UNICODE_DIGRAPHS
+     if (retval != 0 && !enc_utf8)
+@@ -2249,32 +2225,6 @@ listdigraphs(void)
+ 
+     msg_putchar('\n');
+ 
+-    dp = digraphdefault;
+-    for (i = 0; dp->char1 != NUL && !got_int; ++i)
+-    {
+-#if defined(USE_UNICODE_DIGRAPHS) && defined(FEAT_MBYTE)
+-	digr_T tmp;
+-
+-	/* May need to convert the result to 'encoding'. */
+-	tmp.char1 = dp->char1;
+-	tmp.char2 = dp->char2;
+-	tmp.result = getexactdigraph(tmp.char1, tmp.char2, FALSE);
+-	if (tmp.result != 0 && tmp.result != tmp.char2
+-					  && (has_mbyte || tmp.result <= 255))
+-	    printdigraph(&tmp);
+-#else
+-
+-	if (getexactdigraph(dp->char1, dp->char2, FALSE) == dp->result
+-# ifdef FEAT_MBYTE
+-		&& (has_mbyte || dp->result <= 255)
+-# endif
+-		)
+-	    printdigraph(dp);
+-#endif
+-	++dp;
+-	ui_breakcheck();
+-    }
+-
+     dp = (digr_T *)user_digraphs.ga_data;
+     for (i = 0; i < user_digraphs.ga_len && !got_int; ++i)
+     {

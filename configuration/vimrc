@@ -91,6 +91,9 @@ inoremap <C-y> <C-r>=substitute(tr(@@, "\n", " "), "\\s\\+$", " ", "")<CR>
 inoremap <C-Left> <C-o>b
 inoremap <C-Right> <C-o>e<C-o><Space>
 
+" Enter digraphs with Ctrl+L since Ctrl+K is one of the Emacs-style bindings.
+inoremap <C-l> <C-k>
+
 " Make global marks the default by remapping lowercase marks to uppercase.
 for i in range(char2nr("a"), char2nr("z"))
     exec "nnoremap m" . nr2char(i) . " m" . toupper(nr2char(i))

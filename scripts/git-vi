@@ -228,7 +228,7 @@ if __name__ == "__main__":
         sys.exit(error.returncode)
     except OSError as error:
         # Assume any OSErrors are caused by problems running Git.
-        warn("%s:" % error.filename or GIT, prefix, error.strerror)
+        warn("%s:" % (error.filename or GIT), error.strerror)
         sys.exit(1)
     except (AssertionError, getopt.GetoptError) as error:
         warn(error)

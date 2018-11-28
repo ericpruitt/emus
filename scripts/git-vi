@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Usage: git vi [-i] [-u] [COMMIT]... [COMMIT_RANGE]... [FILENAME]...
+Usage: git vi [-c COMMAND] [-i] [-u] [COMMIT]... [COMMIT_RANGE]... [PATH]...
        git vi -h
        git-vi --help
 
@@ -15,6 +15,10 @@ and there are no pending files to edit, the files modified in HEAD â€” if any â€
 are opened.
 
 Options:
+  -c COMMAND
+        Override the editor with the given command. The editor is normally
+        determined by the "VISUAL" environment falling back to "EDITOR" if that
+        is unset and ultimately using "vi" if neither is set.
   -h, --help
         Show this documentation and exit.
   -i    Ignore untracked files when reopening files with pending changes.
@@ -129,13 +133,16 @@ def sanitize_encoded_path(path):
 def main(argv):
     root = repository_root()
     cwd = fsencode(os.getcwd())
-    options, parameters = getopt.gnu_getopt(argv, "hip", ["help"])
+    options, parameters = getopt.gnu_getopt(argv, "c:hip", ["help"])
 
     edit_pending_files = None
     ignore_untracked_files = False
+    editor = os.environ.get("VISUAL", os.environ.get("EDITOR", "vi"))
 
     for option, value in options:
-        if option in ("-h", "--help"):
+        if option == "-c":
+            editor = value
+        elif option in ("-h", "--help"):
             print(__doc__.strip())
             return
         elif option == "-i":
@@ -206,7 +213,7 @@ def main(argv):
         return main(argv + ["HEAD"])
 
     assert paths, "Nothing to edit"
-    sh_argv = ["/bin/sh", "-c", '${VISUAL:-${EDITOR:-vi}} "$@"', "--"]
+    sh_argv = ["/bin/sh", "-c", '%s "$@"' % editor, "--"]
     sh_argv.extend(map(sanitize_encoded_path, paths))
     os.execv(sh_argv[0], sh_argv)
 

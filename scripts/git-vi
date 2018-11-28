@@ -1,32 +1,228 @@
-#!/bin/sh
-# This script is used to re-open files in the current Git repo that were
-# edited. By default, it launches a text editor with all untracked or modified
-# files, but untracked files may be elided by using "-m". The user may also
-# specify additional files as command line arguments.
-PATTERN="[MA?]"
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Usage: git vi [-i] [-u] [COMMIT]... [COMMIT_RANGE]... [FILENAME]...
+       git vi -h
+       git-vi --help
 
-while getopts hmV option; do
-    case "$option" in
-      m)
-        PATTERN="[MA]"
-      ;;
-      \?|h|V)
-        echo "Usage: git vi [-m] [FILENAME]..."
-        echo
-        echo "Options:"
-        echo "  -m    Modified files only; do not include untracked files"
-        test "$option" = "?" && exit 1 || exit 0
-      ;;
-    esac
-done
+This script is used to quickly reopen files that have pending changes or were
+modified in particular commits. When build the list of arguments for thtext
+editor, any paths that were given as arguments to this script will be forwarded
+to the editor regardless of whether or not the files exist, but paths pulled
+from previous revisions are only sent to the editor if they currently exist. If
+"git vi" is executed without an explicitly specified a commit or commit range
+and there are no pending files to edit, the files modified in HEAD — if any —
+are opened.
 
-shift "$((OPTIND - 1))"
+Options:
+  -h, --help
+        Show this documentation and exit.
+  -i    Ignore untracked files when reopening files with pending changes.
+  -p    Edit files with pending changes. This is the default behavior when no
+        commits or commit ranges are specified as command line arguments.
 
-git status --porcelain -z \
-| gawk -v RS='\000' -v PATTERN="$PATTERN" '
-    $1 ~ PATTERN {
-        printf "%s\000", substr($0, 4)
-    }' \
-| (cd "$(git rev-parse --show-toplevel)" &&
-    xargs -0 realpath -z --relative-to="$OLDPWD" --) \
-| xargs -0 sh -c '${VISUAL:-${EDITOR:-vi}} < /dev/tty -- "$@"' -- "$@"
+Known Issues:
+  If a filename happens to be a valid commit, it must be differentiated from a
+  commit hash by including a path separator. For example, a file named "HEAD"
+  must be written as "./HEAD" on UNIX-like systems.
+"""
+from __future__ import print_function
+
+import getopt
+import os
+import subprocess
+import sys
+
+GIT = "git"
+SELF = os.path.basename(sys.argv[0])
+
+# No-op shim for Python 2.
+fsencode = getattr(os, "fsencode", lambda x: x)
+
+
+def warn(*args, **kwargs):
+    """
+    Works the same as the "print" builtin, but the output destination defaults
+    to sys.stderr instead of sys.stdout, and the program name is prepended to
+    each message.
+    """
+    kwargs.setdefault("file", sys.stderr)
+    print("%s:" % SELF, *args, **kwargs)
+
+
+def gitz(command, *arguments):
+    """
+    Execute a Git command and return the resulting records as a list. The
+    command specified must support using the "-z" to separate the output with
+    NUL bytes.
+
+    Arguments:
+    - command: Git command name.
+    - arguments: Arguments for the Git command.
+
+    Raises:
+    - AssertionError: The Git output is not NUL-separated.
+    - subprocess.CalledProcessError: Git exited with a non-zero return code.
+
+    Returns: A list.
+    """
+    records = subprocess.check_output([GIT, command, "-z"] + list(arguments))
+    assert not records or b"\000" in records, (
+        "%s: output is not NUL-separated" % " ".join(argv))
+    return [record for record in records.split(b"\000") if record]
+
+
+def is_commit_id(text):
+    """
+    Return a boolean value indicating whether the argument is a valid Git
+    commit ID.
+
+    Arguments:
+    - text
+
+    Returns: A boolean value.
+    """
+    if text.startswith("-"):
+        return False
+
+    try:
+        output = subprocess.check_output([GIT, "cat-file", "-t", text],
+            stderr=subprocess.STDOUT)
+        return output.strip() == b"commit"
+    except subprocess.CalledProcessError:
+        return False
+
+
+def repository_root():
+    """
+    Get the path of the root top-level directory for the current Git
+    repository.
+
+    Raises:
+    - subprocess.CalledProcessError: Git exited with a non-zero return code
+      typically indicating that the command was not run from a Git repository.
+
+    Returns: A byte string.
+    """
+    output = subprocess.check_output([GIT, "rev-parse", "--show-toplevel"],
+        universal_newlines=True)
+    return fsencode(output[:-1])
+
+
+def sanitize_encoded_path(path):
+    """
+    If a path starts with "-", rewrite it so it starts with "." to prevent it
+    from being interpreted as a program option. Otherwise, the path is returned
+    unchanged.
+
+    Arguments:
+    - path: Path; on Python 3, this should be encoded with `os.fsencode`.
+
+    Returns: Sanitized path.
+    """
+    if path.startswith(b"-"):
+        path = os.path.join(b".", path)
+
+    return path
+
+
+def main(argv):
+    root = repository_root()
+    cwd = fsencode(os.getcwd())
+    options, parameters = getopt.gnu_getopt(argv, "hip", ["help"])
+
+    edit_pending_files = None
+    ignore_untracked_files = False
+
+    for option, value in options:
+        if option in ("-h", "--help"):
+            print(__doc__.strip())
+            return
+        elif option == "-i":
+            ignore_untracked_files = True
+        elif option == "-p":
+            edit_pending_files = True
+        else:
+            assert False, "%s: option not handled" % option  # Unreachable
+
+    # Determine whether each positional parameter represents a filename, commit
+    # or commit range. If a filename happens to be a valid commit, it must be
+    # differentiated from a commit hash by the inclusion of a path separator.
+    got_commit = False
+    paths = list()
+
+    for parameter in parameters:
+        new_paths = None
+
+        if not os.path.exists(parameter) or os.path.sep not in parameter:
+            # Check if argument is an individual commit.
+            if is_commit_id(parameter):
+                got_commit = True
+                new_paths = gitz("show", "--pretty=", "--name-only", parameter)
+
+            # Check if argument is a commit range.
+            elif ".." in parameter:
+                start, end = parameter.split("..", 1)
+                start = start or "HEAD"
+
+                if is_commit_id(start):
+                    got_commit = True
+
+                    if not end:
+                        new_paths = gitz("diff", "--name-only", start)
+                    elif is_commit_id(end):
+                        new_paths = gitz("diff", "--name-only", start, end)
+
+            # Convert root-relative paths to $PWD-relative paths, and only add
+            # them to the list of edited files if they currently exist.
+            for path in new_paths:
+                full_path = os.path.join(root, fsencode(path))
+
+                if os.path.exists(full_path):
+                    paths.append(os.path.relpath(full_path, cwd))
+
+            continue
+
+        # Anything that is not a valid commit or commit range is presumed to be
+        # a filename.
+        paths.append(fsencode(parameter))
+
+    # Pending changes are included by default if no commits or commit ranges
+    # were given.
+    if edit_pending_files or (edit_pending_files is None and not got_commit):
+        wanted_states = set("AM" if ignore_untracked_files else "AM?")
+
+        for record in gitz("status", "--porcelain", "--untracked-files"):
+            states = set(record[:3].strip().decode("ASCII"))
+
+            if wanted_states.intersection(states):
+                full_path = os.path.join(root, fsencode(record[3:]))
+                paths.append(os.path.relpath(full_path, cwd))
+
+    # If there are no files to edit and no commit was specified, do a rerun
+    # adding "HEAD" as an argument.
+    if not got_commit and not paths:
+        warn("No pending files to edit; checking HEAD")
+        return main(argv + ["HEAD"])
+
+    assert paths, "Nothing to edit"
+    sh_argv = ["/bin/sh", "-c", '${VISUAL:-${EDITOR:-vi}} "$@"', "--"]
+    sh_argv.extend(map(sanitize_encoded_path, paths))
+    os.execv(sh_argv[0], sh_argv)
+
+
+if __name__ == "__main__":
+    # Execute the main function and use the value it returns as an exit status.
+    # Stack traces for select exceptions are suppressed where they would add
+    # little to no value.
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except subprocess.CalledProcessError as error:
+        sys.exit(error.returncode)
+    except OSError as error:
+        # Assume any OSErrors are caused by problems running Git.
+        warn("%s:" % error.filename or GIT, prefix, error.strerror)
+        sys.exit(1)
+    except (AssertionError, getopt.GetoptError) as error:
+        warn(error)
+        sys.exit(1)

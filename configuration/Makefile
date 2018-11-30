@@ -27,7 +27,8 @@ DOTFILES = \
 MACOS_DOTFILES = \
 	$(HOME)/.aqua-session \
 
-MACOS_LAUNCH_AGENTS = \
+MACOS_USER_CONFIGS = \
+	$(HOME)/Library/KeyBindings/DefaultKeyBinding.dict \
 	$(HOME)/Library/LaunchAgents/com.codevat.aqua-session.plist \
 
 # Local dotfiles are secondary configuration files that are not tracked by the
@@ -73,7 +74,7 @@ ALL_USER_TARGETS = \
 	$(LOCAL_DOTFILES) \
 	$(LOCAL_MACOS_DOTFILES) \
 	$(MACOS_DOTFILES) \
-	$(MACOS_LAUNCH_AGENTS) \
+	$(MACOS_USER_CONFIGS) \
 	$(TEMPLATED) \
 
 user: $(DOTFILES) $(LOCAL_DOTFILES) $(TEMPLATED)
@@ -84,7 +85,7 @@ user: $(DOTFILES) $(LOCAL_DOTFILES) $(TEMPLATED)
 	  ;; \
 	esac
 
-macos-user: $(LOCAL_MACOS_DOTFILES) $(MACOS_DOTFILES) $(MACOS_LAUNCH_AGENTS)
+macos-user: $(LOCAL_MACOS_DOTFILES) $(MACOS_DOTFILES) $(MACOS_USER_CONFIGS)
 
 host:
 	case "$$(uname)" in \
@@ -181,6 +182,11 @@ $(HOME)/.terminfo: terminfo/st.info terminfo/tmux.info
 	esac
 
 $(HOME)/Library/LaunchAgents/com.codevat.aqua-session.plist: macos/aqua-session.plist
+	echo "- $@"
+	mkdir -p $(@D)
+	ln -s $(PWD)/$? $@
+
+$(HOME)/Library/KeyBindings/DefaultKeyBinding.dict: macos/DefaultKeyBinding.dict
 	echo "- $@"
 	mkdir -p $(@D)
 	ln -s $(PWD)/$? $@

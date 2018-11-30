@@ -1,0 +1,59 @@
+/**
+ * Remap the key bindings of macOS (10.5+) to more closely match the default
+ * behavior of Microsoft Windows and X11. The mappings work best when Control
+ * and Command have been swapped. This mapping was created by Matt Ball
+ * (http://heisencoder.net/2008/04/fixing-up-mac-key-bindings-for-windows.html),
+ * and the only changes that have been made are cosmetic.
+ *
+ * Key Modifiers:
+ * - "^": Control
+ * - "$": Shift
+ * - "~": Option (Alt)
+ * - "@": Command (Apple)
+ * - "#": Numeric Keypad
+ *
+ * Non-Printable Key Codes:
+ * ┌────────────────────────┬────────────────────────┬────────────────────────┐
+ * │ Up Arrow:     "\UF700" │ Backspace:    "\U0008" │ F1:           "\UF704" │
+ * │ Down Arrow:   "\UF701" │ Tab:          "\U0009" │ F2:           "\UF705" │
+ * │ Left Arrow:   "\UF702" │ Escape:       "\U001B" │ F3:           "\UF706" │
+ * │ Right Arrow:  "\UF703" │ Enter:        "\U000A" │ ...                    │
+ * │ Insert:       "\UF727" │ Page Up:      "\UF72C" │ F12:          "\UF70F" │
+ * │ Delete:       "\UF728" │ Page Down:    "\UF72D" │                        │
+ * │ Home:         "\UF729" │ Print Screen: "\UF72E" │                        │
+ * │ End:          "\UF72B" │ Scroll Lock:  "\UF72F" │                        │
+ * │ Break:        "\UF732" │ Pause:        "\UF730" │                        │
+ * │ SysReq:       "\UF731" │ Menu:         "\UF735" │                        │
+ * │ Help:         "\UF746" │                        │                        │
+ * └────────────────────────┴────────────────────────┴────────────────────────┘
+ */
+{
+    /* Home:                     */ "\UF729" = "moveToBeginningOfLine:";
+    /* Command + Home:           */ "@\UF729" = "moveToBeginningOfDocument:";
+    /* Shift + Home:             */ "$\UF729" = "moveToBeginningOfLineAndModifySelection:";
+    /* Command + Shift + Home:   */ "@$\UF729" = "moveToBeginningOfDocumentAndModifySelection:";
+
+    /* End:                      */ "\UF72B" = "moveToEndOfLine:";
+    /* Command + End:            */ "@\UF72B" = "moveToEndOfDocument:";
+    /* Shift + End:              */ "$\UF72B" = "moveToEndOfLineAndModifySelection:";
+    /* Command + Shift + End:    */ "@$\UF72B" = "moveToEndOfDocumentAndModifySelection:";
+
+    /* Page Up:                  */ "\UF72C" = "pageUp:";
+    /* Page Down:                */ "\UF72D" = "pageDown:";
+
+    /* Shift + Del:              */ "$\UF728" = "cut:";
+
+    /* Shift + Insert:           */ "$\UF727" = "paste:";
+    /* Command + Insert:         */ "@\UF727" = "copy:";
+
+    /* Command + Left:           */ "@\UF702" = "moveWordBackward:";
+    /* Command + Shift + Left:   */ "@$\UF702" = "moveWordBackwardAndModifySelection:";
+    /* Command + Right:          */ "@\UF703" = "moveWordForward:";
+    /* Command + Shift + Right:  */ "@$\UF703" = "moveWordForwardAndModifySelection:";
+
+    // Typically the Windows "Insert" key is mapped to what Macs call "Help".
+    // Regular Mac keyboards don't even have the Insert key, but provide "Fn"
+    // instead, which is completely different.
+    /* Shift + Help:             */ "$\UF746" = "paste:";
+    /* Command + Help:           */ "@\UF746" = "copy:";
+}

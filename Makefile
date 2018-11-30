@@ -16,6 +16,7 @@ GIT_EXCLUDE_PATTERNS = \
 	desktop-environment/*-src \
 	desktop-environment/bin \
 	desktop-environment/screen-locker/screen-locker \
+	platform/bin/* \
 
 PLATFORM = $$(uname -s -m | tr "A-Z " "a-z-" | sed "s/x86_64/amd64/g")
 PRECOMPILED_BINARIES = https://www.codevat.com/downloads/emus-core-$(PLATFORM)
@@ -54,6 +55,7 @@ pet: pet-ascii-art
 	$(MAKE) $(GIT_INFO_EXCLUDE)
 	$(MAKE) build-core
 	$(MAKE) install-core
+	$(MAKE) platform-binaries
 	$(MAKE) user-configuration
 
 install-precompiled-binaries:
@@ -99,6 +101,9 @@ build-core:
 
 install-core:
 	(cd core && $(MAKE) install)
+
+platform-binaries:
+	(cd platform && $(MAKE))
 
 build-desktop-environment:
 	(cd desktop-environment && $(MAKE))

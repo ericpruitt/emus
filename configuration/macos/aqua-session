@@ -4,7 +4,7 @@ set -x
 $EMUS/configuration/macos/configurator.sh user-keyboard-mappings
 
 if [ -z "$(pgrep -x discrete-scroll)" ]; then
-    $EMUS/platform/macos/discrete-scroll < /dev/null >/dev/null >&2 &
+    $EMUS/platform/bin/discrete-scroll < /dev/null >/dev/null >&2 &
 fi
 
 test -e ~/.local.aqua-session && . ~/.local.aqua-session

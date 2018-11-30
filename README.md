@@ -31,7 +31,8 @@ installation based on whether the current host is a "pet" (`make pet`) or
   - Automatically install build dependencies and compile all binaries available
     on the host's platform. For all operating system, this includes the tools
     in the "core/" folder. On Linux, the applications in the
-    "desktop-environment/" folder are also built.
+    "desktop-environment/" folder are also built. There may also be
+    platform-specific binaries compiled in "platform/bin/".
   - Install user-specific configuration files.
 - **cattle:**
   - Download and install precompiled binaries for the current platform.

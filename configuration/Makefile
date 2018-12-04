@@ -78,7 +78,7 @@ ALL_USER_TARGETS = \
 	$(TEMPLATED) \
 
 user: $(DOTFILES) $(LOCAL_DOTFILES) $(TEMPLATED)
-	chmod 700 $@
+	chmod 700 ~
 	case "$$(uname)" in \
 	  Darwin) \
 		$(MAKE) macos-user; \

@@ -19,7 +19,7 @@
 # COMPAT =
 
 # Packages:
-BASH = bash-4.4
+BASH = bash-5.0
 CMARK = cmark-src
 COREUTILS = coreutils-8.29
 FINDUTILS = findutils-4.6.0
@@ -48,7 +48,7 @@ CMARK_COMMIT = b1556b3407a4349b9a1f4f58d8677eda0ead09c1
 FLOCK_COMMIT = 4148b86be01bbfad45ceef1f835cc12ff395d3c0
 
 # Patch level for Chet Ramey's packages:
-BASH_PATCH_LEVEL = 23
+BASH_PATCH_LEVEL = 0
 READLINE_PATCH_LEVEL = 0
 
 # Hashes of unsigned files:

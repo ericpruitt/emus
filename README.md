@@ -188,7 +188,7 @@ make`. The following targets are supported:
 
 ### patches/ ###
 
-#### bash-4.4-automatic-susp-toggle.patch ####
+#### bash-5.0-automatic-susp-toggle.patch ####
 
 When running commands interactively, modify the terminal attributes so the
 suspend character is interpreted as literal sequence at the prompt but produces
@@ -197,7 +197,7 @@ readline. For example, adding `"\C-z": "\C-afg \C-m"` to "~/.inputrc" would
 make it possible to suspend a program using ^Z then pressing ^Z again to bring
 the program back to the foreground.
 
-#### bash-4.4-prompt-on-clean-line.patch ####
+#### bash-5.0-prompt-on-clean-line.patch ####
 
 Ensure the prompt will always be displayed on a clean line even if the output
 of the last program did not end with a newline.
@@ -213,7 +213,7 @@ of the last program did not end with a newline.
     abc
     ~$
 
-#### bash-4.4-saner-current_user-fallbacks.patch ####
+#### bash-5.0-saner-current_user-fallbacks.patch ####
 
 If a user's information cannot be queried from the password database, use the
 environment variables "LOGNAME", "HOME" and "SHELL" if they are set.

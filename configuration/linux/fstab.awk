@@ -16,5 +16,6 @@ BEGIN {
 
     printf "%s", buffer
     print "tmpfs /tmp/ tmpfs defaults,comment=emus 0 0"
+    print "proc /proc/ proc hidepid=2,gid=procfs,comment=emus 0 0"
     exit 0
 }

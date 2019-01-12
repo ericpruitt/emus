@@ -100,12 +100,6 @@ host:
 prepare uninstall:
 	for path in $(ALL_USER_TARGETS); do \
 		if [ -h "$$path" ]; then \
-			if [ "$@" = "clean" ]; then \
-				case "$$(readlink "$$path")" in \
-				  "$${PWD%/}/"*) ;; \
-				  *) continue ;; \
-				esac; \
-			fi; \
 			echo rm "$$path"; \
 			rm "$$path"; \
 		elif [ "$@" = "prepare" ] && [ -e "$$path" ]; then \

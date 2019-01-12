@@ -159,7 +159,7 @@ $(HOME)/.terminfo: terminfo/st.info terminfo/tmux.info
 	chmod 644 $@
 	getent group procfs >/dev/null || groupadd procfs
 	usermod -a -G procfs $(SUDO_USER)
-	mount -o remount /proc -o hidepid=2,gid=procfs
+	mount -o remount /proc
 
 /etc/modprobe.d/local.conf: linux/modprobe.conf
 	echo "- $@"

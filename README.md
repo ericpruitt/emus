@@ -54,6 +54,8 @@ Configuration files ("dot files") for various applications and libraries.
   elevated privileges to execute i.e. `sudo make host`.
   - **Linux:**
     - Configure "/etc/fstab" to mount "/tmp/" using [tmpfs][tmpfs.5].
+    - Restrict access to "/proc" so most users can only see information about
+      processes associated with their account.
     - Install a custom kernel module configuration at
       "/etc/modprobe.d/local.conf".
     - Create a systemd service to lock the screen when the host is suspended.

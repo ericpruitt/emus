@@ -25,7 +25,6 @@ USER_LAUNCHER_ENTRIES = \
 
 CONFIG_TARGETS = \
 	$(HOME)/.del \
-	$(TERMINFO)/s/st \
 
 UTILITIES = \
 	bin/blackwalls \
@@ -106,7 +105,7 @@ install: all
 	echo "PREFIX = $(PREFIX)"
 	echo "SUPERUSER_PREFIX = $(SUPERUSER_PREFIX)"
 	echo "- screen-locker" && $(MAKE) -s $(SUPERUSER_PREFIX)/bin/screen-locker
-	test -e $(PREFIX)/bin || mkdir $(PREFIX)/bin
+	mkdir -p $(PREFIX)/bin
 	for binary in "$$PWD/bin/"*; do \
 		echo "- $${binary##*/}"; \
 		test ! -h "$(PREFIX)/bin/$${binary##*/}" || continue; \

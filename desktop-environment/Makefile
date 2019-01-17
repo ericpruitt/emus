@@ -116,7 +116,7 @@ install: all
 # Install build dependencies.
 deps:
 	if [ -e /etc/debian_version ]; then \
-		apt-get install \
+		apt-get install -y \
 			acpid \
 			compton \
 			fonts-dejavu \

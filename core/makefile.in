@@ -235,7 +235,7 @@ platform:
 	uname -s -r | tr "A-Z " "a-z-"
 
 debian-deps:
-	apt-get install $(DEBIAN_BUILD_DEPS)
+	apt-get install -y $(DEBIAN_BUILD_DEPS)
 
 freebsd-deps:
 	pkg install $(FREEBSD_BUILD_DEPS)

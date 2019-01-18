@@ -41,6 +41,12 @@ installation based on whether the current host is a "pet" (`make pet`) or
 On Linux, macOS and FreeBSD, _sudo(8)_ is used to elevate privileges whereas
 _doas(1)_ is used on OpenBSD.
 
+bootstrap.sh
+------------
+
+This script is used to bootstrap and execute a full "pet" installation on a
+freshly imaged machine. It currently only supports Debian Linux.
+
 configuration/
 --------------
 

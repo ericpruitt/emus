@@ -33,6 +33,7 @@ set shiftwidth=4
 set shortmess+=I
 set smartcase
 set softtabstop=4
+set spell
 set t_vb=""
 set tabstop=4
 set timeout timeoutlen=1000 ttimeoutlen=50

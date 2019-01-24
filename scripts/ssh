@@ -44,7 +44,7 @@ class Error(Exception):
 def tokenize_ssh_config_value(text):
     """
     Tokenize an _ssh_config(5)_ option value the way the OpenSSH codebase does
-    which is rather liberal in what it excepts and silently discards constructs
+    which is rather liberal in what it accepts and silently discards constructs
     it cannot parse. The upstream implementation of this function can be found
     at <https://github.com/openssh/openssh-portable/blob/258e6ca/misc.c#L316>.
     The behavior of this function was validated by adjusting values in an SSH

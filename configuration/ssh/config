@@ -39,6 +39,13 @@ UserKnownHostsFile ~/.ssh/known-hosts/suckless.org
 Host *:*
 ControlPath ~/.ssh/sockets/%r@[%h]:%p
 
+# If it seems the preferred, verbose socket name will be too long for a Unix
+# domain socket, switch to a compact form. 87 comes from subtracting 17, the
+# number of bytes used by the socket's extension from 104, the maximum length
+# of Unix domain sockets on Darwin, FreeBSD and OpenBSD (Linux allows 108).
+Match exec "socket=~/.ssh/sockets/'%r@%h:%p' && test ${#socket} -ge 87"
+ControlPath ~/.ssh/sockets/%r-%C
+
 # Default settings. The exec just tries to ensure the "sockets" folder exists.
 Match exec "mkdir -p ~/.ssh/sockets || true"
 ControlMaster auto

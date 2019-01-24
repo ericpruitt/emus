@@ -1,0 +1,331 @@
+#!/usr/bin/env python
+"""
+This script wraps _ssh(1)_ to support expanding _ssh_config(5)_ Include
+directives for OpenSSH clients older than release 7.3, the version that first
+supported the keyword. Normal usage of the script is identical to that of
+_ssh(1)_.
+"""
+from __future__ import print_function
+
+import errno
+import os
+import re
+import stat
+import subprocess
+import sys
+import tempfile
+
+INCLUDE_DIRECTIVE_REGEX = re.compile(r"^\s*Include(?:\s*=\s*|\s+)(.*)$")
+
+# This was pulled from <https://anongit.mindrot.org/openssh.git> at commit
+# 04c091fc199f17dacf8921df0a06634b454e2722 for OpenSSH version 7.9. At the time
+# of this writing, the last update to these options was on February 22nd, 2018.
+SSH1_GETOPT_OPTSTRING = ("1246ab:c:e:fgi:kl:m:no:p:qstvxAB:CD:E:F:GI:J:KL:MNO:"
+    "PQ:R:S:TVw:W:XYy")
+
+# The unified configuration file will be written out under the same directory
+# as the original name using this pattern with "%s" replaced by the basename of
+# the original file. The update is done atomically on systems where rename(2)
+# is an atomic operation.
+OUTPUT_FILE_PATTERN = "%s-unity.untracked"
+
+SSH_COMMAND = "ssh"
+
+EXIT_COMMAND_NOT_FOUND = 127
+EXIT_SSH1_ERROR = 255
+
+
+class Error(Exception):
+    """
+    Module-specific base exception class.
+    """
+
+
+def tokenize_ssh_config_value(text):
+    """
+    Tokenize an _ssh_config(5)_ option value the way the OpenSSH codebase does
+    which is rather liberal in what it excepts and silently discards constructs
+    it cannot parse. The upstream implementation of this function can be found
+    at <https://github.com/openssh/openssh-portable/blob/258e6ca/misc.c#L316>.
+    The behavior of this function was validated by adjusting values in an SSH
+    configuration file and running "ssh -vvv" to see how the values were
+    tokenized using the debug messages.
+
+    Arguments:
+    - text
+
+    Yields: Strings representing the extracted tokens.
+    """
+    if '"' not in text:
+        for token in text.split():
+            yield token
+
+        return
+
+    buf = ""
+    len_text = len(text)
+    offset = 0
+
+    while offset < len_text:
+        character = text[offset]
+
+        if character == '"':
+            next_quote = text.find('"', offset + 1)
+
+            if next_quote == -1:
+                break
+
+            buf += text[offset + 1:next_quote]
+            offset = next_quote
+            yield buf
+            buf = ""
+        elif character in " \t\r\n":
+            if buf:
+                yield buf
+                buf = ""
+        else:
+            buf += character
+
+        offset += 1
+
+    if buf:
+        yield buf
+
+
+def configuration_lines(path, parents=None):
+    """
+    Yield lines from an _ssh_config(5)_ file. If the file in question contains
+    Include directives, the Include directives will be expanded into the full
+    contents of the included file, and the same will be done recursively for
+    any Include directives those files might contain.
+
+    Arguments:
+    - path: Path of the SSH configuration file.
+    - parents: A set containing the parent configuration files of the file
+      being loaded. This should generally not be set by the caller.
+
+    Raises:
+    - AssertionError: Include directives could not be expanded because they
+      would lead to infinite recursion.
+    - Error: The permissions on the configuration file are unsafe;
+      _ssh_config(5)_ reads "Because of the potential for abuse, this file must
+      have strict permissions: read/write for the user, and not accessible by
+      others."
+
+    Yields: Configuration file lines excluding the terminating newline.
+    """
+    if parents is None:
+        parents = set()
+
+    with open(path) as iostream:
+        status = os.fstat(iostream.fileno())
+
+        if (status.st_uid != os.getuid() or (stat.S_IWGRP & status.st_mode) or
+          (stat.S_IWOTH & status.st_mode)):
+            raise Error("Bad owner or permissions on %s" % path)
+
+        file_identity = (status.st_dev, status.st_ino)
+
+        assert file_identity not in parents, "%r included recursively" % path
+        parents.add(file_identity)
+
+        for line in iostream:
+            line = line[:-1]
+            match = INCLUDE_DIRECTIVE_REGEX.match(line)
+
+            if match is None:
+                yield line
+                continue
+
+            for include in tokenize_ssh_config_value(match.group(1)):
+                include = os.path.join(
+                    os.path.dirname(path),
+                    os.path.expanduser(include),
+                )
+
+                yield "# Beginning of %r" % include
+
+                # ssh(1) silently ignores files that cannot be read for any
+                # reason.
+                try:
+                    for line in configuration_lines(include, parents=parents):
+                        yield line
+                except EnvironmentError as error:
+                    yield "# Unable to load file: %s" % error
+
+                yield "# End of %r" % include
+
+        parents.remove(file_identity)
+
+
+def warn(*args, **kwargs):
+    """
+    Works like the "print" built-in but only writes to sys.stderr.
+    """
+    if "file" in kwargs:
+        raise ValueError("File cannot be overridden for warnings")
+
+    print(*args, file=sys.stderr, **kwargs)
+
+
+def main(argv):
+    command, argv = os.path.basename(argv[0]), argv[1:]
+
+    # Figure out the absolute path of the canonical ssh(1) command. The filter
+    # function removes empty PATH entries. Technically empty PATH entries are
+    # supposed to represent the current working directory, but that can be a
+    # security hazard, and I personally never make use of the feature.
+    ssh_binary = SSH_COMMAND
+    script_is_in_path = False
+
+    for directory in filter(None, os.environ.get("PATH", "").split(":")):
+        maybe_ssh_path = os.path.join(directory, SSH_COMMAND)
+
+        try:
+            if os.path.samefile(maybe_ssh_path, __file__):
+                script_is_in_path = True
+                ssh_binary = None
+            elif script_is_in_path and os.path.exists(maybe_ssh_path):
+                ssh_binary = maybe_ssh_path
+                break
+        except Exception:
+            pass
+
+    if ssh_binary is None:
+        raise Error("Unable to find canonical OpenSSH client")
+
+    # Determine what version of OpenSSH provides the SSH client.
+    try:
+        version_string = subprocess.check_output([ssh_binary, "-V"],
+            stderr=subprocess.STDOUT, universal_newlines=True)
+    except OSError as error:
+        warn("%s wrapper: %s: %s" % (SSH_COMMAND, ssh_binary, error.strerror))
+        return EXIT_SSH1_ERROR
+
+    match = re.search(r"([0-9]+)\.([0-9]+)", version_string)
+
+    if match is None:
+        raise Exception("Unable to determine version from %r" % version_string)
+
+    major, minor = map(int, match.groups())
+
+    # The Include ssh_config(5) directive was introduced in OpenSSH 7.3, so the
+    # configuration file only needs to be preprocessed for earlier versions.
+    if (major, minor) >= (7, 3):
+        os.execvp(ssh_binary, [ssh_binary] + argv)
+
+    # Determine the path of the configuration file by looking for the "-F"
+    # option in the command line arguments. Option parsing logic is
+    # reimplemented here because getopt.getopt does not return enough
+    # information to perfectly reconstruct the argument list from the values it
+    # returns which could cause problems with things like pgrep(1)/pkill(1).
+    # Specifically, the location or even the presence of "--" used as an option
+    # terminator cannot be determined, and there is no way to determine if an
+    # option was concatenated with other options and/or its value or separated
+    # by a space ("-p 22" vs "-p22" and "-ap22" vs "-a -p22").
+    configuration_file = None
+    pending_deletion = list()
+    index = 0
+    len_argv = len(argv)
+
+    while index < len_argv:
+        argument = argv[index]
+
+        if argument in ("-", "--") or not argument.startswith("-"):
+            break
+
+        offset = 1
+        len_argument = len(argument)
+
+        while offset < len_argument:
+            flag = argument[offset]
+
+            if flag not in SSH1_GETOPT_OPTSTRING:
+                warn("%s: unknown option -- %s" % (command, flag))
+                os.execvp(ssh_binary, [ssh_binary])  # Show usage.
+
+            if (flag + ":") not in SSH1_GETOPT_OPTSTRING:
+                offset += 1
+                continue
+
+            # If -F is the only option in this argument, the whole argument
+            # should be removed from argv.
+            if flag == "F" and offset == 1:
+                pending_deletion.append(index)
+
+            if (len_argument - offset) > 1:
+                # Attached option value; "-F<value>"
+                if flag == "F":
+                    configuration_file = argument[offset + 1:]
+                    argv[index] = argument[:offset]
+            elif (index + 1) >= len_argv:
+                warn("%s: option requires an argument -- %s" % (command, flag))
+                os.execvp(ssh_binary, [ssh_binary])  # Show usage.
+            else:
+                index += 1
+
+                # Detached option value; "-F <value>"
+                if flag == "F":
+                    configuration_file = argv[index]
+                    pending_deletion.append(index)
+
+            break
+
+        index += 1
+
+    if configuration_file is None:
+        # If "-F" was not specified, try to load the default user configuration
+        # path. /etc/ssh/ssh_config is ignored because if it contains Include
+        # directives, then the canonical "ssh" is probably version 7.3+, and
+        # this could will not be reached.
+        configuration_file = os.path.expanduser("~/.ssh/config")
+    else:
+        # Delete "-F" options and, when passed as separate arguments, their
+        # values from the argument list.
+        for index in reversed(pending_deletion):
+            del argv[index]
+
+    configuration_basename = os.path.basename(configuration_file)
+    tempfile_directory = os.path.dirname(configuration_file)
+    tempfile_prefix = "." + configuration_basename + "-tmp-"
+    output_path = os.path.join(tempfile_directory,
+        OUTPUT_FILE_PATTERN % configuration_basename)
+    tempio = None
+
+    try:
+        with tempfile.NamedTemporaryFile(dir=tempfile_directory,
+          prefix=tempfile_prefix, mode="wt") as tempio:
+            for line in configuration_lines(configuration_file):
+                print(line, file=tempio)
+
+            tempio.flush()
+            os.rename(tempio.name, output_path)
+
+    except OSError as error:
+        # Once the temporary file has been created and renamed, a
+        # FileNotFoundError for a file that starts with tempfile_prefix
+        # expected.
+        if (tempio is None or error.errno != errno.ENOENT or
+          not os.path.basename(error.filename).startswith(tempfile_prefix)):
+            raise
+
+    os.execvp(ssh_binary, [ssh_binary, "-F", output_path] + argv)
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv))
+    except Error as error:
+        warn(error)
+        sys.exit(EXIT_SSH1_ERROR)
+    except subprocess.CalledProcessError as error:
+        if error.returncode == EXIT_COMMAND_NOT_FOUND:
+            command = error.cmd[0]
+            warn("%s wrapper: %s: command not found" % (SSH_COMMAND, command))
+        else:
+            error_str = str(error)
+
+            if error_str:
+                warn(error_str)
+
+        sys.exit(error.returncode)

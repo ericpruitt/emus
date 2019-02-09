@@ -479,6 +479,7 @@ $(LIBEVENT)/Makefile: $(LIBEVENT)/.FOLDER
 		LDFLAGS="$(LDFLAGS)" \
 		--disable-dependency-tracking \
 		--disable-openssl \
+		--disable-samples \
 		--enable-shared \
 		--prefix="$(COMMON_PREFIX)" \
 	)

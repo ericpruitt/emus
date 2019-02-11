@@ -414,8 +414,11 @@ function -setup()
 
     test "${HISTFILE:-}" = "/dev/null" || HISTFILE="$HOME/.xbash_history"
 
-    # Disable output flow control; makes ^Q and ^S usable.
-    stty -ixon -ixoff
+    # Disable flow control for terminals that appear to be virtual devices to
+    # make ^Q and ^S usable.
+    if ! [[ "$(tty)" = */ttyUSB* ]]; then
+        stty -ixon -ixoff
+    fi
 
     # Secondary bashrc for machine-specific settings.
     source "$HOME/.local.bashrc" 2>&-

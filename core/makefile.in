@@ -38,7 +38,7 @@ NCURSES = ncurses-6.0
 READLINE = readline-8.0
 SED = sed-4.4
 TMUX = tmux-src
-TREE = tree-1.7.0
+TREE = tree-1.8.0
 UTF8PROC = utf8proc-src
 VIM = vim-src
 
@@ -58,8 +58,8 @@ READLINE_PATCH_LEVEL = 0
 SHA_HASHES = \
 	"findutils-4.6.0" \
 	ded4c9f73731cd48fec3b6bdaccce896473b6d8e337e9612e16cf1431bb1169d \
-	"tree-1.7.0" \
-	6957c20e82561ac4231638996e74f4cfa4e6faabc5a2f511f0b4e3940e8f7b12 \
+	"tree-1.8.0" \
+	715d5d4b434321ce74706d0dd067505bb60c5ea83b5f0b3655dae40aa6f9b7c2 \
 
 # Build dependencies:
 DEBIAN_BUILD_DEPS = automake bison build-essential cmake pkg-config

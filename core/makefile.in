@@ -17,6 +17,9 @@
 # SHA256 =
 # Platform-specific build targets:
 # COMPAT =
+# Optional GMP and MPFR dependency targets:
+# GMP_DEPS =
+# MPFR_DEPS =
 
 # Packages:
 BASH = bash-5.0
@@ -587,7 +590,7 @@ $(BIN)/cmark: $(CMARK)/build/src/cmark
 	test -z "$(MAN)" || cp -f $(CMARK)/man/man1/cmark.1 $(MAN)/man1/
 	cp -f $? $@
 
-$(COREUTILS)/Makefile: $(COREUTILS)/.FOLDER $(GMP)/.BUILT
+$(COREUTILS)/Makefile: $(COREUTILS)/.FOLDER $(GMP_DEPS)
 	(cd $(@D) && \
 	./configure \
 		CC="$(CC)" \
@@ -696,7 +699,7 @@ $(BIN)/flock: $(FLOCK)/flock
 # system to use the host's mktime(3). See
 # https://lists.gnu.org/archive/html/bug-gawk/2017-07/msg00024.html for more
 # information.
-$(GAWK)/Makefile: $(GAWK)/.FOLDER $(GMP)/.BUILT $(MPFR)/.BUILT $(READLINE)/.BUILT
+$(GAWK)/Makefile: $(GAWK)/.FOLDER $(GMP_DEPS) $(MPFR_DEPS) $(READLINE)/.BUILT
 	(cd $(@D) && \
 	./configure \
 		CC="$(CC)" \

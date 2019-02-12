@@ -157,6 +157,20 @@ configure_cflags_ldflags()
     LDFLAGS="-L\$(COMMON_PREFIX)/lib ${LDFLAGS:-$_LDFLAGS}"
 }
 
+# Configure the values of GMP_DEPS and MPFR_DEPS.
+#
+# Variables:
+# - GMP_DEPS: List of Makefile dependencies needed by any target that directly
+#   depends on GMP.
+# - MPFR_DEPS: List of Makefile dependencies needed by any target that directly
+#   depends on MPFR.
+#
+configure_gmp_deps_mpfr_deps()
+{
+    test -n "${GMP_DEPS:-}" || GMP_DEPS='$(GMP)/.BUILT'
+    test -n "${MPFR_DEPS:-}" || MPFR_DEPS='$(MPFR)/.BUILT'
+}
+
 # Test whether or not a Make implementation executes all commands for a given
 # recipe in one shell. The exit status of the function is 0 if one shell is
 # used, and a non-zero value otherwise. This function produces no output.
@@ -242,6 +256,9 @@ usage()
     echo "Options:"
     echo "  -h  Display this text and exit."
     echo "  -n  Dry run; display the generated configuration without saving."
+    echo "  --without-gmp"
+    echo "      Build without GMP and MPFR. This implicitly sets the variables"
+    echo "      GMP_DEPS and MPFR_DEPS which cannot otherwise be modified."
     echo
     echo "Variables:"
     echo "  CC          C compiler command"
@@ -271,6 +288,11 @@ main()
             eval "${argument%%=*}=\"\${argument#*=} \""
           ;;
 
+          --without-gmp)
+            GMP_DEPS=" "
+            MPFR_DEPS=" "
+          ;;
+
           -h|--help)
             usage
             return 0
@@ -294,8 +316,9 @@ main()
     configure_sha256
     configure_cc
     configure_cflags_ldflags
+    configure_gmp_deps_mpfr_deps
 
-    for var in CC CFLAGS LDFLAGS GMAKE MAKE SHA256; do
+    for var in CC CFLAGS LDFLAGS GMAKE GMP_DEPS MAKE MPFR_DEPS SHA256; do
         eval "test -z \"\$$var\" || echo $var = \$$var"
     done
 

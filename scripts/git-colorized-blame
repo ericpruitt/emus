@@ -121,7 +121,7 @@ BEGIN {
     HASH_OF_UNCOMMITTED_BLOCK = "0000000000000000000000000000000000000000"
 
     # Supported color palettes
-    PALETTES["vivid"] = "9 10 11 12 13 14 57 157 166 214"
+    PALETTES["vivid"] = "9 10 11 12 13 14 99 157 202 219"
     PALETTES["table"] = "104 245"
     PALETTES["mode4"] = "2 3 5 6"
     PALETTES["red-weak"] = "1 3 5 9 10 13 14 196 219"

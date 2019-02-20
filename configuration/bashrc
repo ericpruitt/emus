@@ -60,6 +60,7 @@ export DECLARE_BASH_ALIASES
 function -define-aliases()
 {
     alias awk='-paginate awk --'
+    alias aws='-paginate aws --'
     alias back='test -z "${OLDPWD:-}" || cd "$OLDPWD"'
     alias cat='-paginate cat --'
     alias cmark='-paginate cmark --'

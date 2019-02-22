@@ -30,15 +30,14 @@
 #include <X11/Xlib.h>
 
 static char *battery_indicator(const char *);
-static void delete_range(char *, const size_t, const size_t);
-static size_t dow_with_ordinal_dom(char *, const size_t, struct tm *);
+static void delete_range(char *, size_t, size_t);
+static size_t dow_with_ordinal_dom(char *, size_t, struct tm *);
 static void gmt_to_utc(char *);
 static double mtime(const char *);
 static size_t load_indicators_from_file(char *, size_t, const char *,
                                         const char *);
 static void set_root_name(Display *, const char *);
-static size_t tzstrftime(char *, const size_t, const char *, const time_t,
-                         const char *);
+static size_t tzstrftime(char *, size_t, const char *, time_t, const char *);
 
 /**
  * Get the number of members in a fixed-length array.
@@ -84,8 +83,8 @@ static size_t tzstrftime(char *, const size_t, const char *, const time_t,
  *
  * Return: Number of bytes written to "dest" excluding the null byte.
  */
-static size_t tzstrftime(char *dest, const size_t sizeofdest,
-  const char *format, const time_t when, const char *where) {
+static size_t tzstrftime(char *dest, size_t sizeofdest, const char *format,
+  time_t when, const char *where) {
 
     char original_tz_value[1024];
     const struct tm *timespec;
@@ -157,7 +156,7 @@ static void set_root_name(Display *display, const char *text)
  *
  * Return: Number of bytes written to "dest" not including the null byte.
  */
-static size_t dow_with_ordinal_dom(char *dest, const size_t sizeofdest,
+static size_t dow_with_ordinal_dom(char *dest, size_t sizeofdest,
   struct tm *tm) {
 
     size_t k;
@@ -367,7 +366,7 @@ static size_t load_indicators_from_file(char *dest, size_t sizeofdest,
  * - start: Offset of the beginning of the range to delete.
  * - count: Number of characters to delete.
  */
-static void delete_range(char *text, const size_t start, const size_t count)
+static void delete_range(char *text, size_t start, size_t count)
 {
     char *read = text + start + count;
     char *write = text + start;

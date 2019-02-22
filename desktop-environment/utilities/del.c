@@ -33,7 +33,7 @@ static int load_commands_from_file(const char *, FILE *);
 static int menu(const char *, char **);
 static int parse_desktop_entry(const char *, const struct stat *, int,
                                struct FTW *);
-static int refresh_command_list(const char *, char **, const size_t);
+static int refresh_command_list(const char *, char **, size_t);
 static int stringcomparator(const void *, const void *);
 static void usage(const char *);
 
@@ -505,7 +505,7 @@ static void usage(const char *self)
  *
  * Return: 0 on success and a non-zero value otherwise.
  */
-static int refresh_command_list(const char *path, char **dirs, const size_t n)
+static int refresh_command_list(const char *path, char **dirs, size_t n)
 {
     int fdtemp;
     FILE *ftemp;

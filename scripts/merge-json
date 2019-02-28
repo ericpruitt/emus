@@ -1,0 +1,42 @@
+#!/usr/bin/env python
+"""
+Usage: merge-json PATH...
+
+Combine the contents of JSON files and print the results. The contents can be
+JSON objects or JSON lists. All files must contain the same JSON structure type
+or an exception will be raised.
+"""
+import json
+import sys
+
+
+def main(argv):
+    first = True
+
+    for path in argv:
+        if path == "-":
+            path = "/dev/fd/0"
+
+        with open(path) as iostream:
+            obj = json.load(iostream)
+
+        if first:
+            if not isinstance(obj, (list, dict)):
+                raise Exception("The first file must contain a list of an"
+                    " object; found %r" % obj)
+            root = obj
+            first = False
+        elif type(obj) != type(root):
+            raise Exception("Cannot merge lists with objects")
+        elif isinstance(obj, list):
+            root.extend(obj)
+        elif isinstance(obj, dict):
+            root.update(obj)
+        else:
+            raise AssertionError("Unexpected type: %r" % obj)  # Unreachable
+
+    json.dump(root, sys.stdout, sort_keys=True, indent=4, separators=(',', ': '))
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

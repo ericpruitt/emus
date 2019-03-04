@@ -24,6 +24,8 @@ trap 'rm -rf -- "${TEMPDIR:-}"' EXIT
 
 function view()
 {
+    local host
+
     local path="$1"
 
     test -d "$path" && return 1
@@ -107,6 +109,16 @@ function view()
             cd "$TEMPDIR"
             wget -U Mozilla/5.0 -- "$path"
             view * || cat -- *
+        fi
+      ;;
+      ssh://*)
+        if [[ -e "$path" ]]; then
+            cat -- "$path"
+        else
+            path="${path#ssh://}"
+            host="${path%%:*}"
+            path="${path##*:}"
+            ssh -- "$host" "cat -- $(printf "%q" "$path")"
         fi
       ;;
 

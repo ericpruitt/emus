@@ -18,20 +18,15 @@
 # - PGP / GPG encrypted files (`/\.(pgp|gpg)/`)
 #
 # This description was adapted from Thomas Schoepf's _lessopen(1)_.
-shopt -s execfail extglob
+set -e -u -o pipefail
+shopt -s dotglob execfail extglob
+trap 'rm -rf -- "${TEMPDIR:-}"' EXIT
 
-function main()
+function view()
 {
-    set -e -u -o pipefail
+    local path="$1"
 
-    local path="${1:-}"
-
-    if [[ "$#" -eq 0 ]]; then
-        printf "export LESSOPEN=%q\n" "|$(command -v -- "$0") %s"
-        return
-    fi
-
-    test ! -d "$path" || exit 1
+    test -d "$path" && return 1
 
     case "$path" in
       # This pattern matches various man page formats.
@@ -103,11 +98,33 @@ function main()
         gpg --decrypt -- "$path"
       ;;
 
+      # URLs
+      @(http|ftp)?(s)://*)
+        if [[ -e "$path" ]]; then
+            cat -- "$path"
+        else
+            TEMPDIR="$(mktemp -d)"
+            cd "$TEMPDIR"
+            wget -U Mozilla/5.0 -- "$path"
+            view * || cat -- *
+        fi
+      ;;
+
       # Unrecognized file type
       *)
-        exit 1
+        return 1
       ;;
     esac
+}
+
+function main()
+{
+    if [[ "$#" -eq 0 ]]; then
+        printf "export LESSOPEN=%q\n" "|$(command -v -- "$0") %s"
+        return
+    fi
+
+    view "$1"
 }
 
 test "${BASH_SOURCE:-}" != "$0" || main "$@"

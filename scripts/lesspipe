@@ -131,12 +131,21 @@ function view()
 
 function main()
 {
-    if [[ "$#" -eq 0 ]]; then
+    case "$#" in
+      0)
         printf "export LESSOPEN=%q\n" "|$(command -v -- "$0") %s"
-        return
-    fi
+      ;;
 
-    view "$1"
+      1)
+        view "$1"
+      ;;
+
+      *)
+        echo "Usage: ${0##*/} FILENAME" >&2
+        echo "       eval \"\$(${0##*/})\"" >&2
+        return 2
+      ;;
+    esac
 }
 
 test "${BASH_SOURCE:-}" != "$0" || main "$@"

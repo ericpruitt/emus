@@ -97,6 +97,7 @@ function -define-aliases()
     alias sed='-paginate sed --'
     alias shred='shred -n 0 -v -u -z'
     alias sort='-paginate sort --'
+    alias strace='strace -tttT'
     alias strings='-paginate strings --'
     alias sudo='env TERM="${TERM/#tmux*/screen}" sudo'
     alias tac='-paginate tac --'

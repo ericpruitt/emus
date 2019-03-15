@@ -197,7 +197,9 @@ function calculate()
     local result
 
     result="$(
-        echo "x = $LAST_RESULT; x $(history 1 | sed 's/[0-9]\+//'); x" | bc
+        expression="$(history 1 | sed 's/[0-9]\+//')"
+        expression="$(eval "echo \" ${expression#*=}\"")"
+        echo "x = $LAST_RESULT; x = ($expression); x" | bc
     )"
 
     test -n "$result" && LAST_RESULT="$result" && echo "$result"

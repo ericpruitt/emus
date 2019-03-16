@@ -84,12 +84,11 @@ def tokenize_ssh_config_value(text):
             offset = next_quote
             yield buf
             buf = ""
-        elif character in " \t\r\n":
-            if buf:
-                yield buf
-                buf = ""
-        else:
+        elif character not in " \t\r\n":
             buf += character
+        elif buf:
+            yield buf
+            buf = ""
 
         offset += 1
 

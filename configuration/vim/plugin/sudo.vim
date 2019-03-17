@@ -23,7 +23,7 @@ function! SudoRead(url)
 
     :0,$d
     call setline(1, "foo")
-    exec '1read !sudo cat "'.file.'" '
+    exec '1read !sudo cat -- "'.file.'" '
     :1d
     set nomod
     :filetype detect
@@ -43,7 +43,7 @@ function! SudoWrite (url) abort
     endif
 
     set nomod
-    exec '%write !sudo tee >/dev/null "' . file . '"'
+    exec '%write !sudo tee >/dev/null -- "' . file . '"'
 endf
 
 augroup Sudo

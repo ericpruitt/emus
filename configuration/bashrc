@@ -203,7 +203,23 @@ function calculate()
         echo "x = $LAST_RESULT; x = ($expression); x" | bc
     )"
 
-    test -n "$result" && LAST_RESULT="$result" && echo "$result"
+    test -n "$result" || return
+
+    if [[ "$result" = *.* ]]; then
+        # Add a leading 0 if abs(result) < 1.
+        if [[ "$result" = .* ]]; then
+            result="0$result"
+        elif [[ "$result" = -.* ]]; then
+            result="-0${result#?}"
+        fi
+
+        # Strip insignificant trailing zeroes.
+        result="${result%%+(0)}"
+        result="${result%.}"
+    fi
+
+    LAST_RESULT="$result"
+    echo "$result"
 }
 
 # Paginate arbitrary commands when stdout is a TTY. If stderr is attached to a

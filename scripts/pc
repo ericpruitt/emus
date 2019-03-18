@@ -1,0 +1,276 @@
+#!/usr/bin/env python3
+"""
+Usage: pc EXPRESSION...
+
+Python Calculator (pc) is a command line calculator that uses Python as the
+evaluation back-end. It only accepts a subset of Python. More specifically, it
+only supports variable assignment and operators that work on numbers. To
+minimize rounding errors, rational numbers are converted to fractions
+internally. In this calculator, "^" and "^=" are exponentiation operators like
+"**" and "**=" instead of XOR. All callable methods in the "math" module are
+accessible as functions without the module name. For example, to compute the
+square root of 2, this tool could be invoked as "pc 'sqrt(2)'". The constant Pi
+is also accessible as the identifier "pi".
+
+Examples:
+
+    $ pc x="2 + 2" "x * 9"
+    36
+
+    $ pc "sin(45 * pi / 180)"
+    0.7071067811865475
+
+    $ pc "log(2048, 2)"
+    11
+"""
+import decimal
+import fractions
+import io
+import keyword
+import math
+import os
+import re
+import sys
+import tokenize
+
+SELF = os.path.basename(sys.argv[0])
+
+ASSIGNMENT_OPS = (
+    "=", "^=", "*=", "**=", "-=", "+=", "/=", "//=", "<<=", ">>="
+)
+OPERATOR_WHITELIST = (
+    "%", "^", "^=", "*", "*=", "**", "**=", "(", ")", "-", "-=", "+", "+=",
+    "=", "/", "/=", "//", "//=", "<", "<<", "<<=", "<=", ">", ">>", ">>=",
+    ">=", "!=", "==", ",",
+)
+TOKEN_WHITELIST = {
+    # Assignment Operators
+    tokenize.CIRCUMFLEXEQUAL,
+    tokenize.DOUBLESLASHEQUAL,
+    tokenize.DOUBLESTAREQUAL,
+    tokenize.LEFTSHIFTEQUAL,
+    tokenize.LESSEQUAL,
+    tokenize.MINEQUAL,
+    tokenize.PERCENTEQUAL,
+    tokenize.PLUSEQUAL,
+    tokenize.RIGHTSHIFTEQUAL,
+    tokenize.SLASHEQUAL,
+    tokenize.STAREQUAL,
+    tokenize.ERRORTOKEN,
+
+    tokenize.CIRCUMFLEX,
+    tokenize.COMMA,
+    tokenize.DEDENT,
+    tokenize.DOUBLESLASH,
+    tokenize.DOUBLESTAR,
+    tokenize.ENCODING,
+    tokenize.ENDMARKER,
+    tokenize.EQEQUAL,
+    tokenize.GREATER,
+    tokenize.GREATEREQUAL,
+    tokenize.INDENT,
+    tokenize.LEFTSHIFT,
+    tokenize.LESS,
+    tokenize.LESSEQUAL,
+    tokenize.LPAR,
+    tokenize.MINUS,
+    tokenize.NAME,
+    tokenize.NEWLINE,
+    tokenize.NOTEQUAL,
+    tokenize.NUMBER,
+    tokenize.OP,
+    tokenize.PERCENT,
+    tokenize.PLUS,
+    tokenize.RIGHTSHIFT,
+    tokenize.RPAR,
+    tokenize.SEMI,
+    tokenize.SLASH,
+    tokenize.STAR,
+}
+
+ASSIGNMENT_REGEX = re.compile(
+    (
+        "^\s*([A-Za-z_][A-Za-z0-9_]*)\s*" +
+        "|".join(map(re.escape, ASSIGNMENT_OPS)) +
+        "\\b"
+    ).encode("UTF-8")
+)
+
+
+class Error(Exception):
+    """
+    Module-specific base exception class.
+    """
+
+
+class AugmentedFraction(fractions.Fraction):
+    """
+    AugmentedFraction extends to fractions.Fraction to implement support for
+    bit-shifting.
+    """
+    def _shift(self, other, direction=None):
+        int_other = int(other)
+
+        if int_other != other:
+            raise Error("Cannot shift a fractional number of bits (%g)"
+                % other)
+
+        int_self = int(self)
+
+        if int_self != self:
+            raise Error("Cannot shift a fractional number (%g)" % self)
+
+        if direction == "left":
+            return int_self << int_other
+        elif direction == "right":
+            return int_self >> int_other
+        else:
+            raise Error("%r is not a valid direction" % direction)
+
+    def __lshift__(self, other):
+        return self._shift(other, direction="left")
+
+    def __rshift__(self, other):
+        return self._shift(other, direction="right")
+
+
+def warn(*args, **kwargs):
+    """
+    Works the same as the "print" builtin, but the output destination defaults
+    to sys.stderr instead of sys.stdout, and the program name is prepended to
+    each message.
+    """
+    kwargs.setdefault("file", sys.stderr)
+    print("%s:" % SELF, *args, **kwargs)
+
+
+def evaluate(expression, context):
+    """
+    Evaluate an expression and return the result.
+
+    Arguments:
+    - expression: Mathematical expression or assignment.
+    - context: Dictionary that is used as "globals" in the execution context of
+      the expression.
+
+    Returns: The value of the expression.
+    """
+    if isinstance(expression, str):
+        readline = io.BytesIO(expression.encode("UTF-8")).readline
+    else:
+        readline = io.BytesIO(expression).readline
+
+    context["_AugmentedFraction"] = AugmentedFraction
+    tokens = []
+
+    for toknum, tokval, _, _, _  in tokenize.tokenize(readline):
+        if toknum == tokenize.STRING:
+            raise Error("Strings are not supported by the interpreter")
+
+        if toknum not in TOKEN_WHITELIST:
+            raise Error("Unsupported token: %s (%s)" % (tokval, toknum))
+
+        if toknum == tokenize.NUMBER and not tokval.endswith("j"):
+            tokens.extend((
+                (tokenize.NAME, "_AugmentedFraction"),
+                (tokenize.OP, "("),
+                (tokenize.STRING, repr(tokval)),
+                (tokenize.OP, ")"),
+            ))
+        elif toknum == tokenize.NAME:
+            if tokval.startswith("_"):
+                raise Error("Illegal reference to %r; identifier starts with"
+                    " '_'" % tokval)
+
+            if "__" in tokval:
+                raise Error("Illegal reference to %r; identifier contains '__'"
+                    % tokval)
+
+            if keyword.iskeyword(tokval):
+                raise Error("%r is a Python keyword and cannot be used in an"
+                    " expression" % tokval)
+
+            tokens.append((toknum, tokval))
+        elif toknum == tokenize.OP:
+            if tokval not in OPERATOR_WHITELIST:
+                raise Error("%r is not a supported operator" % tokval)
+
+            if tokval == "^":
+                tokens.append((tokenize.DOUBLESTAR, "**"))
+            elif tokval == "^=":
+                tokens.append((tokenize.DOUBLESTAREQUAL, "**="))
+            else:
+                tokens.append((toknum, tokval))
+        else:
+            tokens.append((toknum, tokval))
+
+    expression = tokenize.untokenize(tokens)
+    match = ASSIGNMENT_REGEX.match(expression)
+
+    if match:
+        result_identifier = match.group(1).decode("UTF-8")
+
+        if result_identifier not in context:
+            pass
+
+        elif result_identifier == "pi":
+            raise Error("%r is a read-only variable" % result_identifier)
+
+        elif callable(context[result_identifier]):
+            raise Error("%r is a built-in function and cannot be used as an"
+                " identifier" % result_identifier)
+    else:
+        expression = b"_ = " + expression
+        result_identifier = "_"
+
+    exec(expression, context)
+    return context[result_identifier]
+
+
+def main(expressions):
+    if not expressions:
+        raise Error("At least one expression must be specified")
+
+    context = dict()
+
+    for name in dir(math):
+        attribute = getattr(math, name)
+
+        if callable(attribute):
+            context[name] = attribute
+
+    context.update({
+        "abs": abs,
+        "pi": math.pi,
+    })
+
+    for expression in expressions:
+        try:
+            result = evaluate(expression, context)
+        except ZeroDivisionError:
+            raise Error("Division by zero in %r" % expression)
+
+    integral_result = int(result)
+
+    if integral_result == result:
+        print(int(result))
+    elif isinstance(result, fractions.Fraction):
+        fractional_result = str(result)
+        decimal.setcontext(decimal.Context(prec=16))
+        decimal_result = (decimal.Decimal(result.numerator) /
+            decimal.Decimal(result.denominator))
+
+        if len(fractional_result) < 11:
+            print("%s (%s)" % (decimal_result, fractional_result))
+        else:
+            print("%s" % decimal_result)
+    else:
+        print(result)
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except Error as exception:
+        warn(exception)
+        sys.exit(1)

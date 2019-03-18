@@ -245,6 +245,9 @@ def main(expressions):
     })
 
     for expression in expressions:
+        if not expression.strip():
+            raise Error("Cannot evaluate empty expression")
+
         try:
             result = evaluate(expression, context)
         except ZeroDivisionError:

@@ -189,9 +189,9 @@ function -define-aliases()
     DECLARE_BASH_ALIASES="${DECLARE_BASH_ALIASES#declare -A }"
 }
 
-# Use _bc(1)_ to calculate the result of an expression. The result of the last
-# successfully evaluated expression as made available as the variable "x". The
-# expression must appear in the command history to be evaluated.
+# Calculate the result of an expression. The result of the last successfully
+# evaluated expression as made available as the variable "x". The expression
+# must appear in the command history to be evaluated.
 #
 function calculate()
 {
@@ -199,27 +199,10 @@ function calculate()
 
     result="$(
         expression="$(HISTTIMEFORMAT= history 1)"
-        expression="$(eval "echo \" ${expression#*=}\"")"
-        echo "x = $LAST_RESULT; x = ($expression); x" | bc
+        pc "x = $LAST_RESULT" "$(eval "echo \" ${expression#*=}\"")"
     )"
 
-    test -n "$result" || return
-
-    if [[ "$result" = *.* ]]; then
-        # Add a leading 0 if abs(result) < 1.
-        if [[ "$result" = .* ]]; then
-            result="0$result"
-        elif [[ "$result" = -.* ]]; then
-            result="-0${result#?}"
-        fi
-
-        # Strip insignificant trailing zeroes.
-        result="${result%%+(0)}"
-        result="${result%.}"
-    fi
-
-    LAST_RESULT="$result"
-    echo "$result"
+    test -n "$result" && LAST_RESULT="${result#* }" && echo "$result"
 }
 
 # Paginate arbitrary commands when stdout is a TTY. If stderr is attached to a

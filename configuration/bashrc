@@ -327,6 +327,7 @@ function -prompt-command()
 function -debug-hook()
 {
     local alias_key
+    local expansion
     local guess
 
     local command="$1"
@@ -355,7 +356,8 @@ function -debug-hook()
         while [[ "${search_again:-}" ]]; do
             unset search_again
             for alias_key in "${!BASH_ALIASES[@]}"; do
-                guess="${command/#${BASH_ALIASES[$alias_key]}/$alias_key}"
+                expansion="${BASH_ALIASES[$alias_key]}"
+                guess="${command/#"$expansion"/$alias_key}"
                 test "${#guess}" -lt "${#shortest_guess}" || continue
                 shortest_guess="$guess"
                 search_again="x"

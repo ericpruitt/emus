@@ -55,6 +55,11 @@ declare LAST_RESULT="0"
 # The contents of this variable can be used with "eval" to define Bash aliases.
 export DECLARE_BASH_ALIASES
 
+# This tracks the history number of the command the last time the
+# "-prompt-command" was executed. This is used to help determine whether a
+# non-zero exit status should be displayed before the next prompt.
+declare -i PROMPT_HISTORY_NUMBER=0
+
 # Define various command aliases.
 #
 function -define-aliases()
@@ -294,7 +299,24 @@ function spawn()
 #
 function -prompt-command()
 {
-    local exit_status="${debug_hook_ran:+$?}"
+    local exit_status="$?"
+
+    local history_number=($(\history 1))
+
+    # This function originally used the variable "debug_hook_ran" to determine
+    # if the user executed a command or if the input was blank, but that meant
+    # that non-zero exit statuses of subshells would not be shown. To work
+    # around this, the history index of the command being executed is checked
+    # in conjunction with "debug_hook_ran".
+    if [[ "$history_number" -ne "$PROMPT_HISTORY_NUMBER" ]]; then
+        PROMPT_HISTORY_NUMBER="$history_number"
+
+    # If the exit status is 130 and the debug hook was not executed, that
+    # probably means the user pressed Ctrl+C to clear the readline input
+    # buffer.
+    elif [[ "$exit_status" -eq 130 ]] && ! [[ "${debug_hook_ran:-}" ]]; then
+        exit_status=""
+    fi
 
     local depth="$((SHLVL - SHLVL_OFFSET + 1))"
     local jobs=""

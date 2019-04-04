@@ -198,7 +198,7 @@ function calculate()
     local result
 
     result="$(
-        expression="$(HISTTIMEFORMAT= history 1)"
+        expression="$(HISTTIMEFORMAT= \history 1)"
         pc "x = $LAST_RESULT" "$(eval "echo \" ${expression#*=}\"")"
     )"
 

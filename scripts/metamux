@@ -12,7 +12,8 @@ shopt -s execfail
 # terminal, the message will be printed to stderr. Otherwise, the message is
 # display using tmux's "display" command.
 #
-#   $1  Message text
+# Arguments:
+# - $1: Message text
 #
 function display()
 {
@@ -30,7 +31,8 @@ function display()
 # used to populate the area created by the split instead of creating a new
 # shell.
 #
-#   $1  Argument to pass to tmux's join-pane. Should be "-h" or "-v".
+# Arguments:
+# - $1: Argument to pass to tmux's join-pane. Should be "-h" or "-v".
 #
 function join_hidden_pane()
 {
@@ -68,8 +70,9 @@ function pane_buster()
 # panes are cycled is determined by their pane ID which means the rotation
 # order may not be the same as the visual order.
 #
-#   $1  Required parameter indicating which direction to cycle. Must be "next"
-#       or "prev."
+# Arguments:
+# - $1: Required parameter indicating which direction to cycle. Must be "next"
+#   or "prev."
 #
 function get_next_hidden()
 {
@@ -123,7 +126,8 @@ function get_next_hidden()
 
 # Open a new shell in the active pane of the active window.
 #
-#   $1  Value of #{window_panes} expanded by tmux.
+# Arguments:
+# - $1: Value of #{window_panes} expanded by tmux.
 #
 function new_shell_in_pane()
 {
@@ -190,10 +194,10 @@ function open_last_url_printed()
 # If there are no other windows in the current session, this hook will look for
 # existing sessions to attach to preferring orphaned sessions where possible.
 # To configure this functionality in Bash, add the following trap to ~/.bashrc:
+# `trap 'metamux shell-exit-hook "$PPID"' EXIT`
 #
-#   trap 'metamux shell-exit-hook "$PPID"' EXIT
-#
-#   $1  PID of the parent of the shell using this script.
+# Arguments:
+# - $1: PID of the parent of the shell using this script.
 #
 function shell_exit_hook()
 {

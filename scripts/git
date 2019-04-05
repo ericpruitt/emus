@@ -13,8 +13,9 @@ declare -g _GIT_DIR
 
 # Pull from the default remote branch overwriting any local changes.
 #
-#   $1  This must be "-f" or "--force" to make this command overwrite unsaved
-#       changes.
+# Arguments:
+# - $1: This must be "-f" or "--force" to make this command overwrite unsaved
+#   changes.
 #
 function git-force-pull()
 {
@@ -37,13 +38,14 @@ function git-force-pull()
 # commit message before being pushed upstream. When no arguments are specified,
 # a checkpoint commit is created.
 #
-#   $1  Command: this can be "commit," "reset," "pick" or omitted. When this
-#       is "commit," a soft-reset is done on all checkpoint commits, and then
-#       git-commit is executed. When the command is "reset," all checkpoint
-#       commits are reset without executing git-commit. When the command is
-#       "pick," only files explicitly added wit git-add are included in the
-#       checkpoint; normally, the checkpoint is created with `git commit -a`.
-#   $@  When the command is "commit," these arguments are passed to git-commit.
+# Arguments:
+# - $1: Command: this can be "commit," "reset," "pick" or omitted. When this is
+#   "commit," a soft-reset is done on all checkpoint commits, and then
+#   git-commit is executed. When the command is "reset," all checkpoint commits
+#   are reset without executing git-commit. When the command is "pick," only
+#   files explicitly added wit git-add are included in the checkpoint;
+#   normally, the checkpoint is created with `git commit -a`.
+# - $@: When the command is "commit," these arguments are passed to git-commit.
 #
 function git-checkpoint()
 {
@@ -80,7 +82,8 @@ function git-checkpoint()
 
 # List files like _ls(1)_, but only files tracked by Git will be shown.
 #
-#   $@  Paths and / or options understood by _ls(1)_.
+# Arguments:
+# - $@: Paths and / or options understood by _ls(1)_.
 #
 function git-ls()
 {
@@ -139,6 +142,9 @@ function any_match()
 # untracked files, and reuse the last commit message under certain
 # circumstances.
 #
+# Arguments:
+# - $@: Arguments for _git-commit(1)_
+#
 function git-commit()
 {
     local -a dates=()
@@ -160,7 +166,8 @@ function git-commit()
 # Stand-in function that calls the canonical Git binary to eliminate infinite
 # loops.
 #
-#   $@  Arguments for _git(1)_
+# Arguments:
+# - $@: Arguments for _git(1)_
 #
 function git()
 {

@@ -215,11 +215,12 @@ function calculate()
 # and stderr are both TTYs does not necessarily mean it is the same terminal,
 # but in practice, this is rarely a problem.
 #
-#   $1  Name or path of the command to execute.
-#   $2  White-space separated list of options to pass to the command when
-#       stdout is a TTY. If there are no TTY-dependent options, this should be
-#       "--".
-#   $@  Arguments to pass to command.
+# Arguments:
+# - $1: Name or path of the command to execute.
+# - $2: White-space separated list of options to pass to the command when
+#   stdout is a TTY. If there are no TTY-dependent options, this should be
+#   "--".
+# - $@: Arguments to pass to command.
 #
 function -paginate()
 {
@@ -244,8 +245,8 @@ function -paginate()
 # directory of the parent shell.
 #
 # Arguments:
-# - $1: directory
-# - $@: command and command arguments
+# - $1: Directory
+# - $@: Command and command arguments
 #
 # Variables:
 # - FROM_CDPATH: the value of this variable is prepended to the existing value
@@ -268,8 +269,9 @@ function from()
 
 # Launch a background command detached from the current terminal session.
 #
-#   $1  Command
-#   $@  Command arguments
+# Arguments:
+# - $1: Command
+# - $@: Command arguments
 #
 function spawn()
 {
@@ -293,6 +295,10 @@ function spawn()
 # - When accessing the host over SSH, include username and hostname.
 # - If there are background jobs, show the quantity in brackets.
 # - Terminate the prompt with "#" when running as root and "$" otherwise.
+#
+# Variables:
+# - EPONYMS: If the username matches the regular expression defined in this
+#   variable, it will be suppressed by logic defined in the "-setup" function.
 #
 # Any variables that do not match the regular expression `/^[A-Z_][A-Z0-9_]*$/`
 # are automatically unset.
@@ -344,7 +350,8 @@ function -prompt-command()
 # function. When using a supported terminal emulator, the title will be set to
 # the last executed command.
 #
-#   $1  Last executed command.
+# Arguments:
+# - $1: Last executed command.
 #
 function -debug-hook()
 {

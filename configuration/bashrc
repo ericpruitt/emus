@@ -301,7 +301,7 @@ function -prompt-command()
 {
     local exit_status="$?"
 
-    local history_number=($(\history 1))
+    local history_number=($(HISTTIMEFORMAT= \history 1))
 
     # This function originally used the variable "debug_hook_ran" to determine
     # if the user executed a command or if the input was blank, but that meant

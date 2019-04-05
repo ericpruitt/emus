@@ -314,7 +314,7 @@ function -prompt-command()
     # that non-zero exit statuses of subshells would not be shown. To work
     # around this, the history index of the command being executed is checked
     # in conjunction with "debug_hook_ran".
-    if [[ "$history_number" -ne "$PROMPT_HISTORY_NUMBER" ]]; then
+    if [[ "${history_number:=-1}" -ne "$PROMPT_HISTORY_NUMBER" ]]; then
         PROMPT_HISTORY_NUMBER="$history_number"
 
     # If the exit status is 130 and the debug hook was not executed, that

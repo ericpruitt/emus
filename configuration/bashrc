@@ -308,6 +308,7 @@ function -prompt-command()
     local exit_status="$?"
 
     local history_number=($(HISTTIMEFORMAT= \history 1))
+    local signal=""
 
     # This function originally used the variable "debug_hook_ran" to determine
     # if the user executed a command or if the input was blank, but that meant
@@ -328,8 +329,15 @@ function -prompt-command()
     local jobs=""
 
     jobs % &> /dev/null && jobs="x"
-    test "${exit_status:=0}" -eq 0 || echo -e "($exit_status)\a"
     test "$depth" -gt 1 || depth=""
+
+    if [[ "${exit_status:=0}" -ne 0 ]]; then
+        if ((exit_status <= (128 + RTSIG_MAX) && exit_status > 128)); then
+            signal="$(\kill -l "$((exit_status - 128))" 2>/dev/null || :)"
+        fi
+
+        echo -e "($exit_status${signal:+: SIG$signal})\a"
+    fi
 
     PS1="${depth:+$depth: }${SSH_TTY:+\\u@\\h:}\\W${jobs:+ [\\j]}\\$ "
 

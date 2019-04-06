@@ -317,10 +317,10 @@ function -prompt-command()
     if [[ "${history_number:=-1}" -ne "$PROMPT_HISTORY_NUMBER" ]]; then
         PROMPT_HISTORY_NUMBER="$history_number"
 
-    # If the exit status is 130 and the debug hook was not executed, that
-    # probably means the user pressed Ctrl+C to clear the readline input
-    # buffer.
-    elif [[ "$exit_status" -eq 130 ]] && ! [[ "${debug_hook_ran:-}" ]]; then
+    # If the history number did not change and the debug hook was not executed,
+    # then there was probably no input from the user or it was cleared with
+    # Ctrl+C.
+    elif ! [[ "${debug_hook_ran:-}" ]]; then
         exit_status=""
     fi
 

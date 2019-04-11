@@ -31,7 +31,6 @@ export MANSECT="3:3posix:2:1:l:7:8:5:4:9:6:3am:n:3pm:3perl"
 export PAGER="less"
 export PYTHONIOENCODING="utf-8:surrogateescape"
 export PYTHONSTARTUP="$HOME/.repl.py"
-export RTSIG_MAX="$(getconf RTSIG_MAX)"
 export TERMINFO="$HOME/.terminfo"
 export UNAME="$(uname)"
 export USER="$LOGNAME"
@@ -40,6 +39,9 @@ export WINEPREFIX="/dev/null"
 export XDG_CACHE_HOME="/tmp/xdg-cache-$LOGNAME"
 export XZ_OPT="-9"
 export _JAVA_AWT_WM_NONREPARENTING="1"
+
+export RTSIG_MAX="$(getconf RTSIG_MAX)"
+test "$RTSIG_MAX" != "undefined" || RTSIG_MAX=127
 
 export VISUAL="$EDITOR"
 

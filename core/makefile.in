@@ -80,7 +80,6 @@ LIBRARIES = \
 	$(UTF8PROC) \
 
 BINARIES = \
-	$(APPLE_BASH)/src/apple-bash \
 	$(BASH)/bash \
 	$(CMARK)/build/src/cmark \
 	$(COREUTILS)/src/coreutils \

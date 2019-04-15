@@ -59,6 +59,14 @@ configure_compat()
         COMPAT="utf8proc-wcwidth/utf8proc-wcwidth.so"
       ;;
     esac
+
+    # By default, only build apple-bash on non-macOS hosts.
+    case "$PLATFORM" in
+      macos-*) ;;
+      *)
+        COMPAT="${COMPAT:-} \$(APPLE_BASH)/src/apple-bash"
+      ;;
+    esac
 }
 
 # Configure the value of MAKE and GMAKE.

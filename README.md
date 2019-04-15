@@ -100,6 +100,7 @@ applications "agree" on the width of characters.
 **Applications:**
 
 - [Bash][bash]
+- [Bash — Apple's Distribution][apple-bash]
 - [cmark][cmark]
 - A portable [flock][flock] implementation; **not** from
   [util-linux][util-linux].
@@ -117,6 +118,7 @@ applications "agree" on the width of characters.
 - [Vim][vim]
 
   [bash]: https://www.gnu.org/software/bash/
+  [apple-bash]: https://opensource.apple.com/source/bash/
   [cmark]: https://github.com/commonmark/cmark
   [flock]: https://github.com/discoteq/flock
   [util-linux]: https://en.wikipedia.org/wiki/Util-linux

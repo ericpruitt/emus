@@ -42,6 +42,9 @@ TREE = tree-1.8.0
 UTF8PROC = utf8proc-src
 VIM = vim-src
 
+APPLE_BASH_RELEASE = bash-106.220.2
+APPLE_BASH = apple-$(APPLE_BASH_RELEASE)
+
 # Revision-controlled package versions:
 TMUX_VERSION = 2.7
 UTF8PROC_VERSION = 2.1.0
@@ -77,6 +80,7 @@ LIBRARIES = \
 	$(UTF8PROC) \
 
 BINARIES = \
+	$(APPLE_BASH)/src/apple-bash \
 	$(BASH)/bash \
 	$(CMARK)/build/src/cmark \
 	$(COREUTILS)/src/coreutils \
@@ -99,6 +103,7 @@ BIN = ~/.local/bin
 MAN = ~/.local/share/man
 
 FOLDER_CLEAN_TARGETS = \
+	clean-apple-bash \
 	clean-bash \
 	clean-coreutils \
 	clean-findutils \
@@ -538,6 +543,67 @@ $(READLINE)/Makefile: $(READLINE)/.FOLDER $(NCURSES)/.BUILT
 
 $(READLINE)/.BUILT: $(READLINE)/Makefile
 	(cd $(?D) && $(MAKE) -S install) && touch $@
+
+$(APPLE_BASH).tar.gz:
+	$(WGET) -O $@ -nc https://opensource.apple.com/tarballs/bash/$(APPLE_BASH_RELEASE).tar.gz
+
+$(APPLE_BASH)/.FOLDER: $(APPLE_BASH).tar.gz
+	tar -x -z -f $?
+	mv $(APPLE_BASH_RELEASE) $(@D)
+	(cd $(@D) && ln -s bash-*/ src)
+	touch $@
+
+# The autoconf shipped with Apple's Bash distribution reports that mktime is
+# buggy when using GCC as the compiler on Debian 9 (GCC 6.3.0-18+deb9u1 with
+# GLIBC 2.24-11+deb9u4). This happens both when CC=.../musl-cc and CC=gcc.
+# Setting ac_cv_func_working_mktime ensures the host's mktime(3) implementation
+# is used regardless of what autconf believes. A similar issue occurs when
+# compiling GNU Awk on FreeBSD and is documented above $(GAWK)/Makefile.
+$(APPLE_BASH)/src/Makefile: $(APPLE_BASH)/.FOLDER $(READLINE)/.BUILT
+	(cd $(@D) && \
+	cp ../*.[ch] . && \
+	./configure \
+		CC="$(CC)" \
+		CFLAGS="$(CFLAGS) $$( \
+			printf '#include <errno.h>\n EBADEXEC\n' \
+			| $(CC) -E - \
+			| grep -F -w -q EBADEXEC && echo -DEBADEXEC=ENOEXEC \
+		)" \
+		LDFLAGS="$(LDFLAGS)" \
+		ac_cv_header_dlfcn_h="no" \
+		ac_cv_func_working_mktime="yes" \
+		--disable-nls \
+		--enable-static-link \
+		--with-installed-readline="$(COMMON_PREFIX)" \
+		--without-bash-malloc \
+	)
+
+# The build system shipped with Apple's Bash distribution doesn't plumb
+# "-static" through when building mksyntax and mksignames. Since both programs
+# are only compile-time dependencies and these files use archaic C syntax,
+# there is probably no harm in using whatever compiler "cc" points to. Refer to
+# the comments above $(BASH)/bash to see why LOCAL_LDFLAGS is unset.
+$(APPLE_BASH)/src/apple-bash: $(APPLE_BASH)/src/Makefile
+	(cd $(?D) && $(MAKE) -S LOCAL_LDFLAGS= CC="cc" mksyntax mksignames)
+	(cd $(?D) && $(MAKE) -S LOCAL_LDFLAGS= Program="$(@F)")
+
+apple-bash: $(APPLE_BASH)/src/apple-bash
+
+$(BIN)/apple-bash: $(APPLE_BASH)/src/apple-bash
+	if [ -n "$(MAN)" ]; then ( \
+		release="$(APPLE_BASH_RELEASE)" && \
+		release="$${release#bash-}" && \
+		cd "$(APPLE_BASH)/src/doc" && \
+		sed -e 's/BASH 1/APPLE-\0/' \
+		    -e "s/GNU Bash[^\"]*/\0 (Apple Release $$release)/" \
+		    bash.1 \
+		  > $(MAN)/man1/apple-bash.1 && \
+		sed -e 's/RBASH 1/APPLE-\0/' \
+		    -e "s/GNU Bash[^\"]*/\0 (Apple Release $$release)/" \
+		    rbash.1 \
+		  > $(MAN)/man1/apple-rbash.1; \
+	) fi
+	cp -f $? $@
 
 $(BASH)/Makefile: $(BASH)/.FOLDER $(READLINE)/.BUILT
 	(cd $(@D) && \

@@ -566,7 +566,9 @@ $(APPLE_BASH)/src/Makefile: $(APPLE_BASH)/.FOLDER $(READLINE)/.BUILT
 		CFLAGS="$(CFLAGS) $$( \
 			printf '#include <errno.h>\n EBADEXEC\n' \
 			| $(CC) -E - \
-			| grep -F -w -q EBADEXEC && echo -DEBADEXEC=ENOEXEC \
+			| grep -F -w -q EBADEXEC && echo -DEBADEXEC=ENOEXEC; \
+			test $$(uname) = Darwin && echo -U__APPLE__ \
+				-Wno-return-type && touch ostype.h; \
 		)" \
 		LDFLAGS="$(LDFLAGS)" \
 		ac_cv_header_dlfcn_h="no" \

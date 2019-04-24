@@ -11,7 +11,8 @@ applications -- support [Linux][linux], [macOS][macos], [FreeBSD][freebsd] and
 [OpenBSD][openbsd]. Although the [applications that act as the cornerstones of
 my desktop environment](#desktop-environment) support FreeBSD and OpenBSD, I
 have only used and configured them for Linux because it is the only operating
-system I use with X11.
+system I use with X11. All patches are licensed under their respective
+project's licenses unless stated otherwise.
 
   [about-eric-pruitt]: https://www.codevat.com/about-me/ "About Eric Pruitt"
   [linux]: https://www.kernel.org/linux.html

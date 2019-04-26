@@ -92,12 +92,12 @@ function view()
 
       # PGP keys and encrypted files
       *.asc|*.pub|*.sig)
-        gpg --with-fingerprint -- "$path" 2>&1
+        gpg --batch --with-fingerprint -- "$path" 2>&1 < /dev/null
         echo
         cat -- "$path"
       ;;
       *.gpg|*.pgp)
-        gpg --decrypt -- "$path"
+        gpg --batch --decrypt -- "$path" < /dev/null
       ;;
 
       # URLs

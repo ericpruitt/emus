@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+"""
+Usage: perror NAME_OR_NUMBER...
+       perror [--help] [-h] [-V]
+
+Display information about errors with a particular number or name/identifier.
+
+Exit Statuses:
+- 1: No argument specified.
+- 2: Arguments included at least one unrecognized error number or name.
+"""
+from __future__ import print_function
+
+import errno
+import os
+import sys
+
+ERROR_NAMES = frozenset(errno.errorcode.values())
+
+
+def main(argv):
+    if not argv or "--help" in argv or "-V" in argv or "-h" in argv:
+        print(__doc__.strip())
+        return (0 if argv else 1)
+
+    returncode = 0
+
+    for argument in argv:
+        if argument.isdigit():
+            number = int(argument)
+            name = errno.errorcode.get(number)
+
+            if name is None:
+                returncode = 1
+                print("%d: Unrecognized error number" % number)
+                continue
+
+        else:
+            name = argument.upper()
+
+            if name not in ERROR_NAMES:
+                returncode = 1
+                print("%s: Unrecognized error name" % argument)
+                continue
+
+            number = getattr(errno, name)
+
+        print("%s (%d): %s" % (name, number, os.strerror(number)))
+
+    return returncode
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

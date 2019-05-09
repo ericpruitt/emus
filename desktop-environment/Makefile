@@ -209,7 +209,7 @@ $(HOME)/.del: $(PREFIX)/bin/del
 $(UTILITIES): ALWAYS_RUN
 	mkdir -p bin
 	source="utilities/$(BASENAME).c"; \
-	make=$$(./extract-recipe.sed "$$source"); \
+	make=$$(sed -nf extract-recipe.sed "$$source"); \
 	echo "$@: $$source; +$${make:?$@: recipe not found}" | $(MAKE) -n -f -
 
 dmenu-src/config.mk dwm-src/config.mk:

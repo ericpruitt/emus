@@ -1,4 +1,3 @@
-#!/bin/sed -nf
 # This script extracts Make recipes from the headers of C files. The recipe
 # must be defined in a C comment block at the beginning of the file. The recipe
 # is denoted with "Make:" and may be continued across multiple lines using "\".

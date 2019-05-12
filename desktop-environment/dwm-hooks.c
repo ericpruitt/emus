@@ -187,7 +187,8 @@ static void center(const Arg *arg)
 
     resizeclient(c,
         c->mon->mx + (c->mon->mw / 2 - WIDTH(c) / 2),
-        c->mon->my + (c->mon->mh / 2 - HEIGHT(c) / 2),
+        c->mon->my + (c->mon->showbar && c->mon->topbar ? bh : 0) +
+            (c->mon->mh - (c->mon->showbar ? bh : 0)) / 2 - HEIGHT(c) / 2,
         c->w,
         c->h
     );

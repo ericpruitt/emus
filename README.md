@@ -508,6 +508,10 @@ the user's home directory.
 Enables the use of regular expressions for window rules' "class", "title" and
 "instance" attributes.
 
+#### dwm-00-remove-borders-from-big-windows.diff ####
+
+Remove borders from floating windows that fill the display.
+
 #### dwm-00-replace-deprecated-function.diff ####
 
 Replace the deprecated function "XKeycodeToKeysym" with "XkbKeycodeToKeysym" to

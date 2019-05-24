@@ -280,14 +280,6 @@ Refine the heuristics for "substr: start index ... is past end of string" so
 the warning is only shown if the third argument is set or if the start index is
 more than 1 character beyond the end of a string.
 
-#### grep-3.1-implicit-recurse.patch ####
-
-When standard input is a terminal, running _grep(1)_ without any files
-specified as command line arguments implies "-r". A notice is written to
-standard error, and the search is delayed if standard output is also a terminal
-so the user has time to abort the search before the screen is polluted with
-potentially unwanted information.
-
 #### less-530-intr-with-F-X-quits.patch ####
 
 Normally hitting Ctrl+C when less than one screen of text has been shown

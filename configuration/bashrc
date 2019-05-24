@@ -130,7 +130,9 @@ function -define-aliases()
     case "$(ls --help 2>/dev/null)" in
       *GNU\ coreutils*)
         alias cp='cp -a -v'
-        alias grep='-paginate grep --color=always'
+        alias grep='-paginate grep --color=always --exclude-dir=.git \
+            --exclude-dir=__pycache__ --exclude="*.py[co]" \
+            --exclude-dir=lost+found'
         alias ls='-paginate ls "-C -w $COLUMNS --color=always" -b -h \
                       -I lost+found -I __pycache__ -A'
         alias rm='rm -v'

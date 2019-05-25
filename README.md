@@ -680,6 +680,23 @@ with two others specified as fallbacks:
         NULL
     };
 
+#### st-00-separate-blinking-timer.diff ####
+
+Separate the blinking timer from drawing in the "run" function:
+
+~~~
+This article [0] made me wonder how to improve latency in st, and i
+thought i would share this small modification for a non-blinking setup.
+When blinktimeout is set to 0, it reduces latency by ca. 5ms [1] by avoiding
+useless delay calculation making it also independent from the xfps setting.
+
+Regards,
+Kais
+
+[0] : https://lwn.net/Articles/751763/
+[1] using typometer, found here : https://pavelfatin.com/typing-with-pleasure/
+~~~
+
 #### st-01-underscore-ascent-scale.diff ####
 
 With certain font configurations, underscores are drawn outside the character

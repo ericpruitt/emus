@@ -44,10 +44,5 @@ $if Bash
 # can be resumed by typing its identifier (e.g. a number) then hitting Ctrl+Z.
 # This depends on Ctrl+Z being a literal sequence i.e. "stty susp undef".
 "\C-z": "\C-afg \C-m"               # Ctrl+Z
-
-$if term=tmux
-# Ctrl+Q to close a Bash shell without keeping the parent tmux pane in tact.
-"\C-q": "\C-a\C-ksilent history -a && trap EXIT && exit\C-m"
-$endif
 $endif
 $endif

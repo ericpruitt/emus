@@ -638,10 +638,12 @@ $(CMARK)/.git:
 	git clone https://github.com/commonmark/cmark.git $(CMARK)
 	(cd $(CMARK) && git reset --hard $(CMARK_COMMIT))
 
-# TODO: Figure out why cmark fails to build when CC is set to the musl wrapper.
 $(CMARK)/build/src/cmark: $(CMARK)/.git
 	mkdir -p $(CMARK)/build
+	(cd $(CMARK) && \
+	(git diff --quiet && cat $(PWD)/patches/$(CMARK)-*) | patch -p0)
 	(cd $(CMARK)/build && \
+	CC="$(CC)" \
 	CFLAGS="$(CFLAGS)" \
 	LDFLAGS="$(LDFLAGS)" \
 	cmake \

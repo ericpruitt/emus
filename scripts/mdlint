@@ -1,0 +1,1514 @@
+#!/usr/bin/awk -We
+
+# Usage: mdlint [OPTION]... FILE...
+#
+# This script uses cmark (https://github.com/commonmark/cmark) to generate lint
+# warnings for CommonMark -- hitherto "Markdown" -- files. This script's
+# intended use is verifying the correctness of Markdown content and catching
+# common mistakes that might otherwise be missed without a graphical preview.
+#
+# Options (and Defaults):
+#   -V, --help
+#       Display this documentation and exit.
+#   -c COMMAND, --cmark=COMMAND ("cmark")
+#       Command name or executable path used to invoke cmark(1).
+#   -H  Include the filename with each lint line. If multiple files are
+#       specified on the command line, this is the default behavior.
+#   -h  Suppress filenames even if multiple files are specified on the command
+#       line.
+#   -i NUMBER, --label-indent=NUMBER (2)
+#       Preferred level of label indenting which determine when the
+#       "wrong_link_reference_definition_indent" rule is triggered.
+#   -n, --rule-names
+#       Include the rule names with the lint messages.
+#   -r RULE
+#       Disable or, when "-v" is given, enable a linting rule. Multiple rules
+#       can be specified by using this flag multiple times. Additionally, RULE
+#       can be a comma and / or space separated list of multiple rule names.
+#       Use "-n" / "--rule-names" to discover which rules are responsible for a
+#       particular linting message.
+#   -s NUMBER, --loose-list-spacing=NUMBER (1)
+#       Preferred number of blank lines between loose list items.
+#   -v  Invert the operation of "-r"; when "-v" is given, all rules are
+#       disabled by default, and only rules specified with "-r" are enabled.
+#
+# Linting Rules:
+# - broken_link_or_image: A link or image is syntactically invalid.
+# - empty_list_entry: A list contains an empty item.
+# - heading_discontinuity: Heading levels changed in a discontinuous manner.
+# - label_exists_for_destination: A link reference definition for a URI exists.
+# - link_destination_duplicate: Multiple link reference definitions share the
+#   same destination.
+# - link_label_defined_before_first_reference: A link label has been defined
+#   above its first use in the document.
+# - link_label_duplicate: A link reference label is used more than one time.
+# - link_label_unused: A link label is defined by never used.
+# - link_reference_definitions_out_of_order: The position of a link reference
+#   definition in a list does not correspond to the position of the first
+#   reference to the label.
+# - list_items_out_of_order: The marker used for an item in an ordered list is
+#   incorrect.
+# - list_style_changed: The style used to represent the contents of a list
+#   differs from one item to the next.
+# - missing_blank_line_before_loose_list: There is no blank line before the
+#   first item in a loose list.
+# - nested_heading: The parent container of a heading is neither the root
+#   document nor a block quote.
+# - tight_list_adjacent_to_loose_list: A tight list is adjacent to a loose
+#   list.
+# - undefined_link_label: A link appears to be broken because the label
+#   it references is not defined.
+# - wrong_link_reference_definition_indent: A link label is indented with
+#   the wrong number of spaces. The correct indent is controlled by the "-i" /
+#   "--label-indent" option.
+# - wrong_loose_list_spacing: The number of blank lines between two items in a
+#   loose list is incorrect. The correct value is controlled by the "-s" /
+#   "--loose-list-spacing" option.
+#
+# Exit Statuses:
+# - 0: No linting errors found in any files.
+# - 1: There was at least one linting error in any file.
+# - 2: A fatal error occurred.
+#
+# Bugs:
+#   They linting heuristics are tailored to the author's preferred style of
+#   Markdown, and this script may fail to process syntactically valid
+#   constructs.
+#
+#   The shebang line uses "-We" to stop option parsing at the script's
+#   filename. This known to work with Mike Brennan's AWK (see "-W exec" in
+#   mawk(1)) and GNU Awk (see "--exec" in gawk(1)). "-We" can be changed to
+#   "-f", but "--" must be inserted before the first argument intended for the
+#   linter (vs. the AWK interpreter).
+#
+# Author: Eric Pruitt (https://www.codevat.com, https://github.com/ericpruitt)
+
+BEGIN {
+    #                     --- Configurable Options ---
+
+    # -c: Command name or executable path of cmark(1).
+    CMARK = "cmark"
+
+    # -H / -h: Controls whether filenames are shown next to lint messages.
+    SHOW_FILENAMES = ""
+
+    # -i, --label-indent: Number of spaces that should be used when indenting
+    # link references to avoid triggering a lint issue.
+    REFERENCE_LABEL_INDENT = 2
+
+    # -n, --rule-names: Controls whether or not the lint messages include the
+    # name of the lint check.
+    SHOW_RULE_NAMES = 0
+
+    # -r: White-space separated list of lint checks disable or, when "-v" is
+    # given, enable.
+    #
+    # This array controls whether or not certain linting rules are enabled, all
+    # of which are on by default. Use the following command to regenerate this
+    # array:
+    #
+    #   sed -n 's/^ *report("\([^"]*\).*/    LINT_RULES["\1"] = 1/p' mdlint
+    #
+    LINT_RULES["broken_link_or_image"] = 1
+    LINT_RULES["empty_list_entry"] = 1
+    LINT_RULES["heading_discontinuity"] = 1
+    LINT_RULES["label_exists_for_destination"] = 1
+    LINT_RULES["link_destination_duplicate"] = 1
+    LINT_RULES["link_label_defined_before_first_reference"] = 1
+    LINT_RULES["link_label_duplicate"] = 1
+    LINT_RULES["link_label_unused"] = 1
+    LINT_RULES["link_reference_definitions_out_of_order"] = 1
+    LINT_RULES["list_items_out_of_order"] = 1
+    LINT_RULES["list_style_changed"] = 1
+    LINT_RULES["missing_blank_line_before_loose_list"] = 1
+    LINT_RULES["nested_heading"] = 1
+    LINT_RULES["tight_list_adjacent_to_loose_list"] = 1
+    LINT_RULES["undefined_link_label"] = 1
+    LINT_RULES["wrong_link_reference_definition_indent"] = 1
+    LINT_RULES["wrong_loose_list_spacing"] = 1
+
+    # -s, --loose-list-spacing: Number of blank lines that should be used
+    # between loose list items.
+    LOOSE_LIST_SPACING = 1
+
+    # -v: Invert the state of disabled rules after processing all options.
+    INVERT_RULE_TOGGLES = 0
+
+    #                          --- Constants ---
+
+    # XML Tag Classifications:
+    # - These tags are allowed to have headings as direct descendants.
+    XML_HEADING_CONTAINERS["block_quote"] = 1
+    XML_HEADING_CONTAINERS["document"] = 1
+    # - These may only contain literal text, not other elements.
+    XML_LITERAL_ELEMENTS["code"] = 1
+    XML_LITERAL_ELEMENTS["code_block"] = 1
+    XML_LITERAL_ELEMENTS["html_block"] = 1
+    XML_LITERAL_ELEMENTS["html_inline"] = 1
+    XML_LITERAL_ELEMENTS["text"] = 1
+
+    # The "sourcepos" attributes for some tags are ignored because they are
+    # overzealous:
+    # - The "document" element's sourcepos spans the entire Markdown file.
+    XML_ELEMENTS_WITH_OVERZEALOUS_SOURCESPOS["document"] = 1
+    # - If there is a series of link reference definitions after a list, the
+    #   "sourcepos" attribute for the list will span the reference lines.
+    XML_ELEMENTS_WITH_OVERZEALOUS_SOURCESPOS["item"] = 1
+    XML_ELEMENTS_WITH_OVERZEALOUS_SOURCESPOS["list"] = 1
+
+    # XML Tag Types
+    XML_CLOSING_TAG = "XML_CLOSING_TAG"
+    XML_OPENING_TAG = "XML_OPENING_TAG"
+    XML_SELF_CLOSING_TAG = "XML_SELF_CLOSING_TAG"
+
+    # Exit statuses
+    EXIT_SUCCESS = 0
+    EXIT_LINT_FOUND = 1
+    EXIT_FATAL_ERROR = 2
+
+    # Sentinel values that change the return value of the "sourcepos" function.
+    L1["RETURN_L1"] = 1
+    L2["RETURN_L2"] = 1
+
+    #                                 ---
+
+    # Full path of the script. Many of the most popular shells including Bash,
+    # Z shell, KornShell and fish set the environment variable "_" to the path
+    # of the command being executed.
+    if (!("_" in ENVIRON) || (WHERE = ENVIRON["_"]) ~ /(awk|\/)$/) {
+        WHERE = ""
+    }
+
+    # Program name prepended to warnings and error messages.
+    SELF = length(WHERE) ? WHERE : "mdlint"
+    sub(/^.*\//, "", SELF)
+
+    exit main()
+}
+
+# Helper for using "a" or "an" with a word based on whether it starts with a
+# vowel.
+#
+# Arguments:
+# - word: A word.
+#
+# Returns: If the word starts with "a", "e", "i", "o" or "u", then `"an" word`
+# returned. Otherwise, `"a " word` is returned.
+#
+function A(word)
+{
+    return (word ~ /^[AaEeIiOoUu]/ ? "an " : "a ") word
+}
+
+# Return a scalar value representing a multi-dimensional array index such that
+# `A[K(a, b)]` is identical to `A[a, b]`.
+#
+# Arguments:
+# - a: Index 1.
+# - b: Index 2.
+#
+# Returns: `a SUBSEP b`.
+#
+function K(a, b)
+{
+    return a SUBSEP b
+}
+
+# Helper for simple English pluralization.
+#
+# Arguments:
+# - n: A number.
+#
+# Returns: An empty string if the value of "n" is 1 and a single "s" otherwise.
+#
+function S(n)
+{
+    return n == 1 ? "" : "s"
+}
+
+# Helper function for appending one string to another with a separator added as
+# needed.
+#
+# Arguments:
+# - original: Original text that is being appended to.
+# - separator: Separator inserted between the new text and old text assuming
+#   both "original" and "new" are non-empty strings.
+# - new: Text being appended. If this is an empty string, this function returns
+#   "original" unmodified.
+#
+# Returns: Updated text.
+#
+function join(original, separator, new)
+{
+    if (length(new)) {
+        original = (original) (length(original) ? separator : "") new
+    }
+
+    return original
+}
+
+# Extract documentation from the script comments and display it.
+#
+function usage(    found)
+{
+    if (!length(WHERE)) {
+        abort("unable to determine the path of script; cannot extract help")
+    }
+
+    found = 0
+
+    while ((getline < WHERE) == 1) {
+        if (!(found = found || /^# Usage:/)) {
+            continue
+        } else if (!sub(/^#( |$)/, "")) {
+            break
+        }
+
+        # Fix the alignment of options and their descriptions.
+        sub(/^  -[^- ]  /, "&  ")
+        sub(/^      [^ ]/, "  &")
+        print
+    }
+
+    close(WHERE)
+
+    if (!found) {
+        abort("%s: no documentation found", WHERE)
+    }
+}
+
+# Helper function that returns value of "ERRNO" if it is non-empty or a
+# fallback message if it is.
+#
+# Arguments:
+# - fallback: Fallback message used when "ERRNO" is unset.
+#
+# Returns: The value of "ERRNO" if it is set and the fallback message
+# otherwise.
+#
+function strerror(fallback)
+{
+    return length(ERRNO) ? ERRNO : fallback
+}
+
+# Write a message to standard error then quit with an exit status of
+# `EXIT_FATAL_ERROR`.
+#
+# Arguments:
+# - format: A printf-style format string. There is an implicit "\n" at the end
+#   of this string.
+# - a, b, c, d, e, f: Up to 6 optional parameters for the string format.
+#
+function abort(format, a, b, c, d, e, f,    stderr)
+{
+    printf "%s: " format "\n", SELF, a, b, c, d, e, f >> (stderr = "/dev/fd/2")
+    close(stderr)
+    exit EXIT_FATAL_ERROR
+}
+
+# Append text to an array value for a particular key.
+#
+# Arguments:
+# - array: Array.
+# - key: Array key. Note that the key must be defined in terms of "SUBSEP" if
+#   the array is multi-dimensional, i.e. with the "K" function.
+# - text: Text to append to existing value -- if any.
+#
+# Returns: New array value.
+#
+function arrayval_append(array, key, text)
+{
+    return (array[key] = ((key in array) ? array[key] : "") text)
+}
+
+# Track an issue for the file currently being linted if reporting of the issue
+# has not been disabled.
+#
+# Arguments:
+# - rule: Name of the rule being reported.
+# - lineno: Line number in the original markdown file in where the problem
+#   occurs.
+# - format: A printf-style format string explaining the issue being reported.
+#   There is an implicit "\n" at the end of this string.
+# - a, b, c, d, e, f: Up to 6 optional parameters for the format string.
+#
+function report(rule, lineno, format, a, b, c, d, e, f,    prefix, text)
+{
+    if (!(rule in LINT_RULES)) {
+        abort("report: unknown lint rule \"%s\"", rule)
+    } else if (lineno < 1) {
+        abort("report: invalid line number \"%s\" for %s", lineno, rule)
+    } else if (!LINT_RULES[rule]) {
+        return
+    }
+
+    text = index(format, "%") ? sprintf(format, a, b, c, d, e, f) : format
+    prefix = (SHOW_FILENAMES ? lint_target ":" : "") lineno ":"
+
+    if (SHOW_RULE_NAMES) {
+        prefix = prefix " " rule ":"
+    }
+
+    arrayval_append(lint_issues, lineno, prefix " " text "\n")
+}
+
+# A link or image is syntactically invalid.
+#
+# Arguments:
+# - lineno: Number of the line with the problem.
+# - n: Number of broken links or images.
+#
+function broken_link_or_image(lineno, n)
+{
+    report("broken_link_or_image", lineno,
+        "%d syntactically invalid link%s or image%s", n, S(n), S(n) \
+    )
+}
+
+# A list contains an empty item.
+#
+# Arguments:
+# - lineno: Number of the line with the problem.
+#
+function empty_list_entry(lineno)
+{
+    report("empty_list_entry", lineno, "list entry is empty")
+}
+
+# Heading levels changed in a discontinuous manner.
+#
+# Arguments:
+# - lineno: Number of the line with the problem.
+# - from: Level of the preceding heading.
+# - to: Level of the new heading.
+# - earlier: Line number where where the "from" heading appears.
+#
+function heading_discontinuity(lineno, from, to, earlier,    format)
+{
+    if (from < to) {
+        format = "heading levels increased by more than 1 to %d from %d on" \
+            " line %d"
+    } else {
+        format = "heading level %d is less than %d, the level of the first" \
+            " heading with the same parent element on line %d"
+    }
+
+    report("heading_discontinuity", lineno, format, to, from, earlier)
+}
+
+
+# A link reference definition for a URI exists.
+#
+# Arguments:
+# - linenos: Numbers of the lines with the problem.
+# - destination: Destination of the link.
+# - label: Name of the label that refers to the destination.
+#
+function label_exists_for_destination(linenos, destination, label,    n, seen)
+{
+    $0 = linenos
+
+    for (n = 1; n <= NF; n++) {
+        if ($n in seen) {
+            continue
+        }
+
+        seen[$n] = 1
+        report("label_exists_for_destination", 0 + $n,
+            "the URI \"%s\" points to the same place as the link reference" \
+            " labeled \"%s\"",
+            destination, label \
+        )
+    }
+}
+
+# Multiple link reference definitions share the same destination.
+#
+# Arguments:
+# - lineno: Number of the line with the problem.
+# - label2: Label of the link reference definition found on "lineno."
+# - destination: Destination of a link reference definition.
+# - label1: Label of the link reference definition that first made use of the
+#   destination.
+#
+function link_destination_duplicate(lineno, label2, destination, label1)
+{
+    report("link_destination_duplicate", lineno,
+        "link label \"%s\" uses the same destination \"%s\" as link label" \
+        " \"%s\" defined on line %d",
+        label2, destination, label1, md_link_definitions[label1] \
+    )
+}
+
+# A link label has been defined above its first use in the document.
+#
+# Arguments:
+# - lineno: Number of the line with the problem.
+# - label: Label of the link reference definition.
+# - reference: Number of the line containing the first reference to the label.
+#
+function link_label_defined_before_first_reference(lineno, label, reference)
+{
+    report("link_label_defined_before_first_reference", lineno,
+        "link label \"%s\" defined before first reference on line %d",
+        label, reference \
+    )
+}
+
+# A link reference label is used more than one time.
+#
+# Arguments:
+# - lineno: Number of the line with the problem.
+# - label: Label of the link reference definition.
+#
+function link_label_duplicate(lineno, label)
+{
+    report("link_label_duplicate", lineno,
+        "link label \"%s\" already defined on line %d",
+        label, md_link_definitions[label] \
+    )
+}
+
+# A link label is defined by never used.
+#
+# Arguments:
+# - label: Label of the link reference definition.
+#
+function link_label_unused(label)
+{
+    report("link_label_unused", md_link_definitions[label],
+        "link label \"%s\" defined but not used", label \
+    )
+}
+
+# The position of a link reference definition in a list does not correspond to
+# the position of the first reference to the label.
+#
+# Arguments:
+# - lineno: Number of the line with the problem.
+# - found: Label found on the line.
+# - expected: The label that was expected.
+#
+function link_reference_definitions_out_of_order(lineno, found, expected)
+{
+    report("link_reference_definitions_out_of_order", lineno,
+        "link reference definitions out of order; expected a definition for" \
+        " \"%s\", not \"%s\"",
+        expected, found \
+    )
+}
+
+# The marker used for an item in an ordered list is incorrect.
+#
+# Arguments:
+# - lineno: Number of the line with the problem.
+# - found: The list marker that was found.
+#
+function list_items_out_of_order(lineno, found)
+{
+    # This could theoretically be triggered by a bullet list, but I do not
+    # think that will happen with the XML generated by cmark(1).
+    report("list_items_out_of_order", lineno,
+        "wrong ordered list marker; expected \"%s\" but found \"%s\"",
+        xml_list_markers[lineno], found \
+    )
+}
+
+# The style used to represent the contents of a list differs from one item to
+# the next.
+#
+# - a: Tag number of the previous "list" element.
+# - b: Tag number of the current "list" element.
+#
+function list_style_changed(lineno, a, b,    a_attr, b_attr, diff)
+{
+    diff = ""
+
+    if ((a_attr = xml_attributes[a, "tight"]) != xml_attributes[b, "tight"]) {
+        diff = (a_attr == "true" ? "tight to loose" : "loose to tight")
+    }
+
+    if ((a_attr = xml_attributes[a, "type"]) == \
+        (b_attr = xml_attributes[b, "type"]) &&
+         b_attr == "ordered") {
+
+        a_attr = xml_attributes[a, "delim"] "-delimited"
+        b_attr = xml_attributes[b, "delim"] "-delimited"
+    }
+
+    if (a_attr != b_attr) {
+        diff = join(diff, " and ", a_attr " to " b_attr)
+        sub("bullet", "&ed", diff)
+    }
+
+    # When the cmark(1) XML contains two "list" elements adjacent to one
+    # another, that means they differ somehow. The XML does not include the
+    # marker character for unordered lists, so the code ultimately assumes that
+    # the markers must have changed if the "tight", "type" and "delim"
+    # attributes are identical.
+    report("list_style_changed", lineno,
+        diff ? \
+        "list style changes from " diff : \
+        "bullet list marker differs from the previous item's marker" \
+    )
+}
+
+# There is no blank line before the first item in a loose list.
+#
+# Arguments:
+# - lineno: Number of the line with the problem.
+#
+function missing_blank_line_before_loose_list(lineno)
+{
+    report("missing_blank_line_before_loose_list", lineno,
+        "missing blank line before first item of loose list" \
+    )
+}
+
+# The parent container of a heading is neither the root document nor a block
+# quote.
+#
+# Arguments:
+# - lineno: Number of the line with the problem.
+# - parent: Name of the element that contains the heading.
+#
+function nested_heading(lineno, parent)
+{
+    report("nested_heading", lineno,
+        "heading should not be inside %s", A(parent) \
+    )
+}
+
+# A tight list is adjacent to a loose list.
+#
+# Arguments:
+# - lineno: Number of the line with the problem.
+#
+function tight_list_adjacent_to_loose_list(a, b,    type1, type2)
+{
+    if (xml_attributes[a, "tight"] == "true") {
+        type1 = "tight"
+        type2 = "loose"
+    } else {
+        type1 = "tight"
+        type2 = "loose"
+    }
+
+    report("tight_list_adjacent_to_loose_list", sourcepos(b, L1),
+        "nothing separates the first line of this %s list and the preceding" \
+        " %s list ending on line %d",
+        type2, type1, sourcepos(a, L2) \
+    )
+}
+
+# A link appears to be broken because the label it references is not defined.
+#
+# Arguments:
+# - lineno: Number of the line with the problem.
+#
+function undefined_link_label(lineno, n, list)
+{
+    report("undefined_link_label", lineno,
+        "%d undefined link reference%s: %s", n, S(n), list \
+    )
+}
+
+# A link label is indented with the wrong number of spaces. The correct value
+# is controlled by the "-i" / "--label-indent" option.
+#
+# Arguments:
+# - lineno: Number of the line with the problem.
+# - label: Link label.
+# - level: Indent level of link label.
+#
+function wrong_link_reference_definition_indent(lineno, label, level)
+{
+    report("wrong_link_reference_definition_indent", lineno,
+        "label \"%s\" indented with %d space%s; expected %d",
+        label, level, S(level), REFERENCE_LABEL_INDENT \
+    )
+}
+
+# The number of blank lines between two items in a loose list is incorrect. The
+# correct value is controlled by the "-s" / "--loose-list-spacing" option.
+#
+# Arguments:
+# - lineno: Number of the line with the problem.
+# - blanks: Number of blank lines before the item in a loose list.
+#
+function wrong_loose_list_spacing(lineno, blanks)
+{
+    report("wrong_loose_list_spacing", lineno,
+        "found %d blank line%s between loose list items; expected %d",
+        blanks, S(blanks), LOOSE_LIST_SPACING \
+    )
+}
+
+# As needed, quote a string so that it is treated as a single, uninterpolated
+# token by POSIX-compatible shells.
+#
+# Arguments:
+# - string: String to be quoted.
+# - is_command: Boolean value indicating whether the string is a command. When
+#   this is false, a leading "-" -- if present -- is replaced with "./-".
+#
+# Returns: Quoted string.
+#
+function sh_quote(string, is_command)
+{
+    if (!is_command) {
+        sub(/^-/, "./-", string)
+    }
+
+    if (string !~ /^[a-zA-Z0-9@%^_,.\/-]+$/) {
+        gsub(/'/, "'\"'\"'", string)
+        string = "'" string "'"
+    }
+
+    return string
+}
+
+# Escape a string so that it will be interpreted as a literal value when used
+# in a regular expression.
+#
+# Arguments:
+# - string: String to escape.
+#
+# Returns: An escaped string.
+#
+function regex_quote(string)
+{
+    # Brackets are used for escaping most symbols to avoid problems caused by
+    # differences in how "\" escapes are handled depending on the context and
+    # AWK interpreter.
+    gsub(/\\/, "\\\\", string)
+    gsub(/[\135\133$^*()+{}|.?]/, "[&]", string)
+
+    return string
+}
+
+# Decode a limited set of HTML / XML character entities. The list of entities
+# comes from the XML escape table in "src/houdini_html_e.c" in the
+# [cmark](https://github.com/commonmark/cmark.git) repository. At the time of
+# this writing (2017-10-28 / commit 5da792f), the entity list in
+# "houdini_html_e.c" has not been changed since at least late 2014 (commit
+# c28af79).
+#
+# Arguments:
+# - data: Encoded data.
+#
+# Returns: Decoded data.
+#
+function xml_decode(data)
+{
+    gsub(/&lt;/, "<", data)
+    gsub(/&gt;/, ">", data)
+    gsub(/&quot;/, "\"", data)
+    gsub(/&#39;/, "'", data)
+    gsub(/&#47;/, "/", data)
+    gsub(/&amp;/, "\\&", data)
+
+    return data
+}
+
+# Figure out what the marker should be for the next list item. Since "@X" means
+# "the correct marker for a line is whatever marker line _X_" uses, the text is
+# returned unmodified since the Markdown data has not yet been processed by the
+# linter.
+#
+# Arguments:
+# - text: Marker for the current list item.
+#
+# Returns: The expected marker for the next item in the list.
+#
+function next_marker(text,    number, tail)
+{
+    if (text ~ /^@[0-9]+$/) {
+        return text
+    }
+
+    if (!match(text, /^[0-9]+[.)]$/)) {
+        abort("\"%s\" is not a valid ordered list marker", text)
+    }
+
+    number = substr(text, RSTART, RLENGTH - 1)
+    tail = substr(text, RSTART + RLENGTH - 1)
+    return (number + 1) tail
+}
+
+# Initialize / reset global variables used for processing XML data.
+#
+function xml_init()
+{
+    # XML tag attributes defined using two sets of mappings:
+    #
+    # - [XML Tag ID]: Name of the XML tag.
+    # - [XML Tag ID, XML Attribute Name]: XML tag attribute value.
+    #
+    # When determining a tag's parent or sibling element, a value of 0 is used
+    # to indicate that no such relationship exists. Explicitly setting
+    # `xml_attributes[0]` ensures GNU Awk's linter won't emit "reference to
+    # uninitialized variable" in that case.
+    split("", xml_attributes)
+    xml_attributes[0] = ""
+
+    # State of headings that share a parent element:
+    #
+    # - [XML Tag ID of Heading Parent]: Level of the most recently processed
+    #   heading.
+    # - [XML Tag ID of Heading Parent, "min"]: Lowest known heading level.
+    # - [XML Tag ID of Heading Parent, "min_l1"]: Line number where the heading
+    #   with the lowest level was defined.
+    #
+    split("", xml_headings)
+
+    # Markdown source file line numbers mapped to a white space separated list
+    # of XML tag names that were generated from the line.
+    split("", xml_line_elements)
+
+    # Markdown source file line numbers mapped to the contents of all "text"
+    # literals generated from the line. The literals are separated from one
+    # another with a tab.
+    split("", xml_line_text)
+
+    # XML tag IDs of literal elements mapped to their literal values.
+    split("", xml_literals)
+
+    # The "xml_level" represents the depth of the current tag. The root
+    # container tag (i.e. "document") has a level of 1, its immediate
+    # descendants a level of 2 and so on. The "xml_tag_stack" is keyed using
+    # these levels. Inside of "xml_enter_tag" and "xml_exit_tag",
+    # `xml_tag_stack[xml_level]` contains the ID of the current tag's preceding
+    # sibling. When `xml_level in xml_tag_stack` is false, the current tag has
+    # no siblings.
+    xml_level = 0
+    split("", xml_tag_stack)
+
+    # XML tag depth levels mapped to the marker that is expected for the next
+    # item in a list at that depth.
+    split("", xml_list_marker_stack)
+
+    # Markdown source file line numbers mapped to the list marker that line is
+    # expected to use.
+    split("", xml_list_markers)
+
+    # ID of the current XML tag. The first element has a tag ID of 1, the
+    # second 2, and so on.
+    xml_tag_id = 0
+}
+
+# Logic for entering a new element, i.e. open tags and self-closing tags.
+#
+# Arguments:
+# - name: XML tag name.
+#
+function xml_enter_tag(name,   l1, marker, n, parent, pos, sibling, v)
+{
+    l1 = 0
+    sibling = xml_level in xml_tag_stack ? xml_tag_stack[xml_level] : 0
+    parent = (xml_level == 1 ? 0 : xml_tag_stack[xml_level - 1])
+
+    if (K(xml_tag_id, "sourcepos") in xml_attributes) {
+        l1 = sourcepos(xml_tag_id, pos)
+    }
+
+    # Keep track of the lines that the XML "sourcepos" attributes reference.
+    if (!(name in XML_ELEMENTS_WITH_OVERZEALOUS_SOURCESPOS) && l1) {
+        for (n = pos["l1"]; n <= (pos["l2"] - (pos["c2"] == 0)); n++) {
+            arrayval_append(xml_line_elements, n, name " ")
+        }
+    }
+
+    # HIC SVNT DRACONES: The heading discontinuity logic shamelessly sacrifices
+    # readability for terseness and re-use of existing variables / logic.
+    if (name == "heading") {
+        n = 0 + xml_attributes[xml_tag_id, "level"]
+        v = 0
+
+        # The level of the first header in a container sets the minimum heading
+        # level value; all subsequent must be greater than or equal to its
+        # level.
+        if (!(parent in xml_headings)) {
+            xml_headings[parent, "min"] = n
+            xml_headings[parent, "min_l1"] = l1
+        } else if (n < xml_headings[parent, "min"]) {
+            heading_discontinuity(l1, xml_headings[parent, "min"], n, xml_headings[parent, "min_l1"])
+            xml_headings[parent, "min_l1"] = l1
+
+        # Check whether the heading levels increased by more than 1.
+        } else if ((n - xml_headings[parent]) > 1) {
+            heading_discontinuity(l1, xml_headings[parent], n, sourcepos(sibling, L1))
+        }
+
+        if (!(xml_attributes[parent] in XML_HEADING_CONTAINERS)) {
+            nested_heading(l1, xml_attributes[parent])
+        }
+
+        xml_headings[parent] = n
+    }
+
+    if (name == "list") {
+        # Figure out how the list items are delimited and marked.
+        if (xml_attributes[xml_tag_id, "type"] != "ordered") {
+            marker = "@" l1
+        } else if (xml_attributes[xml_tag_id, "delim"] == "period") {
+            marker = xml_attributes[xml_tag_id, "start"] "."
+        } else if (xml_attributes[xml_tag_id, "delim"] == "paren") {
+            marker = xml_attributes[xml_tag_id, "start"] ")"
+        } else {
+            abort(lint_target ":" l1 ": unknown delimiter \"%s\"",
+                xml_attributes[xml_tag_id, "delim"] \
+            )
+        }
+
+        xml_list_marker_stack[xml_level + 1] = marker
+
+        if (xml_attributes[sibling] != "list") {
+            # Nothing to do if this list's sibling was not a list.
+
+        } else if ((l1 - 1) in xml_line_text) {
+            # Two list elements that have no blank line between them are
+            # treated as a single list with multiple styles.
+            list_style_changed(l1, sibling, xml_tag_id)
+
+        } else if (xml_attributes[sibling, "tight"] != \
+          xml_attributes[xml_tag_id, "tight"]) {
+            tight_list_adjacent_to_loose_list(sibling, xml_tag_id)
+        }
+    }
+
+    if (name == "item") {
+        marker = xml_list_marker_stack[xml_level]
+        xml_list_markers[l1] = marker
+        xml_list_marker_stack[xml_level] = next_marker(marker)
+
+        if (xml_attributes[parent, "tight"] == "false") {
+            # Count the number of blank lines leading up to the item.
+            for (n = 0; !((l1 - n - 1) in xml_line_text); n++);
+
+            if (xml_attributes[sibling] == "item" && n != LOOSE_LIST_SPACING) {
+                wrong_loose_list_spacing(pos["l1"], n)
+            } else if (!sibling && !n && pos["l1"] != 1) {
+                missing_blank_line_before_loose_list(pos["l1"])
+            }
+        }
+    }
+}
+
+# Logic for leaving an element, i.e. closing tags self-closing tags.
+#
+# Arguments:
+# - name: XML tag name.
+#
+function xml_exit_tag(name,    self_closing)
+{
+    self_closing = (xml_tag_id == xml_tag_stack[xml_level])
+
+    if (name == "item" && self_closing) {
+        empty_list_entry(sourcepos(xml_tag_id, L1))
+    }
+
+    if (name == "text") {
+        arrayval_append(xml_line_text, sourcepos(xml_tag_id, L1),
+                        xml_literals[xml_tag_id] "\t")
+    }
+}
+
+# Process a single line of _cmark(1)_-generated XML.
+#
+# Arguments:
+# - line: Line to be processed.
+#
+function xml_line(line,    attribute, buffer, key, n, name, sep, type, value)
+{
+    line = line "\n"
+    type = 0
+
+    while (match(line, /<\/? *[a-zA-Z0-9_-]+ *[^<>]*>/)) {
+        buffer = substr(line, RSTART, RLENGTH)
+        line = substr(line, RSTART + RLENGTH)
+
+        match(buffer, /[a-zA-Z0-9_-]+/)
+        name = tolower(substr(buffer, RSTART, RLENGTH))
+
+        type = buffer ~ /^<\// ? XML_CLOSING_TAG      : \
+               buffer ~ /\/>$/ ? XML_SELF_CLOSING_TAG : \
+                                 XML_OPENING_TAG
+
+        if (type != XML_CLOSING_TAG) {
+            xml_tag_id++
+
+            # Parse tag attributes.
+            xml_attributes[xml_tag_id] = name
+
+            while (match(buffer, /[^ =<>]+="[^"]*"/)) {
+                n = index(buffer, "=")
+                attribute = tolower(substr(buffer, RSTART, n - RSTART))
+                value = substr(buffer, n + 2, RSTART + RLENGTH - n - 3)
+
+                key = K(xml_tag_id, attribute)
+                xml_attributes[key] = xml_decode(value)
+
+                buffer = substr(buffer, RSTART + RLENGTH + 1)
+            }
+
+            xml_level++
+            xml_enter_tag(name)
+            xml_tag_stack[xml_level] = xml_tag_id
+        }
+
+        if (name in XML_LITERAL_ELEMENTS) {
+            # Self-closing literals are implicitly empty strings.
+            if (type == XML_SELF_CLOSING_TAG) {
+                xml_literals[xml_tag_id] = ""
+
+            # If there are no other tags on this line and this is an opening
+            # tag, all of the text after the tag is appended to the literal
+            # value.
+            } else if (!(sep = index(line, "<")) && type == XML_OPENING_TAG) {
+                arrayval_append(xml_literals, xml_tag_id, xml_decode(line))
+
+            # If there is another tag on this line, all of the text leading up
+            # to the next "<" is appended to the literal value.
+            } else if (sep > 1) {
+                arrayval_append(xml_literals, xml_tag_id,
+                    xml_decode(substr(line, 1, sep - 1)) \
+                )
+            }
+        }
+
+        if (type != XML_OPENING_TAG) {
+            n = xml_level + 1
+
+            if (n in xml_list_marker_stack) {
+                delete xml_list_marker_stack[n]
+            }
+
+            if (n in xml_tag_stack) {
+                delete xml_tag_stack[n]
+            }
+
+            xml_exit_tag(name)
+            xml_level--
+        }
+    }
+
+    # If the current line is in the middle of an unclosed literal tag, the
+    # entire line should be added to the literal's content buffer.
+    if (!type && xml_tag_id in xml_literals && xml_tag_stack[xml_level - 1]) {
+        arrayval_append(xml_literals, xml_tag_id, line)
+    }
+}
+
+# Initialize / reset global variables used for processing Markdown data.
+#
+function md_init()
+{
+    # Line numbers mapped to the text the lines contain.
+    split("", md_file_lines)
+
+    # Link labels mapped to line numbers of the corresponding link reference
+    # definitions.
+    split("", md_link_definitions)
+
+    # Link labels mapped to a white space separated list line numbers where
+    # they are referenced.
+    split("", md_link_references)
+
+    # Link URIs mapped to a white space separated list of line numbers where
+    # the URI is referenced.
+    split("", md_link_uris)
+
+    # A first in, first out queue of label references encountered while
+    # processing the Markdown source file. This queue is used to determine
+    # whether or not link reference definitions are in the correct order.
+    # Operations on this variable are handled by the "md_label_queue_operation"
+    # function.
+    md_label_queue = ""
+
+    # Line number of the most recently processed line of Markdown.
+    md_line_number = 0
+}
+
+# Perform an operation on the label queue.
+#
+# Arguments:
+# - operation: This can be "delete" to delete an arbitrary label from the
+#   queue, "pop" to remove and return the label at the head of the queue or
+#   "push" to append a label to the tail of the queue.
+# - label: Label used for "delete" and "push" operations.
+#
+# Returns: Nothing unless the operation "pop" in which case a label is returned
+# or an empty string if the label queue is empty.
+#
+function md_label_queue_operation(operation, label,    result)
+{
+    if (operation == "delete") {
+        label = regex_quote(label)
+        if (!sub("^" label "\n", "", md_label_queue)) {
+            sub("\n" label "\n", "\n", md_label_queue)
+        }
+    } else if (operation == "pop") {
+        result = ""
+        if (md_label_queue) {
+            result = substr(md_label_queue, 1, index(md_label_queue, "\n") - 1)
+            md_label_queue = substr(md_label_queue, length(result) + 2)
+        }
+        return result
+    } else if (operation == "push") {
+        md_label_queue = md_label_queue label "\n"
+    } else {
+        abort("md_label_queue_operation: unknown operation \"%s\"", operation)
+    }
+}
+
+# Process a single line of Markdown. This function depends on data generated
+# from parsing the _cmark(1)_ XML output.
+#
+function md_line(line,    buffer, label, labels, list, n, uri)
+{
+    md_line_number++
+    md_file_lines[md_line_number] = line
+
+    if (md_line_number in xml_list_markers) {
+        $0 = line
+
+        # Strip quote markers.
+        sub(/^[ \t>]+/, "")
+
+        # The Markdown file has not yet been read by the linter when the
+        # cmark(1) XML output is being processed, so the "@" marker references
+        # -- explained in the "next_marker" function's documentation -- need to
+        # be backfilled.
+        if (xml_list_markers[md_line_number] ~ /^@/) {
+            n = 0 + substr(xml_list_markers[md_line_number], 2)
+
+            if (n == md_line_number) {
+                xml_list_markers[n] = $1
+            }
+
+            xml_list_markers[md_line_number] = xml_list_markers[n]
+        }
+
+        if (xml_list_markers[md_line_number] != $1) {
+            list_items_out_of_order(md_line_number, $1)
+        }
+    }
+
+    # The rest of the logic in this function only applies to things outside of
+    # code blocks.
+    if (!(md_line_number in xml_line_elements) ||
+      index(xml_line_elements[md_line_number], "code_block")) {
+        return
+    }
+
+    # Figure out reference labels this line uses.
+    split("", labels)
+    buffer = line
+
+    while (match(buffer, /(\]\[[^\135]+\]|\[[^\135]+\]\[\])/)) {
+        if (substr(buffer, RSTART, 1) == "]") {
+            label = substr(buffer, RSTART + 2, RLENGTH - 3)  # Explicit label
+        } else {
+            label = substr(buffer, RSTART + 1, RLENGTH - 4)  # Implicit label
+        }
+
+        label = tolower(label)
+
+        if (!(label in md_link_references)) {
+           md_label_queue_operation("push", label)
+        }
+
+        labels[label] = 1
+        arrayval_append(md_link_references, label, " " md_line_number)
+
+        buffer = substr(buffer, RSTART + RLENGTH)
+    }
+
+    # Figure out what URIs / destinations this line uses.
+    while (match(buffer, /\]\([^ \t]+\)/)) {
+        uri = substr(buffer, RSTART + 2, RLENGTH - 3)
+        arrayval_append(md_link_uris, uri, " " md_line_number)
+        buffer = substr(buffer, RSTART + RLENGTH)
+    }
+
+    if (md_line_number in xml_line_text) {
+        # Determine which labels appear in both the original markdown and the
+        # XML text elements and report them as undefined.
+        n = 0
+        list = ""
+        buffer = tolower(xml_line_text[md_line_number])
+
+        for (label in labels) {
+            if (sub(regex_quote("][" label "]") "|" \
+              regex_quote("[" label "][]"), " ", buffer)) {
+                n++
+                list = join(list, ", ", label)
+                md_label_queue_operation("delete", label)
+            }
+        }
+
+        if (n) {
+            undefined_link_label(md_line_number, n, list)
+        }
+
+        # Determine the remaining number of unconverted links by counting the
+        # number of "][" / "](" in the buffer and subtracting the number of
+        # times "\]\[" / "\]\(" appear in the line of Markdown so explicit
+        # literals alone don't trigger broken_link_or_image.
+        if ((n = gsub(/\][[(]/, "&", buffer) - gsub(/\\]\\[[(]/, "&", line))) {
+            broken_link_or_image(md_line_number, n)
+        }
+    }
+}
+
+# Parse the "sourcepos" attribute of a tag.
+#
+# Arguments:
+# - tagnum: XML tag number.
+# - output: Array to which the parsed "sourcepos" attributes are written. The
+#   values are mapped to "l1" for the first line, "c1" for the first byte, "l2"
+#   for the last line and "c2" for the last byte. Alternatively, this can the
+#   special constant `L1` or `L2` to indicate that the value of "l1" or "l2"
+#   should be returned. When using `L2`, the line returned will be decremented
+#   by 1 if the column of the second line is 0.
+#
+# Returns: The first line in the "sourcepos" range unless "output" is `L2` in
+# which case the last line in the range is returned.
+#
+function sourcepos(tagnum, output,    name, parts)
+{
+    if (!(tagnum in xml_attributes)) {
+        abort("tag %s: does not exist", tagnum)
+    } else if (!(K(tagnum, "sourcepos") in xml_attributes)) {
+        name = xml_attributes[tagnum]
+        sub(/ .*/, "", name)
+        abort("tag %d (%s): no \"sourcepos\" attribute", tagnum, name)
+    }
+
+    # Format: sourcepos="l1:c1-l2:c2"
+    # TODO: It's possible for c1 and c2 to be negative values, and I need to
+    # figure out why.
+    split(xml_attributes[tagnum, "sourcepos"], parts, /[^0-9]+/)
+
+    if ("RETURN_L1" in output) {
+        return 0 + parts[1]
+    } else if ("RETURN_L2" in output) {
+        return parts[3] - (parts[4] == 0)
+    }
+
+    output["l1"] = 0 + parts[1]
+    output["c1"] = 0 + parts[2]
+    output["l2"] = 0 + parts[3]
+    output["c2"] = 0 + parts[4]
+
+    return output["l1"]
+}
+
+# Run analyses that depend on data from both the Markdown source file and the
+# XML generated by _cmark(1)_.
+#
+function postprocessing_checks(    head, indent, label, line, n, uris, warned)
+{
+    # The "sourcepos" attributes generated by cmark(1) generally don't span
+    # link reference definition lines (for the exceptions, see
+    # "XML_ELEMENTS_WITH_OVERZEALOUS_SOURCESPOS" below), so only unreferenced
+    # lines starting with "[...]:" are examined.
+    for (n = 1; n <= md_line_number; n++) {
+        if (n in xml_line_elements ||
+          !match((line = md_file_lines[n]), /^ ? ? ?\[[^\135]+\]:/)) {
+            continue
+        }
+
+        label = tolower(substr(line, 1, RLENGTH - 2))
+        sub(/^ *\[/, "", label)
+
+        indent = index(line, "[") - 1
+        if (indent != REFERENCE_LABEL_INDENT) {
+            wrong_link_reference_definition_indent(n, label, indent)
+        }
+
+        if (label in md_link_definitions) {
+            link_label_duplicate(n, label)
+            continue
+        }
+
+        md_link_definitions[label] = n
+        $0 = substr(line, RSTART + RLENGTH + 1)
+
+        if ($1 in uris) {
+            link_destination_duplicate(n, label, $1, uris[$1])
+        } else if (length($1)) {
+            uris[$1] = label
+        }
+
+        if ($1 in md_link_uris) {
+            label_exists_for_destination(md_link_uris[$1], $1, label)
+        }
+
+        if (!(label in md_link_references)) {
+            # Setting md_link_references ensures link_label_unused is called
+            # once per label even if the label is defined more than once.
+            md_link_references[label] = -1
+            link_label_unused(label)
+            continue
+        }
+
+        $0 = md_link_references[label]
+        if ($1 > n) {
+            link_label_defined_before_first_reference(n, label, $1)
+        }
+
+        # When reporting link reference definition order issues, each label is
+        # only mentioned once to cut down on redundant information and
+        # cascading errors caused by a single label being out of place.
+        head = md_label_queue_operation("pop")
+        md_label_queue_operation("delete", label)
+
+        if (head) {
+            if (label != head && !(label in warned) && !(head in warned)) {
+                link_reference_definitions_out_of_order(n, label, head)
+            }
+
+            warned[head] = 1
+        }
+
+        warned[label] = 1
+    }
+}
+
+# Initialize / reset all global state associated with linting a single file.
+#
+# Arguments:
+# - path: File being linted.
+#
+# Returns: A filename that should be used by any processes that need to read
+# the Markdown file. This may or may not be the same as the original "path"
+# argument.
+#
+function lint_init_path(path,    getline_rval, script, sh_quoted_path)
+{
+    md_init()
+    xml_init()
+
+    split("", lint_issues)
+
+    lint_target = (path == "-" ? "(stdin)" : path)
+
+    if (path == "-") {
+        path = "/dev/fd/0"
+    }
+
+    if (!system("test -p " (sh_quoted_path = sh_quote(path, 0)))) {
+        script = \
+            "set -e -u && " \
+            "path=" sh_quote(lint_tempfile, 0) " && " \
+            "cat " sh_quoted_path " > \"${path:=$(mktemp)}\" && " \
+            "printf \"%s\\n\" \"$path\"" \
+        ;
+
+        ERRNO = ""
+        getline_rval = script | getline path
+
+        if (ERRNO || getline_rval == -1 || close(script)) {
+            abort("%s: %s", script, strerror("shell script execution failed"))
+        } else if (getline_rval && path) {
+            lint_tempfile = path
+        } else {
+            abort("%s: script succeeded without printing filename", script)
+        }
+    }
+
+    return path
+}
+
+# Process a file Markdown file and generate lint messages.
+#
+# Arguments:
+# - path: Path of the Markdown file.
+#
+# Returns: A boolean value indicating whether the file passed validation; true
+# means no issues were detected.
+#
+function lint(path,    command, n)
+{
+    path = lint_init_path(path)
+    ERRNO = ""
+
+    # Process the XML generated by the cmark(1).
+    command = sh_quote(CMARK, 1) " --sourcepos --to xml " sh_quote(path, 0)
+
+    while ((command | getline) == 1) {
+        xml_line($0)
+    }
+
+    if (ERRNO || close(command)) {
+        abort("%s: %s", command, strerror("command failed"))
+    }
+
+    # Process the original Markdown file.
+    while ((getline < path) == 1) {
+        md_line($0)
+    }
+
+    if (ERRNO || close(path)) {
+        abort("%s: %s", path, strerror("I/O error"))
+    }
+
+    # Run the logic that depends on both the XML and Markdown file being
+    # processed.
+    postprocessing_checks()
+
+    # Display discovered issue for the current file in the order in which they
+    # appear.
+    for (n = 1; n <= md_line_number; n++) {
+        if (n in lint_issues) {
+            printf "%s", lint_issues[n]
+        }
+    }
+
+    for (n in lint_issues) {
+        return 0
+    }
+
+    return 1
+}
+
+# Get the value of a command line option and advance "OPTIND" to the next
+# parameter.
+#
+# Returns: Value associated with an option.
+#
+function optarg()
+{
+    if (ARGV[OPTIND] ~ /^-[^-]./) {
+        return substr(ARGV[OPTIND++], 3)
+    } else if (match(ARGV[OPTIND], /^--[^=]+=/)) {
+        return substr(ARGV[OPTIND++], RLENGTH + 1)
+    } else if ((OPTIND + 1) >= ARGC) {
+        abort("missing value after \"%s\"", ARGV[OPTIND])
+    }
+
+    OPTIND++
+    return ARGV[OPTIND++]
+}
+
+# Parse parameters in "ARGV" to configure corresponding variables.
+#
+function getopts(    argument, count, flag, optind0, parts, rules, s, value, x)
+{
+    rules = ""
+    lint_target_count = split("", lint_targets)
+
+    for (OPTIND = 1; (optind0 = OPTIND) < ARGC; ) {
+        argument = ARGV[OPTIND]
+        flag = argument
+        sub(/=.*/, "", flag)
+
+        if (argument == "--") {
+            for (OPTIND++; OPTIND < ARGC; OPTIND++) {
+                lint_targets[++lint_target_count] = ARGV[OPTIND]
+            }
+        } else if (argument ~ /^-(V|-help$)/) {
+            usage()
+            exit
+        } else if (argument == "-" || argument !~ /^-/) {
+            lint_targets[++lint_target_count] = argument
+        } else if (argument ~ /^-(c|-cmark(=|$))/) {
+            CMARK = optarg()
+        } else if (argument ~ /^-H/) {
+            SHOW_FILENAMES = 1
+        } else if (argument ~ /^-h/) {
+            SHOW_FILENAMES = 0
+        } else if (argument ~ /^-(i|-label-indent(=|$))/) {
+            value = optarg()
+            if (value !~ /^[0-3]+$/ || value < 0 || value > 3) {
+                abort("%s: valid indent levels are 0, 1, 2 and 3", flag)
+            }
+            REFERENCE_LABEL_INDENT = 0 + value
+        } else if (argument ~ /^-(n|-rule-names$)/) {
+            SHOW_RULE_NAMES = 1
+        } else if (argument ~ /^-r/) {
+            value = optarg()
+            if (value ~ /^[, \t]*$/) {
+                abort("%s: no rules listed in option value", flag)
+            }
+            rules = rules " " value
+        } else if (argument ~ /^-(s|-loose-list-spacing(=|$))/) {
+            value = optarg()
+            if (value !~ /^[0-9]+$/ || value < 1) {
+                abort("%s: value must be an integer greater than 0", flag)
+            }
+            LOOSE_LIST_SPACING = 0 + value
+        } else if (argument ~ /^-v/) {
+            INVERT_RULE_TOGGLES = 1
+        } else {
+            abort("%s: unknown command line option", flag)
+        }
+
+        # If the argument contains multiple short flags, delete the one that
+        # was just processed.
+        if (OPTIND == optind0 && argument ~ /^-[^-]./) {
+            sub(/[^-]/, "", ARGV[OPTIND])
+        # Otherwise, advance the cursor if it wasn't already moved by optarg.
+        } else if (OPTIND == optind0) {
+            OPTIND++
+        }
+    }
+
+    count = split(rules, parts, /[, \t]+/)
+    rules = ""
+
+    for (x = 1; x <= count; x++) {
+        if (parts[x] in LINT_RULES) {
+            LINT_RULES[parts[x]] = 0
+        } else if (rules) {
+            s = "s"
+            rules = rules ", " parts[x]
+        } else {
+            s = ""
+            rules = parts[x]
+        }
+    }
+
+    if (rules) {
+        abort("unknown lint rule%s: %s", s, rules)
+    }
+
+    if (INVERT_RULE_TOGGLES) {
+        for (x in LINT_RULES) {
+            LINT_RULES[x] = !LINT_RULES[x]
+        }
+    }
+
+    if (!lint_target_count) {
+        if (!system("test -t 0")) {
+            abort("no filenames specified, and standard input is a TTY")
+        }
+
+        lint_targets[++lint_target_count] = "-"
+    }
+
+    if (SHOW_FILENAMES == "") {
+        SHOW_FILENAMES = lint_target_count > 1
+    }
+}
+
+function main(    n, ok)
+{
+    lint_tempfile = ""
+    getopts()
+
+    ok = 1
+    for (n = 1; n <= lint_target_count; n++) {
+        ok = lint(lint_targets[n]) && ok
+    }
+
+    return (ok ? EXIT_SUCCESS : EXIT_LINT_FOUND)
+}
+
+END {
+    if (lint_tempfile) {
+        system("rm -f " sh_quote(lint_tempfile, 0))
+    }
+}

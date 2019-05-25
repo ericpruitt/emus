@@ -1,0 +1,28 @@
+5: broken_link_or_image: 1 syntactically invalid link or image
+27: empty_list_entry: list entry is empty
+39: heading_discontinuity: heading levels increased by more than 1 to 5 from 3 on line 37
+48: heading_discontinuity: heading level 3 is less than 4, the level of the first heading with the same parent element on line 44
+52: label_exists_for_destination: the URI "//#label_exists_for_destination" points to the same place as the link reference labeled "label_exists_for_destination"
+62: link_destination_duplicate: link label "::1" uses the same destination "http://localhost/" as link label "localhost" defined on line 61
+66: link_label_defined_before_first_reference: link label "localhost-tls" defined before first reference on line 68
+77: link_label_duplicate: link label "link-label-duplicate" already defined on line 76
+83: link_label_unused: link label "never-referenced" defined but not used
+88: link_label_duplicate: link label "never-referenced" already defined on line 83
+98: link_reference_definitions_out_of_order: link reference definitions out of order; expected a definition for "twinkle", not "star"
+108: list_items_out_of_order: wrong ordered list marker; expected "3." but found "4."
+114: list_items_out_of_order: wrong ordered list marker; expected "3." but found "4."
+129: list_style_changed: bullet list marker differs from the previous item's marker
+138: list_style_changed: list style changes from period-delimited to paren-delimited
+147: list_style_changed: list style changes from tight to loose
+147: missing_blank_line_before_loose_list: missing blank line before first item of loose list
+156: missing_blank_line_before_loose_list: missing blank line before first item of loose list
+170: nested_heading: heading should not be inside an item
+182: tight_list_adjacent_to_loose_list: nothing separates the first line of this loose list and the preceding tight list ending on line 180
+190: undefined_link_label: 1 undefined link reference: broken
+192: undefined_link_label: 1 undefined link reference: broken
+199: wrong_link_reference_definition_indent: label "three" indented with 0 spaces; expected 2
+200: wrong_link_reference_definition_indent: label "link" indented with 1 space; expected 2
+201: wrong_link_reference_definition_indent: label "reference" indented with 3 spaces; expected 2
+213: wrong_loose_list_spacing: found 2 blank lines between loose list items; expected 1
+214: wrong_loose_list_spacing: found 0 blank lines between loose list items; expected 1
+218: wrong_loose_list_spacing: found 3 blank lines between loose list items; expected 1

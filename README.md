@@ -108,7 +108,7 @@ applications "agree" on the width of characters.
 - [GNU Core Utilities][coreutils] with [GMP][gmp] support sans _stdbuf(1)_
 - _find(1)_ and _xargs(1)_ from [GNU Find Utilities][findutils]
 - [GNU Awk][gawk] with GMP and [MPFR][mpfr] support
-- [GNU Grep][grep]
+- [GNU Grep][grep] with [PCRE][pcre] support
 - [GNU sed][sed]
 - [Less][less]
 - [musl libc][musl]
@@ -129,6 +129,7 @@ applications "agree" on the width of characters.
   [gawk]: https://www.gnu.org/software/gawk/
   [mpfr]: http://www.mpfr.org/ "GNU Multiple Precision Floating-point Library"
   [grep]: https://www.gnu.org/software/grep/
+  [pcre]: https://www.pcre.org/
   [sed]: https://www.gnu.org/software/sed/
   [less]: http://www.greenwoodsoftware.com/less/
   [tmux]: https://tmux.github.io/
@@ -154,6 +155,8 @@ applications "agree" on the width of characters.
                        |
                       ,
     (libevent) -------
+
+    (libpcre) ---> grep
 
 **Note:** Tree, cmark, flock, GNU Find Utilities and GNU sed do not appear
 because they do not have dependencies on any libraries built from this

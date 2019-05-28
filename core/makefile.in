@@ -35,6 +35,7 @@ LIBEVENT = libevent-2.1.8-stable
 MPFR = mpfr-4.0.1
 MUSL = musl-1.1.20
 NCURSES = ncurses-6.0
+PCRE = pcre-8.43
 READLINE = readline-8.0
 SED = sed-4.4
 TMUX = tmux-src
@@ -76,6 +77,7 @@ LIBRARIES = \
 	$(LIBEVENT) \
 	$(MPFR) \
 	$(NCURSES) \
+	$(PCRE) \
 	$(READLINE) \
 	$(UTF8PROC) \
 
@@ -114,6 +116,7 @@ FOLDER_CLEAN_TARGETS = \
 	clean-mpfr \
 	clean-musl \
 	clean-ncurses \
+	clean-pcre \
 	clean-readline \
 	clean-sed \
 	clean-tree \
@@ -131,6 +134,7 @@ TAR_GZ_SIGNATURES = \
 	$(LIBEVENT).tar.gz.sig \
 	$(MUSL).tar.gz.sig \
 	$(NCURSES).tar.gz.sig \
+	$(PCRE).tar.gz.sig \
 	$(READLINE).tar.gz.sig \
 
 TAR_XZ_SIGNATURES = \
@@ -494,6 +498,27 @@ $(LIBEVENT)/Makefile: $(LIBEVENT)/.FOLDER
 $(LIBEVENT)/.BUILT: $(LIBEVENT)/Makefile
 	(cd $(?D) && $(MAKE) -S install) && touch $@
 
+$(PCRE).tar.gz $(PCRE).tar.gz.sig:
+	$(WGET) -O $@ -nc https://ftp.pcre.org/pub/pcre/$(@)
+
+$(PCRE)/Makefile: $(PCRE)/.FOLDER
+	(cd $(@D) && \
+	./configure -C \
+		CC="$(CC)" \
+		CFLAGS="$(CFLAGS)" \
+		LDFLAGS="$(LDFLAGS)" \
+		--disable-cpp \
+		--disable-shared \
+		--enable-jit \
+		--enable-static \
+		--enable-unicode-properties \
+		--enable-utf \
+		--prefix="$(COMMON_PREFIX)" \
+	)
+
+$(PCRE)/.BUILT: $(PCRE)/Makefile
+	(cd $(?D) && $(MAKE) -S install) && touch $@
+
 $(MPFR)/Makefile: $(MPFR)/.FOLDER $(GMP)/.BUILT
 	(cd $(@D) && \
 	./configure -C \
@@ -795,7 +820,7 @@ $(BIN)/gawk: $(GAWK)/gawk
 	ln -f -s gawk $(BIN)/awk
 	cp -f $? $@
 
-$(GREP)/Makefile: $(GREP)/.FOLDER
+$(GREP)/Makefile: $(GREP)/.FOLDER $(PCRE)/.BUILT
 	(cd $(@D) && \
 	./configure \
 		CC="$(CC)" \

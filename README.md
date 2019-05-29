@@ -232,12 +232,6 @@ of the last program did not end with a newline.
 If a user's information cannot be queried from the password database, use the
 environment variables "LOGNAME", "HOME" and "SHELL" if they are set.
 
-#### cmark-src-remove-rdynamic-for-static-build.patch ####
-
-When compiling with static linking, remove the "-rdynamic" option if present.
-This resolves a problem with musl-cc where it would produce a binary dependent
-on a non-existent musl shared object.
-
 #### coreutils-8.29-almost-all-if-not-home.patch ####
 
 Add support for a new option, "--almost-all-if-not-home", that implicitly shows

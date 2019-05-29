@@ -51,7 +51,7 @@ TMUX_VERSION = 2.7
 UTF8PROC_VERSION = 2.1.0
 VIM_VERSION = 8.1.0196
 
-CMARK_COMMIT = b1556b3407a4349b9a1f4f58d8677eda0ead09c1
+CMARK_COMMIT = f4895a6c6275c807415c3105db6cba325d579b83
 FLOCK_COMMIT = 4148b86be01bbfad45ceef1f835cc12ff395d3c0
 
 # Patch level for Chet Ramey's packages:
@@ -665,8 +665,6 @@ $(CMARK)/.git:
 
 $(CMARK)/build/src/cmark: $(CMARK)/.git
 	mkdir -p $(CMARK)/build
-	(cd $(CMARK) && \
-	(git diff --quiet && cat $(PWD)/patches/$(CMARK)-*) | patch -p0)
 	(cd $(CMARK)/build && \
 	CC="$(CC)" \
 	CFLAGS="$(CFLAGS)" \

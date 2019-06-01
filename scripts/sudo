@@ -10,7 +10,7 @@ function main()
     local found_self=""
     local IFS=":"
 
-    for directory in ${PATH:-}; do
+    for directory in ${PATH:-.}; do
         test -n "$directory" || directory="."
 
         if [[ "$0" -ef "$directory/$basename" ]]; then

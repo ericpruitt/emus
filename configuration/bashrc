@@ -459,7 +459,7 @@ function -setup()
     HISTIGNORE="history?( -[acdnrw]*):@(fg|help|history)?( ):@(silent|fg) *"
     HISTSIZE="2147483647"
     HISTTIMEFORMAT=""
-    TIMEFORMAT="[%R s (%P%% CPU; User: %U, Sys: %S)]"
+    TIMEFORMAT="[%Rs (%P%% CPU; User: %U, Sys: %S)]"
     PROMPT_COMMAND="-prompt-command"
 
     test "${HISTFILE:-}" = "/dev/null" || HISTFILE="$HOME/.xbash_history"

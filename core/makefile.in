@@ -619,14 +619,13 @@ $(BIN)/apple-bash: $(APPLE_BASH)/src/apple-bash
 	if [ -n "$(MAN)" ]; then ( \
 		release="$(APPLE_BASH_RELEASE)" && \
 		release="$${release#bash-}" && \
-		cd "$(APPLE_BASH)/src/doc" && \
 		sed -e 's/BASH 1/APPLE-\0/' \
 		    -e "s/GNU Bash[^\"]*/\0 (Apple Release $$release)/" \
-		    bash.1 \
+		    $(APPLE_BASH)/src/doc/bash.1 \
 		  > $(MAN)/man1/apple-bash.1 && \
 		sed -e 's/RBASH 1/APPLE-\0/' \
 		    -e "s/GNU Bash[^\"]*/\0 (Apple Release $$release)/" \
-		    rbash.1 \
+		    $(APPLE_BASH)/src/doc/rbash.1 \
 		  > $(MAN)/man1/apple-rbash.1; \
 	) fi
 	cp -f $? $@

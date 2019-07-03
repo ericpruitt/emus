@@ -45,8 +45,6 @@ set wildmenu
 silent! let &t_8b="\e[48;2;%lu;%lu;%lum"
 silent! let &t_8f="\e[38;2;%lu;%lu;%lum"
 
-cabbrev Q qa
-cabbrev X x
 inoremap qq <Esc>
 nnoremap <C-k> :b#<CR>
 nnoremap <silent> <C-l> :nohlsearch<CR><C-l>
@@ -144,11 +142,15 @@ autocmd FileType * setlocal formatoptions-=c formatoptions-=r formatoptions-=o
 " Select the last changed text or the text that was just pasted
 nnoremap gp `[v`]
 
-" Make :q run :qa
+" Make :q and :Q run :qa
 cabbrev q <C-r>=getcmdtype() == ":" && getcmdpos() == 1 ? "qa" : "q"<CR>
+cabbrev Q <C-r>=getcmdtype() == ":" && getcmdpos() == 1 ? "qa" : "Q"<CR>
 
 " Make :cq save changes first.
 cabbrev cq <C-r>=getcmdtype() == ":" && getcmdpos() == 1 ? "w\|cq" : "cq"<CR>
+
+" Make :X run :x since I don't use Vim's built-in encryption.
+cabbrev X <C-r>=getcmdtype() == ":" && getcmdpos() == 1 ? "x" : "X"<CR>
 
 " Use :E as an abbreviation for :e prepopulated with the expansion of $PWD.
 cabbrev E e <C-r>=getchar(1) == 32 && getchar(0) ? $PWD . "/" : ""<CR>

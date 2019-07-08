@@ -354,6 +354,7 @@ static int parse_desktop_entry(const char *fpath, const struct stat *_2,
     int inside_desktop_entry = 0;
     char *line = NULL;
     size_t strlen_fpath;
+    char type[256] = "";
 
     static const char extension[] = ".desktop";
 
@@ -374,6 +375,10 @@ static int parse_desktop_entry(const char *fpath, const struct stat *_2,
                 command[0] = '\0';
                 break;
             }
+        } else if (sscanf(line, "Type = %255s", type) > 0 &&
+          !strcmp(type, "KonsoleApplication")) {
+            command[0] = '\0';
+            break;
         } else if (sscanf(line, "Exec = %4095s %n", command, &offset) > 0) {
             command_basename = basename(command);
 

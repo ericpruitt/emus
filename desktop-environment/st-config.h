@@ -49,7 +49,7 @@ static float underscoreascentscale = 0.99;
  *
  * More advanced example: " `'\"()[]{}"
  */
-char *worddelimiters = "`'\"()[]{}- \t.?/\\~!@#$%^&*+<>,|;│▷:";
+wchar_t *worddelimiters = L"`'\"()[]{}- \t.?/\\~!@#$%^&*+<>,|;│▷:";
 
 /* selection timeouts (in milliseconds) */
 static unsigned int doubleclicktimeout = 300;

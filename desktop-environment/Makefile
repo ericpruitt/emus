@@ -18,7 +18,7 @@ DWM_URL = http://git.suckless.org/dwm
 DWM_COMMIT = bb3bd6fec37174e8d4bb9457ca815c00609e5157
 
 ST_URL = https://git.suckless.org/st
-ST_COMMIT = 30ec9a3dc354ab1a561c9edd808046bdf5dfd392
+ST_COMMIT = caa1d8fbea2b92bca24652af0fee874bdbbbb3e5
 
 USER_LAUNCHER_ENTRIES = \
 	st \

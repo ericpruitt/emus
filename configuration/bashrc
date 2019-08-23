@@ -290,6 +290,47 @@ function spawn()
     setsid "$@" < /dev/null &> /dev/null
 }
 
+# Run a command in a verbose manner; before the command is executed, the
+# command to be run is written to standard error, and after the command runs,
+# its exist status is also written to standard error in green if the command
+# succeeded or red otherwise.
+#
+# Arguments:
+# - $1: Command
+# - $@: Command arguments
+#
+function run()
+{
+    local script
+
+    local -i exit_status=0
+
+    if [[ "$#" -eq 0 ]]; then
+        echo "Usage: run COMMAND [ARGUMENT...]"
+        return 1
+    fi
+
+    printf -v script " %q" "$@"
+
+    {
+        tput bold
+        tput setaf 3
+        printf "Running:%s\n" "$script"
+        tput sgr0
+    } >&2
+
+    (eval "$script") || exit_status="$?"
+
+    {
+        tput bold
+        tput setaf "$((exit_status ? 1 : 2))"
+        echo "(\$?=$exit_status)"
+        tput sgr0
+    } >&2
+
+    return "$exit_status"
+}
+
 # Update the Bash prompt and display the exit status of the previously executed
 # command if it was non-zero. The prompt has the following indicators:
 #

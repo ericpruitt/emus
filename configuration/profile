@@ -49,7 +49,7 @@ export ETCPATHS="$(
     for path in $(cat /etc/paths /etc/paths.d/* 2>/dev/null); do
         case "$PATH" in
           ("$path"|"$path":*|*:"$path"|*:"$path":*) ;;
-          (*) printf "$path:" ;;
+          (*) printf "%s:" "$path" ;;
         esac
     done
 )"

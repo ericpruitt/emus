@@ -55,8 +55,8 @@ CMARK_COMMIT = f4895a6c6275c807415c3105db6cba325d579b83
 FLOCK_COMMIT = 4148b86be01bbfad45ceef1f835cc12ff395d3c0
 
 # Patch level for Chet Ramey's packages:
-BASH_PATCH_LEVEL = 0
-READLINE_PATCH_LEVEL = 0
+BASH_PATCH_LEVEL = 11
+READLINE_PATCH_LEVEL = 1
 
 # Hashes of unsigned files:
 SHA_HASHES = \

@@ -211,6 +211,11 @@ readline. For example, adding `"\C-z": "\C-afg \C-m"` to "~/.inputrc" would
 make it possible to suspend a program using ^Z then pressing ^Z again to bring
 the program back to the foreground.
 
+#### bash-5.0-interactive-errexit.patch ####
+
+If errexit is enabled for an interactive session, drop the user back at a
+prompt instead of exiting when a command fails.
+
 #### bash-5.0-prompt-on-clean-line.patch ####
 
 Ensure the prompt will always be displayed on a clean line even if the output

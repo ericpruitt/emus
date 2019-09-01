@@ -1,0 +1,27 @@
+If errexit is enabled for an interactive session, drop the user back at a
+prompt instead of exiting when a command fails.
+
+--- eval.c	2019-08-31 22:51:46.970996038 -0700
++++ eval.c	2019-08-31 22:51:49.014940593 -0700
+@@ -104,8 +104,12 @@
+ 	  switch (code)
+ 	    {
+ 	      /* Some kind of throw to top_level has occurred. */
+-	    case FORCE_EOF:
+ 	    case ERREXIT:
++	      if (exit_immediately_on_error) {
++		variable_context = 0;
++		goto case_discard;
++	      }
++	    case FORCE_EOF:
+ 	    case EXITPROG:
+ 	      current_command = (COMMAND *)NULL;
+ 	      if (exit_immediately_on_error)
+@@ -114,6 +118,7 @@
+ 	      goto exec_done;
+ 
+ 	    case DISCARD:
++	      case_discard:
+ 	      /* Make sure the exit status is reset to a non-zero value, but
+ 		 leave existing non-zero values (e.g., > 128 on signal)
+ 		 alone. */

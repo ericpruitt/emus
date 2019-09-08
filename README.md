@@ -216,6 +216,20 @@ the program back to the foreground.
 If errexit is enabled for an interactive session, drop the user back at a
 prompt instead of exiting when a command fails.
 
+This code has a bug in function handling that indicates there's probably some
+kind of resource leak; running `x() { echo ${FUNCNAME[@]}; false; }; x`
+repeatedly with "errexit" set results in `${FUNCNAME[@]}` getting longer:
+
+    ~$ x() { echo ${FUNCNAME[@]}; false; }; x
+    x
+    (1)
+    ~$ x() { echo ${FUNCNAME[@]}; false; }; x
+    x x
+    (1)
+    ~$ x() { echo ${FUNCNAME[@]}; false; }; x
+    x x x
+    (1)
+
 #### bash-5.0-prompt-on-clean-line.patch ####
 
 Ensure the prompt will always be displayed on a clean line even if the output

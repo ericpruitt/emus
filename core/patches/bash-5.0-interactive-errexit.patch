@@ -9,7 +9,7 @@ prompt instead of exiting when a command fails.
  	      /* Some kind of throw to top_level has occurred. */
 -	    case FORCE_EOF:
  	    case ERREXIT:
-+	      if (exit_immediately_on_error) {
++	      if (interactive_shell && exit_immediately_on_error) {
 +		variable_context = 0;
 +		goto case_discard;
 +	      }

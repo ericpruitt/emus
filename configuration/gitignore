@@ -63,3 +63,7 @@ Icon?
 
 # PHP
 error_log
+
+# Packages
+*.rpm
+*.deb

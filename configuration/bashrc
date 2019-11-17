@@ -350,7 +350,7 @@ function -prompt-command()
 {
     local exit_status="$?"
 
-    local history_number=($(HISTTIMEFORMAT= \history 1))
+    local history_number="$(HISTTIMEFORMAT= \history 1)"
     local signal=""
 
     # XXX: Not entirely sure why this is necessary as I only observed the bug

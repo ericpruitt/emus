@@ -112,6 +112,7 @@ function -define-aliases()
     alias tree='-paginate tree -C -a -I ".git|__pycache__|lost+found"'
     alias uniq='-paginate uniq --'
     alias vi='vim'
+    alias watch='env TERM="${TERM/#tmux*/vt100}" watch'
     alias whois='-paginate whois --'
     alias wmctrl='-paginate env -- DISPLAY="${DISPLAY:-:0.0}" wmctrl'
     alias xargs='-paginate xargs -- --verbose'

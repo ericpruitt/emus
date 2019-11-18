@@ -149,6 +149,7 @@ static Key keys[] = {
     { HyperKey,                     XK_k,                   focusstack,      {.i = -1 } },
     { HyperKey,                     XK_s,                   lastclient,      {0} },
     { HyperKey,                     XK_w,                   killclient2,     {0} },
+    { HyperKey,                     XK_z,                   togglebar,       {0} },
     { HyperKey,                     XK_Return,              zoom,            {0} },
     { AltKey,                       XK_Tab,                 view,            {0} },
     { HyperKey|ShiftMask,           XK_comma,               tagmon,          {.i = -1 } },

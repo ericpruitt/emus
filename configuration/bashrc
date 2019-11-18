@@ -177,7 +177,7 @@ function -define-aliases()
     local i
 
     for alias_key in "${!BASH_ALIASES[@]}"; do
-        alias_value="${BASH_ALIASES[$alias_key]}"
+        alias_value="${BASH_ALIASES["$alias_key"]}"
         argv=($alias_value)
         # Ignore environment variables and the paginate function.
         i=0
@@ -189,7 +189,7 @@ function -define-aliases()
             test -z "$alias_value" || unalias "$alias_key"
         elif [[ "$alias_value" = *$'\n'* ]]; then
             # Compact multi-line aliases
-            BASH_ALIASES[$alias_key]="${alias_value//\\$'\n'+(\ )/}"
+            BASH_ALIASES["$alias_key"]="${alias_value//\\$'\n'+(\ )/}"
         fi
     done
 
@@ -443,7 +443,7 @@ function -debug-hook()
         while [[ "${search_again:-}" ]]; do
             unset search_again
             for alias_key in "${!BASH_ALIASES[@]}"; do
-                expansion="${BASH_ALIASES[$alias_key]}"
+                expansion="${BASH_ALIASES["$alias_key"]}"
                 guess="${command/#"$expansion"/$alias_key}"
                 test "${#guess}" -lt "${#shortest_guess}" || continue
                 shortest_guess="$guess"

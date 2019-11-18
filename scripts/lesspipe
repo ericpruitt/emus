@@ -92,7 +92,7 @@ function view()
 
       # PGP keys and encrypted files
       *.asc|*.pub|*.sig)
-        gpg --batch --with-fingerprint -- "$path" 2>&1 < /dev/null
+        gpg --batch --with-fingerprint -- "$path" 2>&1 < /dev/null || :
         echo
         cat -- "$path"
       ;;

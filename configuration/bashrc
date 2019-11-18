@@ -124,7 +124,7 @@ function -define-aliases()
     alias silent=''
 
     # BASH_ALIASES is used because the "alias" command will not accept "=" as
-    # an identifer.
+    # an identifier.
     BASH_ALIASES[=]='calculate #'
 
     # take advantage of GNU extensions when coreutils is installed.

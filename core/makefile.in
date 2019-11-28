@@ -24,7 +24,7 @@
 # Packages:
 BASH = bash-5.0
 CMARK = cmark-src
-COREUTILS = coreutils-8.29
+COREUTILS = coreutils-8.31
 FINDUTILS = findutils-4.6.0
 FLOCK = flock-src
 GAWK = gawk-4.2.1

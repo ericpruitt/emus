@@ -25,7 +25,7 @@
 BASH = bash-5.0
 CMARK = cmark-src
 COREUTILS = coreutils-8.31
-FINDUTILS = findutils-4.6.0
+FINDUTILS = findutils-4.7.0
 FLOCK = flock-src
 GAWK = gawk-4.2.1
 GMP = gmp-6.1.2
@@ -60,8 +60,8 @@ READLINE_PATCH_LEVEL = 1
 
 # Hashes of unsigned files:
 SHA_HASHES = \
-	"findutils-4.6.0" \
-	ded4c9f73731cd48fec3b6bdaccce896473b6d8e337e9612e16cf1431bb1169d \
+	"findutils-4.7.0" \
+	c5fefbdf9858f7e4feb86f036e1247a54c79fc2d8e4b7064d5aaa1f47dfa789a \
 	"tree-1.8.0" \
 	715d5d4b434321ce74706d0dd067505bb60c5ea83b5f0b3655dae40aa6f9b7c2 \
 
@@ -711,12 +711,12 @@ $(BIN)/coreutils: $(COREUTILS)/src/coreutils
 	ln -f -s ginstall $(BIN)/install
 	cp -f $? $@
 
-$(FINDUTILS).tar.gz.unverified:
+$(FINDUTILS).tar.xz.unverified:
 	rm -f $(@:.unverified=)
-	$(WGET) -O $@ http://ftpmirror.gnu.org/findutils/$(FINDUTILS).tar.gz
+	$(WGET) -O $@ http://ftpmirror.gnu.org/findutils/$(FINDUTILS).tar.xz
 
-$(FINDUTILS)/.FOLDER: $(FINDUTILS).tar.gz
-	tar -x -z -f $?
+$(FINDUTILS)/.FOLDER: $(FINDUTILS).tar.xz
+	xzcat $(@D).tar.xz | tar -x -f -
 	touch $@
 
 $(FINDUTILS)/Makefile: $(FINDUTILS)/.FOLDER

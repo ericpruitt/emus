@@ -2,28 +2,28 @@ Set the default value of "VIMRUNTIME" to `$EXEDIR/vimruntime` where `$EXEDIR`
 is the directory in which the Vim binary resides.
 
 diff --git src/misc1.c src/misc1.c
-index f0e629b5b..041d52f06 100644
+index b27c527df..1b9d8a050 100644
 --- src/misc1.c
 +++ src/misc1.c
-@@ -30,6 +30,9 @@ static int copy_indent(int size, char_u	*src);
+@@ -24,6 +24,9 @@
+ // All user names (for ~user completion as done by shell).
  static garray_T	ga_users;
- #endif
  
 +#include <string.h>
 +#include "../../exepath.c"
 +
  /*
-  * Count the size (in window cells) of the indent in the current line.
-  */
-@@ -4412,6 +4415,7 @@ vim_getenv(char_u *name, int *mustfree)
-     char_u	*p;
+  * get_leader_len() returns the length in bytes of the prefix of the given
+  * string which introduces a comment.  If this string is not a comment then
+@@ -1629,6 +1632,7 @@ vim_getenv(char_u *name, int *mustfree)
+     char_u	*p = NULL;
      char_u	*pend;
      int		vimruntime;
 +    char_u	path[PATH_MAX + 10]; // 10 == strlen("vimruntime");
+ #ifdef MSWIN
+     WCHAR	*wn, *wp;
  
- #if defined(MSWIN)
-     /* use "C:/" when $HOME is not set */
-@@ -4448,6 +4452,14 @@ vim_getenv(char_u *name, int *mustfree)
+@@ -1670,6 +1674,14 @@ vim_getenv(char_u *name, int *mustfree)
      if (!vimruntime && STRCMP(name, "VIM") != 0)
  	return NULL;
  

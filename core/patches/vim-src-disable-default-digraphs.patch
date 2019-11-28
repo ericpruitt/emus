@@ -1,10 +1,10 @@
 Disable Vim's default/built-in digraphs.
 
 diff --git src/digraph.c src/digraph.c
-index 6909c5b9c..892ca3a40 100644
+index 758c23d36..bbdddce96 100644
 --- src/digraph.c
 +++ src/digraph.c
-@@ -1983,7 +1983,6 @@ get_digraph_for_char(int val_arg)
+@@ -1865,7 +1865,6 @@ get_digraph_for_char(int val_arg)
  {
      int		val = val_arg;
      int		i;
@@ -12,7 +12,7 @@ index 6909c5b9c..892ca3a40 100644
      digr_T	*dp;
      static      char_u      r[3];
  
-@@ -2010,14 +2009,8 @@ get_digraph_for_char(int val_arg)
+@@ -1892,14 +1891,8 @@ get_digraph_for_char(int val_arg)
      }
  #endif
  
@@ -28,7 +28,7 @@ index 6909c5b9c..892ca3a40 100644
  	{
  	    if (dp->result == val)
  	    {
-@@ -2028,7 +2021,6 @@ get_digraph_for_char(int val_arg)
+@@ -1910,7 +1903,6 @@ get_digraph_for_char(int val_arg)
  	    }
  	    ++dp;
  	}
@@ -36,7 +36,7 @@ index 6909c5b9c..892ca3a40 100644
      return NULL;
  }
  
-@@ -2105,22 +2097,6 @@ getexactdigraph(int char1, int char2, int meta_char)
+@@ -1987,22 +1979,6 @@ getexactdigraph(int char1, int char2, int meta_char)
  	++dp;
      }
  
@@ -56,17 +56,17 @@ index 6909c5b9c..892ca3a40 100644
 -	    ++dp;
 -	}
 -    }
- #ifdef FEAT_MBYTE
- # ifdef USE_UNICODE_DIGRAPHS
+ #ifdef USE_UNICODE_DIGRAPHS
      if (retval != 0 && !enc_utf8)
-@@ -2249,32 +2225,6 @@ listdigraphs(void)
+     {
+@@ -2141,29 +2117,6 @@ listdigraphs(int use_headers)
  
      msg_putchar('\n');
  
 -    dp = digraphdefault;
 -    for (i = 0; dp->char1 != NUL && !got_int; ++i)
 -    {
--#if defined(USE_UNICODE_DIGRAPHS) && defined(FEAT_MBYTE)
+-#if defined(USE_UNICODE_DIGRAPHS)
 -	digr_T tmp;
 -
 -	/* May need to convert the result to 'encoding'. */
@@ -75,15 +75,12 @@ index 6909c5b9c..892ca3a40 100644
 -	tmp.result = getexactdigraph(tmp.char1, tmp.char2, FALSE);
 -	if (tmp.result != 0 && tmp.result != tmp.char2
 -					  && (has_mbyte || tmp.result <= 255))
--	    printdigraph(&tmp);
+-	    printdigraph(&tmp, use_headers ? &previous : NULL);
 -#else
 -
 -	if (getexactdigraph(dp->char1, dp->char2, FALSE) == dp->result
--# ifdef FEAT_MBYTE
--		&& (has_mbyte || dp->result <= 255)
--# endif
--		)
--	    printdigraph(dp);
+-		&& (has_mbyte || dp->result <= 255))
+-	    printdigraph(dp, use_headers ? &previous : NULL);
 -#endif
 -	++dp;
 -	ui_breakcheck();

@@ -31,7 +31,7 @@ GAWK = gawk-4.2.1
 GMP = gmp-6.1.2
 GREP = grep-3.1
 LESS = less-551
-LIBEVENT = libevent-2.1.8-stable
+LIBEVENT = libevent-2.1.11-stable
 MPFR = mpfr-4.0.1
 MUSL = musl-1.1.20
 NCURSES = ncurses-6.0
@@ -47,7 +47,7 @@ APPLE_BASH_RELEASE = bash-106.220.2
 APPLE_BASH = apple-$(APPLE_BASH_RELEASE)
 
 # Revision-controlled package versions:
-TMUX_VERSION = 2.7
+TMUX_VERSION = 3.0
 UTF8PROC_VERSION = 2.1.0
 VIM_VERSION = 8.1.0196
 

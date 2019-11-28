@@ -61,15 +61,26 @@ $0 == "### patches/ ###" {
 
         basename = path
         sub(/^.*\//, "", basename)
-        buffer("#### " basename " ####\n")
 
         patch_line_number = 1
         skipping_header = 0
+        header_buffered = 0
 
         # Extract the description from the patch. If the first line starts with
         # "- ", that indicates that the first paragraph is general metadata
         # that shouldn't be included in the README.
         while ((status = (getline < path)) > 0 && !/^(diff -|---)/) {
+            # Patches pulled in from the canonical Git repo aren't documented
+            # since they're not really customizations.
+            if (/^commit [a-f0-9]+$/) {
+                break
+            }
+
+            if (!header_buffered) {
+                buffer("#### " basename " ####\n")
+                header_buffered = 1
+            }
+
             if (patch_line_number == 1 && $0 ~ /^- /) {
                 skipping_header = 1
             } else if (!skipping_header) {

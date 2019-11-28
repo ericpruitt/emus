@@ -310,20 +310,9 @@ resolves this by making Less act as though "--quit-on-intr" ("-K") is set when
 less than one screen of text has been shown, and both "--no-init" ("-X") and
 "--quit-if-one-screen" ("-F") are set.
 
-#### libevent-2.1.8-stable-compile-on-openbsd.patch ####
-
-Add preprocessor guards to resolve OpenBSD failures caused by conflicting
-definitions of _arc4random_addrandom(3)_. This patch was [submitted to Mozilla
-by Landry Breuil](https://bugzilla.mozilla.org/show_bug.cgi?id=931354).
-
 #### ncurses-6.0-compile-on-openbsd.patch ####
 
 Adjust some preprocessor guards to resolve build failures on OpenBSD.
-
-#### tmux-src-preserve-search-with-vi-mode-motions.patch ####
-
-When "mode-keys" is set to "vi" and there is an active search query in copy
-mode, preserve the search query when using movement commands.
 
 #### vim-src-disable-check_more.patch ####
 

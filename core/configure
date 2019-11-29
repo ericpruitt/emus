@@ -161,8 +161,8 @@ configure_cflags_ldflags()
         esac
     fi
 
-    CFLAGS="-I\$(COMMON_PREFIX)/include ${CCOPTFLAGS:--O3} ${CFLAGS:-$_CFLAGS}"
-    LDFLAGS="-L\$(COMMON_PREFIX)/lib ${LDFLAGS:-$_LDFLAGS}"
+    CFLAGS="-I\$(PWD)/\$(COMMON)/include ${CCOPTFLAGS:--O3} ${CFLAGS:-$_CFLAGS}"
+    LDFLAGS="-L\$(PWD)/\$(COMMON)/lib ${LDFLAGS:-$_LDFLAGS}"
 }
 
 # Configure the values of GMP_DEPS and MPFR_DEPS.
@@ -175,8 +175,8 @@ configure_cflags_ldflags()
 #
 configure_gmp_deps_mpfr_deps()
 {
-    test -n "${GMP_DEPS:-}" || GMP_DEPS='$(GMP)/.BUILT'
-    test -n "${MPFR_DEPS:-}" || MPFR_DEPS='$(MPFR)/.BUILT'
+    test -n "${GMP_DEPS:-}" || GMP_DEPS='$(COMMON)/$(GMP)'
+    test -n "${MPFR_DEPS:-}" || MPFR_DEPS='$(COMMON)/$(MPFR)'
 }
 
 # Test whether or not a Make implementation executes all commands for a given

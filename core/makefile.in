@@ -149,7 +149,7 @@ SIGNED_ARCHIVE_FOLDERS = \
 	$(TAR_GZ_SIGNATURES:.tar.gz.sig=/.TAR_GZ_FOLDER) \
 	$(TAR_XZ_SIGNATURES:.tar.xz.sig=/.TAR_XZ_FOLDER) \
 
-COMMON_PREFIX = $(PWD)/common
+COMMON = common
 DEFAULT = .DEFAULT
 DEFAULT_TERMINFO_DIR = /etc/terminfo:/lib/terminfo:/usr/share/terminfo
 GNUPGHOME = gnupghome
@@ -191,7 +191,7 @@ all:
 	$(MAKE) -s sanity
 
 clean-common:
-	rm -f -r "$(COMMON_PREFIX)"
+	rm -f -r "$(COMMON)"
 
 $(GIT_CLEAN_TARGETS):
 	(target='$@' && \
@@ -209,8 +209,8 @@ $(FOLDER_CLEAN_TARGETS):
 	for path in $$(echo "$(FOLDERS)" | grep "^$${target#clean-}"); do \
 		test -d "$$path" || break; \
 		echo "- $$path"; \
+		test ! -e "$(COMMON)/$$path" || $(MAKE) clean-common; \
 		rm -f -r "$$path"; \
-		test ! -e "$(COMMON_PREFIX)/$$path" || $(MAKE) clean-common; \
 	done
 
 clean: $(GIT_CLEAN_TARGETS) $(FOLDER_CLEAN_TARGETS) clean-utf8proc-wcwidth
@@ -470,10 +470,10 @@ $(GMP)/Makefile: $(GMP)/.FOLDER
 		CFLAGS="$(CFLAGS)" \
 		--disable-shared \
 		--enable-static \
-		--prefix="$(COMMON_PREFIX)" \
+		--prefix="$(PWD)/$(COMMON)" \
 	)
 
-$(GMP)/.BUILT: $(GMP)/Makefile
+$(COMMON)/$(GMP): $(GMP)/Makefile
 	(cd $(?D) && $(MAKE) -S install) && touch $@
 
 $(LIBEVENT).tar.gz $(LIBEVENT).tar.gz.asc:
@@ -492,10 +492,10 @@ $(LIBEVENT)/Makefile: $(LIBEVENT)/.FOLDER
 		--disable-openssl \
 		--disable-samples \
 		--enable-shared \
-		--prefix="$(COMMON_PREFIX)" \
+		--prefix="$(PWD)/$(COMMON)" \
 	)
 
-$(LIBEVENT)/.BUILT: $(LIBEVENT)/Makefile
+$(COMMON)/$(LIBEVENT): $(LIBEVENT)/Makefile
 	(cd $(?D) && $(MAKE) -S install) && touch $@
 
 $(PCRE).tar.gz $(PCRE).tar.gz.sig:
@@ -513,13 +513,13 @@ $(PCRE)/Makefile: $(PCRE)/.FOLDER
 		--enable-static \
 		--enable-unicode-properties \
 		--enable-utf \
-		--prefix="$(COMMON_PREFIX)" \
+		--prefix="$(PWD)/$(COMMON)" \
 	)
 
-$(PCRE)/.BUILT: $(PCRE)/Makefile
+$(COMMON)/$(PCRE): $(PCRE)/Makefile
 	(cd $(?D) && $(MAKE) -S install) && touch $@
 
-$(MPFR)/Makefile: $(MPFR)/.FOLDER $(GMP)/.BUILT
+$(MPFR)/Makefile: $(MPFR)/.FOLDER $(COMMON)/$(GMP)
 	(cd $(@D) && \
 	./configure -C \
 		CC="$(CC)" \
@@ -527,10 +527,10 @@ $(MPFR)/Makefile: $(MPFR)/.FOLDER $(GMP)/.BUILT
 		LDFLAGS="$(LDFLAGS)" \
 		--disable-shared \
 		--enable-static \
-		--prefix="$(COMMON_PREFIX)" \
+		--prefix="$(PWD)/$(COMMON)" \
 	)
 
-$(MPFR)/.BUILT: $(MPFR)/Makefile
+$(COMMON)/$(MPFR): $(MPFR)/Makefile
 	(cd $(?D) && $(MAKE) -S install) && touch $@
 
 $(NCURSES)/Makefile: $(NCURSES)/.FOLDER
@@ -542,7 +542,7 @@ $(NCURSES)/Makefile: $(NCURSES)/.FOLDER
 		ac_cv_header_dlfcn_h="no" \
 		--disable-db-install \
 		--enable-static \
-		--prefix="$(COMMON_PREFIX)" \
+		--prefix="$(PWD)/$(COMMON)" \
 		--with-default-terminfo-dir="$(DEFAULT_TERMINFO_DIR)" \
 		--without-ada \
 		--without-cxx \
@@ -552,20 +552,20 @@ $(NCURSES)/Makefile: $(NCURSES)/.FOLDER
 		--without-tests \
 	)
 
-$(NCURSES)/.BUILT: $(NCURSES)/Makefile
+$(COMMON)/$(NCURSES): $(NCURSES)/Makefile
 	(cd $(?D) && $(GMAKE) -S install) && touch $@
 
-$(READLINE)/Makefile: $(READLINE)/.FOLDER $(NCURSES)/.BUILT
+$(READLINE)/Makefile: $(READLINE)/.FOLDER $(COMMON)/$(NCURSES)
 	(cd $(@D) && \
 	./configure -C \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
 		--disable-shared \
-		--prefix="$(COMMON_PREFIX)" \
+		--prefix="$(PWD)/$(COMMON)" \
 		--with-curses \
 	)
 
-$(READLINE)/.BUILT: $(READLINE)/Makefile
+$(COMMON)/$(READLINE): $(READLINE)/Makefile
 	(cd $(?D) && $(MAKE) -S install) && touch $@
 
 $(APPLE_BASH).tar.gz:
@@ -583,7 +583,7 @@ $(APPLE_BASH)/.FOLDER: $(APPLE_BASH).tar.gz
 # Setting ac_cv_func_working_mktime ensures the host's mktime(3) implementation
 # is used regardless of what autconf believes. A similar issue occurs when
 # compiling GNU Awk on FreeBSD and is documented above $(GAWK)/Makefile.
-$(APPLE_BASH)/src/Makefile: $(APPLE_BASH)/.FOLDER $(READLINE)/.BUILT
+$(APPLE_BASH)/src/Makefile: $(APPLE_BASH)/.FOLDER $(COMMON)/$(READLINE)
 	(cd $(@D) && \
 	cp ../*.[ch] . && \
 	./configure \
@@ -600,7 +600,7 @@ $(APPLE_BASH)/src/Makefile: $(APPLE_BASH)/.FOLDER $(READLINE)/.BUILT
 		ac_cv_func_working_mktime="yes" \
 		--disable-nls \
 		--enable-static-link \
-		--with-installed-readline="$(COMMON_PREFIX)" \
+		--with-installed-readline="$(PWD)/$(COMMON)" \
 		--without-bash-malloc \
 	)
 
@@ -632,7 +632,7 @@ $(BIN)/apple-bash: $(APPLE_BASH)/src/apple-bash
 
 # Touching parse.y is required to ensure any changes to it by my patches are
 # incorporated into the build.
-$(BASH)/Makefile: $(BASH)/.FOLDER $(READLINE)/.BUILT
+$(BASH)/Makefile: $(BASH)/.FOLDER $(COMMON)/$(READLINE)
 	(cd $(@D) && \
 	touch parse.y && \
 	./configure \
@@ -642,7 +642,7 @@ $(BASH)/Makefile: $(BASH)/.FOLDER $(READLINE)/.BUILT
 		ac_cv_header_dlfcn_h="no" \
 		--disable-nls \
 		--enable-static-link \
-		--with-installed-readline="$(COMMON_PREFIX)" \
+		--with-installed-readline="$(PWD)/$(COMMON)" \
 		--without-bash-malloc \
 	)
 
@@ -793,7 +793,7 @@ $(BIN)/flock: $(FLOCK)/flock
 # system to use the host's mktime(3). See
 # https://lists.gnu.org/archive/html/bug-gawk/2017-07/msg00024.html for more
 # information.
-$(GAWK)/Makefile: $(GAWK)/.FOLDER $(GMP_DEPS) $(MPFR_DEPS) $(READLINE)/.BUILT
+$(GAWK)/Makefile: $(GAWK)/.FOLDER $(GMP_DEPS) $(MPFR_DEPS) $(COMMON)/$(READLINE)
 	(cd $(@D) && \
 	./configure \
 		CC="$(CC)" \
@@ -820,7 +820,7 @@ $(BIN)/gawk: $(GAWK)/gawk
 	ln -f -s gawk $(BIN)/awk
 	cp -f $? $@
 
-$(GREP)/Makefile: $(GREP)/.FOLDER $(PCRE)/.BUILT
+$(GREP)/Makefile: $(GREP)/.FOLDER $(COMMON)/$(PCRE)
 	(cd $(@D) && \
 	./configure \
 		CC="$(CC)" \
@@ -852,7 +852,7 @@ $(LESS).tar.gz $(LESS).sig:
 $(LESS).tar.gz.sig: $(LESS).sig
 	mv $? $@
 
-$(LESS)/Makefile: $(LESS)/.FOLDER $(NCURSES)/.BUILT
+$(LESS)/Makefile: $(LESS)/.FOLDER $(COMMON)/$(NCURSES)
 	(cd $(@D) && \
 	./configure \
 		CC="$(CC)" \
@@ -880,7 +880,7 @@ $(BIN)/lesskey: $(LESS)/lesskey
 $(TMUX)/.git:
 	git clone -b $(TMUX_VERSION) https://github.com/tmux/tmux.git $(TMUX)
 
-$(TMUX)/configure: $(LIBEVENT)/.BUILT $(TMUX)/.git $(NCURSES)/.BUILT
+$(TMUX)/configure: $(COMMON)/$(LIBEVENT) $(TMUX)/.git $(COMMON)/$(NCURSES)
 	(cd $(@D) && ./autogen.sh)
 
 $(TMUX)/Makefile: $(TMUX)/configure
@@ -888,11 +888,11 @@ $(TMUX)/Makefile: $(TMUX)/configure
 	(git diff --quiet && cat $(PWD)/patches/$(TMUX)-*) | patch -p0 && \
 	./configure \
 		CC="$(CC)" \
-		CFLAGS="$(CFLAGS) -I$(COMMON_PREFIX)/include/ncurses" \
+		CFLAGS="$(CFLAGS) -I$(PWD)/$(COMMON)/include/ncurses" \
 		LDFLAGS="$(LDFLAGS)" \
-		LIBEVENT_CFLAGS="-I$(COMMON_PREFIX)/include" \
+		LIBEVENT_CFLAGS="-I$(PWD)/$(COMMON)/include" \
 		LIBEVENT_LIBS="-levent" \
-		LIBTINFO_CFLAGS="-I$(COMMON_PREFIX)/include/ncurses" \
+		LIBTINFO_CFLAGS="-I$(PWD)/$(COMMON)/include/ncurses" \
 		LIBTINFO_LIBS="-lncurses" \
 		--disable-dependency-tracking \
 		--enable-static \
@@ -902,10 +902,10 @@ $(TMUX)/Makefile: $(TMUX)/configure
 $(TMUX)/tmux: $(TMUX)/Makefile
 	(cd $(?D) && $(MAKE) -S)
 	if [ "$$(uname)" = "Darwin" ]; then \
-		dylib="$$(cd $(COMMON_PREFIX)/lib && echo libevent-*.dylib)"; \
-		ln -f -s "$(COMMON_PREFIX)/lib/$$dylib" $(@D); \
+		dylib="$$(cd $(PWD)/$(COMMON)/lib && echo libevent-*.dylib)"; \
+		ln -f -s "$(COMMON)/lib/$$dylib" $(@D); \
 		install_name_tool -change \
-			"$(COMMON_PREFIX)/lib/$$dylib" \
+			"$(COMMON)/lib/$$dylib" \
 			"@executable_path/$$dylib" $@; \
 	fi
 
@@ -919,7 +919,7 @@ $(BIN)/tmux: $(TMUX)/tmux
 		cp -f "$$OLDPWD"/tmux.1.* $(MAN)/man1/tmux.1; \
 	fi
 	if [ "$$(uname)" = "Darwin" ]; then \
-		cp -f $(COMMON_PREFIX)/lib/libevent-*.dylib $(@D); \
+		cp -f $(COMMON)/lib/libevent-*.dylib $(@D); \
 	fi
 	cp -f $? $@
 
@@ -989,7 +989,7 @@ $(BIN)/utf8proc-wcwidth.so: $(UTF8PROC_WCWIDTH_SO)
 $(VIM)/.git:
 	git clone -b v$(VIM_VERSION) https://github.com/vim/vim.git $(VIM)
 
-$(VIM)/src/auto/config.h: $(VIM)/.git $(NCURSES)/.BUILT
+$(VIM)/src/auto/config.h: $(VIM)/.git $(COMMON)/$(NCURSES)
 	(cd $(VIM) && \
 	(git diff --quiet && cat $(PWD)/patches/$(VIM)-*) | patch -p0 && \
 	./configure \

@@ -908,7 +908,7 @@ $(TMUX)/tmux: $(TMUX)/Makefile
 		dylib="$$(cd $(PWD)/$(COMMON)/lib && echo libevent-*.dylib)"; \
 		ln -f -s "$(COMMON)/lib/$$dylib" $(@D); \
 		install_name_tool -change \
-			"$(COMMON)/lib/$$dylib" \
+			"$(PWD)/$(COMMON)/lib/$$dylib" \
 			"@executable_path/$$dylib" $@; \
 	fi
 

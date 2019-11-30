@@ -54,6 +54,7 @@ BASENAME = $(@F)
 				test -e "$$patch" || exit 0; \
 				echo "- $${patch##*/}"; \
 				patch < "$$patch"; \
+				find -name "*.orig" -delete; \
 			done; \
 		fi; \
 		cd "$$OLDPWD"; \

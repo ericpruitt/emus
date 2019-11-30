@@ -425,6 +425,7 @@ $(SIGNED_ARCHIVE_FOLDERS): $(PUBRING)
 		case "$$path" in *.sig|*[*]*) continue ;; esac; \
 		echo "- $$path"; \
 		(cd $(@D) && patch -p0) < "$$path"; \
+		find -name "*.orig" -delete && \
 		if echo "$$path" | grep -qe "$${last_patch_regex:-^$$}"; then \
 			break; \
 		fi; \
@@ -774,6 +775,7 @@ $(FLOCK)/Makefile: $(FLOCK)/configure
 	(cd $(@D) && \
 	(git diff --quiet src && cat $(PWD)/patches/$(FLOCK)-*) \
 	| patch -p0 && \
+	find -name "*.orig" -delete && \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
@@ -886,6 +888,7 @@ $(TMUX)/configure: $(COMMON)/$(LIBEVENT) $(TMUX)/.git $(COMMON)/$(NCURSES)
 $(TMUX)/Makefile: $(TMUX)/configure
 	(cd $(@D) && \
 	(git diff --quiet && cat $(PWD)/patches/$(TMUX)-*) | patch -p0 && \
+	find -name "*.orig" -delete && \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -I$(PWD)/$(COMMON)/include/ncurses" \
@@ -992,6 +995,7 @@ $(VIM)/.git:
 $(VIM)/src/auto/config.h: $(VIM)/.git $(COMMON)/$(NCURSES)
 	(cd $(VIM) && \
 	(git diff --quiet && cat $(PWD)/patches/$(VIM)-*) | patch -p0 && \
+	find -name "*.orig" -delete && \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -DFEAT_CONCEAL -DFEAT_TERMGUICOLORS" \

@@ -630,11 +630,11 @@ $(BIN)/apple-bash: $(APPLE_BASH)/src/apple-bash
 	) fi
 	cp -f $? $@
 
-# Touching parse.y is required to ensure any changes to it by my patches are
-# incorporated into the build.
+# Removing y.tab.* is required to ensure changes made to parse.y by my patches
+# are incorporated into the build.
 $(BASH)/Makefile: $(BASH)/.FOLDER $(COMMON)/$(READLINE)
 	(cd $(@D) && \
-	touch parse.y && \
+	rm y.tab.* && \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \

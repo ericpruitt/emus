@@ -119,6 +119,10 @@ function -define-aliases()
     alias xmllint='-paginate xmllint --format'
     alias xxd='-paginate xxd --'
 
+    alias ...="cd ../.."
+    alias ....="cd ../../.."
+    alias .....="cd ../../../.."
+
     # This alias is used to allow the user to execute a command without adding
     # it to the shell history by prefixing it with "silent".
     alias silent=''

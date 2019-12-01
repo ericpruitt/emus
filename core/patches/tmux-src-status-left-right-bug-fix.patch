@@ -1,0 +1,330 @@
+commit eb4d60b1ce0e2dc917bd47b10a3ce89de840448a
+Author: nicm <nicm>
+Date:   Wed Nov 27 20:54:30 2019 +0000
+
+    REG_STARTEND is not portable, but it turns out we don't actually need
+    it. From Evan Green, GitHub issue 1982.
+
+diff --git regsub.c regsub.c
+index 199b2171..22e236dc 100644
+--- regsub.c
++++ regsub.c
+@@ -77,10 +77,7 @@ regsub(const char *pattern, const char *with, const char *text, int flags)
+ 	end = strlen(text);
+ 
+ 	while (start <= end) {
+-		m[0].rm_so = start;
+-		m[0].rm_eo = end;
+-
+-		if (regexec(&r, text, nitems(m), m, REG_STARTEND) != 0) {
++		if (regexec(&r, text + start, nitems(m), m, 0) != 0) {
+ 			regsub_copy(&buf, &len, text, start, end);
+ 			break;
+ 		}
+@@ -89,22 +86,25 @@ regsub(const char *pattern, const char *with, const char *text, int flags)
+ 		 * Append any text not part of this match (from the end of the
+ 		 * last match).
+ 		 */
+-		regsub_copy(&buf, &len, text, last, m[0].rm_so);
++		regsub_copy(&buf, &len, text, last, m[0].rm_so + start);
+ 
+ 		/*
+ 		 * If the last match was empty and this one isn't (it is either
+ 		 * later or has matched text), expand this match. If it is
+ 		 * empty, move on one character and try again from there.
+ 		 */
+-		if (empty || m[0].rm_so != last || m[0].rm_so != m[0].rm_eo) {
+-			regsub_expand(&buf, &len, with, text, m, nitems(m));
++		if (empty ||
++		    start + m[0].rm_so != last ||
++		    m[0].rm_so != m[0].rm_eo) {
++			regsub_expand(&buf, &len, with, text + start, m,
++			    nitems(m));
+ 
+-			last = m[0].rm_eo;
+-			start = m[0].rm_eo;
++			last = start + m[0].rm_eo;
++			start += m[0].rm_eo;
+ 			empty = 0;
+ 		} else {
+-			last = m[0].rm_eo;
+-			start = m[0].rm_eo + 1;
++			last = start + m[0].rm_eo;
++			start += m[0].rm_eo + 1;
+ 			empty = 1;
+ 		}
+ 
+commit 63e07b245f898af17657c4655f1251aa43e19d0c
+Author: nicm <nicm>
+Date:   Sun Sep 15 21:42:57 2019 +0000
+
+    Add push-default and pop-default in styles to change the default colours
+    and attributes and use them to restore the previous behaviour of
+    window-status-style being the default for window-status-format in the
+    status line. From John Drouhard in GitHub issue 1912.
+
+diff --git format-draw.c format-draw.c
+index e0ca89f0..6cced9fd 100644
+--- format-draw.c
++++ format-draw.c
+@@ -513,8 +513,8 @@ format_draw(struct screen_write_ctx *octx, const struct grid_cell *base,
+ 	int			 focus_start = -1, focus_end = -1;
+ 	int			 list_state = -1, fill = -1;
+ 	enum style_align	 list_align = STYLE_ALIGN_DEFAULT;
+-	struct grid_cell	 gc;
+-	struct style		 sy;
++	struct grid_cell	 gc, current_default;
++	struct style		 sy, saved_sy;
+ 	struct utf8_data	*ud = &sy.gc.data;
+ 	const char		*cp, *end;
+ 	enum utf8_state		 more;
+@@ -523,7 +523,8 @@ format_draw(struct screen_write_ctx *octx, const struct grid_cell *base,
+ 	struct format_ranges	 frs;
+ 	struct style_range	*sr;
+ 
+-	style_set(&sy, base);
++	memcpy(&current_default, base, sizeof current_default);
++	style_set(&sy, &current_default);
+ 	TAILQ_INIT(&frs);
+ 	log_debug("%s: %s", __func__, expanded);
+ 
+@@ -535,7 +536,7 @@ format_draw(struct screen_write_ctx *octx, const struct grid_cell *base,
+ 	for (i = 0; i < TOTAL; i++) {
+ 		screen_init(&s[i], size, 1, 0);
+ 		screen_write_start(&ctx[i], NULL, &s[i]);
+-		screen_write_clearendofline(&ctx[i], base->bg);
++		screen_write_clearendofline(&ctx[i], current_default.bg);
+ 		width[i] = 0;
+ 	}
+ 
+@@ -581,7 +582,8 @@ format_draw(struct screen_write_ctx *octx, const struct grid_cell *base,
+ 			goto out;
+ 		}
+ 		tmp = xstrndup(cp + 2, end - (cp + 2));
+-		if (style_parse(&sy, base, tmp) != 0) {
++		style_copy(&saved_sy, &sy);
++		if (style_parse(&sy, &current_default, tmp) != 0) {
+ 			log_debug("%s: invalid style '%s'", __func__, tmp);
+ 			free(tmp);
+ 			cp = end + 1;
+@@ -595,6 +597,15 @@ format_draw(struct screen_write_ctx *octx, const struct grid_cell *base,
+ 		if (sy.fill != 8)
+ 			fill = sy.fill;
+ 
++		/* If this style pushed or popped the default, update it. */
++		if (sy.default_type == STYLE_DEFAULT_PUSH) {
++			memcpy(&current_default, &saved_sy.gc, sizeof current_default);
++			sy.default_type = STYLE_DEFAULT_BASE;
++		} else if (sy.default_type == STYLE_DEFAULT_POP) {
++			memcpy(&current_default, base, sizeof current_default);
++			sy.default_type = STYLE_DEFAULT_BASE;
++		}
++
+ 		/* Check the list state. */
+ 		switch (sy.list) {
+ 		case STYLE_LIST_ON:
+diff --git options-table.c options-table.c
+index 7bb767c7..d012f448 100644
+--- options-table.c
++++ options-table.c
+@@ -92,7 +92,9 @@ static const char *options_table_window_size_list[] = {
+ 				"}" \
+ 			"}" \
+ 		"]" \
++		"#[push-default]" \
+ 		"#{T:window-status-format}" \
++		"#[pop-default]" \
+ 		"#[norange default]" \
+ 		"#{?window_end_flag,,#{window-status-separator}}" \
+ 	"," \
+@@ -117,7 +119,9 @@ static const char *options_table_window_size_list[] = {
+ 				"}" \
+ 			"}" \
+ 		"]" \
++		"#[push-default]" \
+ 		"#{T:window-status-current-format}" \
++		"#[pop-default]" \
+ 		"#[norange list=on default]" \
+ 		"#{?window_end_flag,,#{window-status-separator}}" \
+ 	"}" \
+diff --git style.c style.c
+index 9f986314..6ba4c524 100644
+--- style.c
++++ style.c
+@@ -36,13 +36,15 @@ static struct style style_default = {
+ 	STYLE_ALIGN_DEFAULT,
+ 	STYLE_LIST_OFF,
+ 
+-	STYLE_RANGE_NONE, 0
++	STYLE_RANGE_NONE, 0,
++
++	STYLE_DEFAULT_BASE
+ };
+ 
+ /*
+- * Parse an embedded style of the form "fg=colour,bg=colour,bright,...".
+- * Note that this adds onto the given style, so it must have been initialized
+- * alredy.
++ * Parse an embedded style of the form "fg=colour,bg=colour,bright,...".  Note
++ * that this adds onto the given style, so it must have been initialized
++ * already.
+  */
+ int
+ style_parse(struct style *sy, const struct grid_cell *base, const char *in)
+@@ -74,7 +76,11 @@ style_parse(struct style *sy, const struct grid_cell *base, const char *in)
+ 			sy->gc.bg = base->bg;
+ 			sy->gc.attr = base->attr;
+ 			sy->gc.flags = base->flags;
+-		} else if (strcasecmp(tmp, "nolist") == 0)
++		} else if (strcasecmp(tmp, "push-default") == 0)
++			sy->default_type = STYLE_DEFAULT_PUSH;
++		else if (strcasecmp(tmp, "pop-default") == 0)
++			sy->default_type = STYLE_DEFAULT_POP;
++		else if (strcasecmp(tmp, "nolist") == 0)
+ 			sy->list = STYLE_LIST_OFF;
+ 		else if (strncasecmp(tmp, "list=", 5) == 0) {
+ 			if (strcasecmp(tmp + 5, "on") == 0)
+@@ -218,6 +224,14 @@ style_tostring(struct style *sy)
+ 		    tmp);
+ 		comma = ",";
+ 	}
++	if (sy->default_type != STYLE_DEFAULT_BASE) {
++		if (sy->default_type == STYLE_DEFAULT_PUSH)
++			tmp = "push-default";
++		else if (sy->default_type == STYLE_DEFAULT_POP)
++			tmp = "pop-default";
++		off += xsnprintf(s + off, sizeof s - off, "%s%s", comma, tmp);
++		comma = ",";
++	}
+ 	if (sy->fill != 8) {
+ 		off += xsnprintf(s + off, sizeof s - off, "%sfill=%s", comma,
+ 		    colour_tostring(sy->fill));
+@@ -257,21 +271,6 @@ style_apply(struct grid_cell *gc, struct options *oo, const char *name)
+ 	gc->attr |= sy->gc.attr;
+ }
+ 
+-/* Apply a style, updating if default. */
+-void
+-style_apply_update(struct grid_cell *gc, struct options *oo, const char *name)
+-{
+-	struct style	*sy;
+-
+-	sy = options_get_style(oo, name);
+-	if (sy->gc.fg != 8)
+-		gc->fg = sy->gc.fg;
+-	if (sy->gc.bg != 8)
+-		gc->bg = sy->gc.bg;
+-	if (sy->gc.attr != 0)
+-		gc->attr |= sy->gc.attr;
+-}
+-
+ /* Initialize style from cell. */
+ void
+ style_set(struct style *sy, const struct grid_cell *gc)
+diff --git tmux.1 tmux.1
+index 8507ae75..c99e506c 100644
+--- tmux.1
++++ tmux.1
+@@ -4333,7 +4333,9 @@ and
+ .Pp
+ A style may be the single term
+ .Ql default
+-to specify the default style (which may inherit from another option) or a space
++to specify the default style (which may come from an option, for example
++.Ic status-style
++in the status line) or a space
+ or comma separated list of the following:
+ .Bl -tag -width Ds
+ .It Ic fg=colour
+@@ -4412,6 +4414,20 @@ and
+ .Ic list=right-marker
+ mark the text to be used to mark that text has been trimmed from the left or
+ right of the list if there is not enough space.
++.It Xo Ic push-default ,
++.Ic pop-default
++.Xc
++Store the current colours and attributes as the default or reset to the previous
++default.
++A
++.Ic push-default
++affects any subsequent use of the
++.Ic default
++term until a
++.Ic pop-default .
++Only one default may be pushed (each
++.Ic push-default
++replaces the previous saved default).
+ .It Xo Ic range=left ,
+ .Ic range=right ,
+ .Ic range=window|X ,
+diff --git tmux.h tmux.h
+index 2b69b002..5f7e5104 100644
+--- tmux.h
++++ tmux.h
+@@ -680,6 +680,13 @@ struct style_range {
+ };
+ TAILQ_HEAD(style_ranges, style_range);
+ 
++/* Style default. */
++enum style_default_type {
++	STYLE_DEFAULT_BASE,
++	STYLE_DEFAULT_PUSH,
++	STYLE_DEFAULT_POP
++};
++
+ /* Style option. */
+ struct style {
+ 	struct grid_cell	gc;
+@@ -690,6 +697,8 @@ struct style {
+ 
+ 	enum style_range_type	range_type;
+ 	u_int			range_argument;
++
++	enum style_default_type	default_type;
+ };
+ 
+ /* Virtual screen. */
+@@ -2648,8 +2657,6 @@ int		 style_parse(struct style *,const struct grid_cell *,
+ const char	*style_tostring(struct style *);
+ void		 style_apply(struct grid_cell *, struct options *,
+ 		     const char *);
+-void		 style_apply_update(struct grid_cell *, struct options *,
+-		     const char *);
+ int		 style_equal(struct style *, struct style *);
+ void		 style_set(struct style *, const struct grid_cell *);
+ void		 style_copy(struct style *, struct style *);
+commit 7fb8eec8f13bf54b3a6c06763d2cf0b29df51281
+Author: nicm <nicm>
+Date:   Thu Nov 28 08:38:04 2019 +0000
+
+    status-left and status-right need push-default also, reported by Eric
+    Pruitt in GitHub issue 1989.
+
+diff --git options-table.c options-table.c
+index 6e2db178..1d22b662 100644
+--- options-table.c
++++ options-table.c
+@@ -70,7 +70,10 @@ static const char *options_table_window_size_list[] = {
+ /* Status line format. */
+ #define OPTIONS_TABLE_STATUS_FORMAT1 \
+ 	"#[align=left range=left #{status-left-style}]" \
+-	"#{T;=/#{status-left-length}:status-left}#[norange default]" \
++	"#[push-default]" \
++	"#{T;=/#{status-left-length}:status-left}" \
++	"#[pop-default]" \
++	"#[norange default]" \
+ 	"#[list=on align=#{status-justify}]" \
+ 	"#[list=left-marker]<#[list=right-marker]>#[list=on]" \
+ 	"#{W:" \
+@@ -126,7 +129,10 @@ static const char *options_table_window_size_list[] = {
+ 		"#{?window_end_flag,,#{window-status-separator}}" \
+ 	"}" \
+ 	"#[nolist align=right range=right #{status-right-style}]" \
+-	"#{T;=/#{status-right-length}:status-right}#[norange default]"
++	"#[push-default]" \
++	"#{T;=/#{status-right-length}:status-right}" \
++	"#[pop-default]" \
++	"#[norange default]"
+ #define OPTIONS_TABLE_STATUS_FORMAT2 \
+ 	"#[align=centre]#{P:#{?pane_active,#[reverse],}" \
+ 	"#{pane_index}[#{pane_width}x#{pane_height}]#[default] }"

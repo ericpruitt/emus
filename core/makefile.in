@@ -906,7 +906,7 @@ $(TMUX)/tmux: $(TMUX)/Makefile
 	(cd $(?D) && $(MAKE) -S)
 	if [ "$$(uname)" = "Darwin" ]; then \
 		dylib="$$(cd $(PWD)/$(COMMON)/lib && echo libevent-*.dylib)"; \
-		ln -f -s "$(COMMON)/lib/$$dylib" $(@D); \
+		ln -f -s "$(PWD)/$(COMMON)/lib/$$dylib" $(@D); \
 		install_name_tool -change \
 			"$(PWD)/$(COMMON)/lib/$$dylib" \
 			"@executable_path/$$dylib" $@; \

@@ -85,7 +85,7 @@ index d27cb67..4711d81 100644
  void
  updatetitle(Client *c)
  {
-+	(void) broken; // Supress "defined but not used" warning.
++	(void) broken; // Suppress "defined but not used" warning.
 +
 +	const char *class, *instance;
 +	XClassHint ch = { NULL, NULL };

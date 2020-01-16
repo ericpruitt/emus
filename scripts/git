@@ -74,7 +74,7 @@ function git-checkpoint()
         fi
 
         test "$command" == "explicit" || flags="-a"
-        git commit --allow-empty-message -m "" ${flags:-}
+        git commit --no-verify --allow-empty-message -m "" ${flags:-}
         echo "Checkpoint created."
       ;;
     esac

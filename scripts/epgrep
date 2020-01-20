@@ -33,7 +33,17 @@ test "$enhance" || exec pgrep "$@"
 case "$*" in
   # When no arguments are given, show every non-kernel process.
   "")
-    for pid in $(pgrep -v -x kthreadd); do
+    case "${UNAME:-$(uname)}" in
+      Linux)
+        non_kernel_pids="$(pgrep -v -P "$(pgrep -x kthreadd -U 0)")"
+      ;;
+
+      *)
+        non_kernel_pids="$(pgrep ^)"
+      ;;
+    esac
+
+    for pid in $non_kernel_pids; do
         test "$pid" -eq "$$" && continue
         test -n "${pids:-}" && pids="$pids,$pid" || pids="-p $pid"
     done

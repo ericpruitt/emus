@@ -2,10 +2,10 @@
 # Usage: media-control ACTION
 #        media-control monitor [EVENT_LISTENER]
 #
-# Control media player and system audio. Underscores ("_") and dashes ("-") may
-# be used interchangeably in action names. If this script is run with an
+# Control moc media player and system audio. Underscores ("_") and dashes ("-")
+# may be used interchangeably in action names. If this script is run with an
 # invalid number of arguments or an unrecognized action, a list of available
-# actions will be displayed, and the will terminate with a non-zero exit
+# actions will be displayed, and the script will terminate with a non-zero exit
 # status.
 #
 # The script will terminate immediately after executing an action unless the
@@ -116,7 +116,7 @@ main()
     if [ "$(command -v "$fname")" != "$fname" ]; then
         sed -n '
             /^# Usage:/,/^[^#]/ {
-                s/^[^#]*$/Action:/p
+                s/^[^#]*$/Actions:/p
                 s/^#$//p
                 s/^# //p
             }

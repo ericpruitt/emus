@@ -12,6 +12,7 @@ DOTFILES = \
 	$(HOME)/.dir_colors \
 	$(HOME)/.elinks/elinks.conf \
 	$(HOME)/.fonts.conf \
+	$(HOME)/.gemrc \
 	$(HOME)/.gitconfig \
 	$(HOME)/.gitignore \
 	$(HOME)/.gtkrc-2.0 \

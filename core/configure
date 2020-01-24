@@ -233,7 +233,7 @@ generate_makefile()
 
           # Static linking on macOS is not well supported, so the corresponding
           # configuration flags must be removed.
-          [!#]*--enable-static*)
+          [!#]*--enable-static*|[!#]*--enable-all-static*)
             case "$PLATFORM" in
               macos-*)
                 continue

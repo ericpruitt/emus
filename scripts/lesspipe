@@ -76,7 +76,7 @@ function view()
 
       # Pretty-print JSON files
       *.json)
-        python -m json.tool "$path"
+        jq --color-output --indent 4 < "$path"
       ;;
 
       # Pretty-print XML files

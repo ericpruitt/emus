@@ -110,6 +110,7 @@ applications "agree" on the width of characters.
 - [GNU Awk][gawk] with GMP and [MPFR][mpfr] support
 - [GNU Grep][grep] with [PCRE][pcre] support
 - [GNU sed][sed]
+- [jq][jq]
 - [Less][less]
 - [musl libc][musl]
   - utf8proc-wcwidth.so, an "LD_PRELOAD" library for Linux that reimplements
@@ -131,6 +132,7 @@ applications "agree" on the width of characters.
   [grep]: https://www.gnu.org/software/grep/
   [pcre]: https://www.pcre.org/
   [sed]: https://www.gnu.org/software/sed/
+  [jq]: https://stedolan.github.io/jq/
   [less]: http://www.greenwoodsoftware.com/less/
   [tmux]: https://tmux.github.io/
   [tree]: http://mama.indstate.edu/users/ice/tree/index.html
@@ -158,7 +160,7 @@ applications "agree" on the width of characters.
 
     (libpcre) ---> grep
 
-**Note:** Tree, cmark, flock, GNU Find Utilities and GNU sed do not appear
+**Note:** Tree, cmark, flock, GNU Find Utilities, GNU sed and jq do not appear
 because they do not have dependencies on any libraries built from this
 repository.
 

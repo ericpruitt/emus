@@ -30,6 +30,7 @@ FLOCK = flock-src
 GAWK = gawk-4.2.1
 GMP = gmp-6.1.2
 GREP = grep-3.3
+JQ = jq-src
 LESS = less-551
 LIBEVENT = libevent-2.1.11-stable
 MPFR = mpfr-4.0.1
@@ -53,6 +54,7 @@ VIM_VERSION = 8.1.2352
 
 CMARK_COMMIT = 68c3a91166347a32a57fb81223750a63cfd92105
 FLOCK_COMMIT = 4148b86be01bbfad45ceef1f835cc12ff395d3c0
+JQ_COMMIT = 5b9e63e4af339bc5867603f14441b4b4cbb9e175
 
 # Patch level for Chet Ramey's packages:
 BASH_PATCH_LEVEL = 11
@@ -90,6 +92,7 @@ BINARIES = \
 	$(FLOCK)/flock \
 	$(GAWK)/gawk \
 	$(GREP)/src/grep \
+	$(JQ)/jq \
 	$(LESS)/less \
 	$(LESS)/lessecho \
 	$(LESS)/lesskey \
@@ -124,6 +127,7 @@ FOLDER_CLEAN_TARGETS = \
 GIT_CLEAN_TARGETS = \
 	clean-cmark \
 	clean-flock \
+	clean-jq \
 	clean-tmux \
 	clean-utf8proc \
 	clean-vim \
@@ -846,6 +850,39 @@ $(BIN)/grep: $(GREP)/src/grep
 	fi
 	cp -f $(GREP)/src/egrep $(BIN)
 	cp -f $(GREP)/src/fgrep $(BIN)
+	cp -f $? $@
+
+# .FOLDER is used for jq instead of .git because something keeps messing with
+# the timestamps of the .git directory causing unnecessary rebuilds.
+#
+# TODO: Get this sorted since the "clean-jq" target deletes the .FOLDEr file.
+$(JQ)/.FOLDER:
+	git clone https://github.com/stedolan/jq.git $(JQ)
+	(cd $(JQ) && git reset --hard $(JQ_COMMIT))
+	(cd $(JQ) && git submodule update --init)
+	touch $@
+
+$(JQ)/configure: $(JQ)/.FOLDER
+	(cd $(@D) && autoreconf -i)
+
+$(JQ)/Makefile: $(JQ)/configure
+	(cd $(@D) && \
+	./configure \
+		CC="$(CC)" \
+		CFLAGS="$(CFLAGS)" \
+		LDFLAGS="$(LDFLAGS)" \
+		--disable-docs \
+		--disable-maintainer-mode \
+		--enable-all-static \
+	)
+
+$(JQ)/jq: $(JQ)/Makefile
+	(cd $(?D) && $(MAKE) -S)
+
+jq: $(JQ)/jq
+
+$(BIN)/jq: $(JQ)/jq
+	test -z "$(MAN)" || cp -f $?.1 $(MAN)/man1/
 	cp -f $? $@
 
 $(LESS).tar.gz $(LESS).sig:

@@ -1,0 +1,129 @@
+Allow object key colors to be configured with the "JQ_COLORS" environment
+variable. This is a updated version of a [GitHub pull request created by David
+Haguenauer](https://github.com/stedolan/jq/pull/1791). Since the prebuilt
+manual already needed to be updated, this change also fixes in omission in
+<https://github.com/stedolan/jq/commit/cf61515> in which "39" in "JQ_COLORS"
+should have been replaced with "37".
+
+diff --git docs/content/manual/manual.yml docs/content/manual/manual.yml
+index 7a91d1e..f1fdaab 100644
+--- docs/content/manual/manual.yml
++++ docs/content/manual/manual.yml
+@@ -3289,9 +3289,10 @@ sections:
+         - color for strings
+         - color for arrays
+         - color for objects
++        - color for fields (e.g., object keys)
+ 
+       The default color scheme is the same as setting
+-      `"JQ_COLORS=1;30:0;37:0;37:0;37:0;32:1;37:1;37"`.
++      `"JQ_COLORS=1;30:0;37:0;37:0;37:0;32:1;37:1;37:1;34"`.
+ 
+       This is not a manual for VT100/ANSI escapes.  However, each of
+       these color specifications should consist of two numbers separated
+diff --git a/jq.1.prebuilt b/jq.1.prebuilt
+index c98be3a..2e703d0 100644
+--- jq.1.prebuilt
++++ jq.1.prebuilt
+@@ -3385,10 +3385,13 @@ color for arrays
+ .IP "\(bu" 4
+ color for objects
+ .
++.IP "\(bu" 4
++color for fields (e.g., object keys)
++.
+ .IP "" 0
+ .
+ .P
+-The default color scheme is the same as setting \fB"JQ_COLORS=1;30:0;39:0;39:0;39:0;32:1;39:1;39"\fR\.
++The default color scheme is the same as setting \fB"JQ_COLORS=1;30:0;37:0;37:0;37:0;32:1;37:1;37:1;34"\fR\.
+ .
+ .P
+ This is not a manual for VT100/ANSI escapes\. However, each of these color specifications should consist of two numbers separated by a semi\-colon, where the first number is one of these:
+diff --git src/jv.h src/jv.h
+index 8c96f82..e3a1a16 100644
+--- src/jv.h
++++ src/jv.h
+@@ -13,7 +13,8 @@ typedef enum {
+   JV_KIND_NUMBER,
+   JV_KIND_STRING,
+   JV_KIND_ARRAY,
+-  JV_KIND_OBJECT
++  JV_KIND_OBJECT,
++  JV_KIND_FIELD
+ } jv_kind;
+ 
+ struct jv_refcnt;
+diff --git src/jv_print.c src/jv_print.c
+index 2e781bb..54ea3b3 100644
+--- src/jv_print.c
++++ src/jv_print.c
+@@ -28,13 +28,13 @@
+ // for how to choose these.
+ static const jv_kind color_kinds[] =
+   {JV_KIND_NULL,   JV_KIND_FALSE, JV_KIND_TRUE, JV_KIND_NUMBER,
+-   JV_KIND_STRING, JV_KIND_ARRAY, JV_KIND_OBJECT};
++   JV_KIND_STRING, JV_KIND_ARRAY, JV_KIND_OBJECT, JV_KIND_FIELD};
+ static char color_bufs[sizeof(color_kinds)/sizeof(color_kinds[0])][16];
+ static const char *color_bufps[8];
+ static const char* def_colors[] =
+   {COL("1;30"),    COL("0;37"),      COL("0;37"),     COL("0;37"),
+-   COL("0;32"),      COL("1;37"),     COL("1;37")};
+-#define FIELD_COLOR COL("34;1")
++   COL("0;32"),    COL("1;37"),      COL("1;37"),     COL("1;34")};
++#define FIELD_COLOR (colors[JV_KIND_FIELD - 1])
+ 
+ static const char **colors = def_colors;
+ 
+diff --git tests/shtest tests/shtest
+index 8ed62b2..8ed8528 100755
+--- tests/shtest
++++ tests/shtest
+@@ -279,20 +279,44 @@ if [ "$($VALGRIND $Q $JQ -n '"xyz\n"|halt_error(1)' 2>&1)" != "jq: error: xyz" ]
+ fi
+ 
+ # Check $JQ_COLORS
++## Default colors, null input
+ $JQ -Ccn . > $d/color
+ printf '\033[1;30mnull\033[0m\n' > $d/expect
+ cmp $d/color $d/expect
++
++## Set non-default color, null input
+ JQ_COLORS='4;31' $JQ -Ccn . > $d/color
+ printf '\033[4;31mnull\033[0m\n' > $d/expect
+ cmp $d/color $d/expect
+-JQ_COLORS='1;30:0;31:0;32:0;33:0;34:1;35:1;36' \
++
++## Default colors, complex input
++$JQ -Ccn '[{"a":true,"b":false},123,null]' > $d/color
++(
++printf '\033[1;37m[\033[1;37m{'
++printf '\033[0m\033[1;34m"a"\033['
++printf '0m\033[1;37m:\033[0m\033['
++printf '0;37mtrue\033[0m\033[1'
++printf ';37m,\033[0m\033[1;34m'
++printf '"b"\033[0m\033[1;37m:\033'
++printf '[0m\033[0;37mfalse\033'
++printf '[0m\033[1;37m\033[1;37'
++printf 'm}\033[0m\033[1;37m,\033['
++printf '0;37m123\033[0m\033[1;'
++printf '37m,\033[1;30mnull\033'
++printf '[0m\033[1;37m\033[1;37'
++printf 'm]\033[0m\n'
++) > $d/expect
++cmp -b $d/color $d/expect
++
++## Set non-default colors, complex input
++JQ_COLORS='1;30:0;31:0;32:0;33:0;34:1;35:1;36:1;30' \
+   $JQ -Ccn '[{"a":true,"b":false},123,null]' > $d/color
+ (
+ printf '\033[1;35m[\033[1;36m{'
+-printf '\033[0m\033[34;1m"a"\033['
++printf '\033[0m\033[1;30m"a"\033['
+ printf '0m\033[1;36m:\033[0m\033['
+ printf '0;32mtrue\033[0m\033[1'
+-printf ';36m,\033[0m\033[34;1m'
++printf ';36m,\033[0m\033[1;30m'
+ printf '"b"\033[0m\033[1;36m:\033'
+ printf '[0m\033[0;31mfalse\033'
+ printf '[0m\033[1;36m\033[1;36'

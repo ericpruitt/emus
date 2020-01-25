@@ -867,6 +867,8 @@ $(JQ)/configure: $(JQ)/.FOLDER
 
 $(JQ)/Makefile: $(JQ)/configure
 	(cd $(@D) && \
+	(git diff --quiet && cat $(PWD)/patches/$(JQ)-*) | patch -p0 && \
+	find -name "*.orig" -delete && \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \

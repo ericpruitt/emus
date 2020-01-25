@@ -1,0 +1,11 @@
+STRING  0           # Default
+ARRAY   0           # Default
+OBJECT  0           # Default
+FIELD   1;37        # Bold White
+
+# XTerm colors are used for these tokens to make the text bright -- having the
+# red, green and/or blue channels maxed out -- without being bold.
+NULL    0;38;5;226  # Yellow
+FALSE   0;38;5;196  # Red
+TRUE    0;38;5;46   # Green
+NUMBER  0;38;5;201  # Magenta

@@ -17,6 +17,7 @@ DOTFILES = \
 	$(HOME)/.gitignore \
 	$(HOME)/.gtkrc-2.0 \
 	$(HOME)/.inputrc \
+	$(HOME)/.jqcolors \
 	$(HOME)/.profile \
 	$(HOME)/.repl.py \
 	$(HOME)/.ssh \

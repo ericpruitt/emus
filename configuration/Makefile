@@ -9,7 +9,7 @@
 DOTFILES = \
 	$(HOME)/.abcde.conf \
 	$(HOME)/.bashrc \
-	$(HOME)/.dir_colors \
+	$(HOME)/.dircolors \
 	$(HOME)/.elinks/elinks.conf \
 	$(HOME)/.fonts.conf \
 	$(HOME)/.gemrc \

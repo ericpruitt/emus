@@ -83,7 +83,7 @@ export PS_FORMAT="$(
     }'
 )"
 
-eval "$(dircolors -b "$HOME/.dir_colors" 2>/dev/null)"
+eval "$(dircolors -b "$HOME/.dircolors" 2>/dev/null)"
 eval "$(lesspipe 2>/dev/null)"
 
 # If Bash is available and this file was loaded interactively by another shell

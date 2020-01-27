@@ -1,9 +1,9 @@
 /**
  * Remap the key bindings of macOS (10.5+) to more closely match the default
  * behavior of Microsoft Windows and X11. The mappings work best when Control
- * and Command have been swapped. This mapping was created by Matt Ball
+ * and Command have been swapped. This mapping was derived from Matt Ball's
  * (http://heisencoder.net/2008/04/fixing-up-mac-key-bindings-for-windows.html),
- * and the only changes that have been made are cosmetic.
+ * and most of changes that have been made are cosmetic.
  *
  * Key Modifiers:
  * - "^": Control
@@ -26,6 +26,10 @@
  * │ SysReq:       "\UF731" │ Menu:         "\UF735" │                        │
  * │ Help:         "\UF746" │                        │                        │
  * └────────────────────────┴────────────────────────┴────────────────────────┘
+ *
+ * Note: On macOS, "Delete" which behaves like "Backspace" is (also?) mapped to
+ * \U007F, but I do not know what the difference is between it and \U0008 which
+ * is labeled as Backspace in Matt's original file.
  */
 {
     /* Home:                     */ "\UF729" = "moveToBeginningOfLine:";
@@ -42,6 +46,8 @@
     /* Page Down:                */ "\UF72D" = "pageDown:";
 
     /* Shift + Del:              */ "$\UF728" = "cut:";
+
+    /* Command + Backspace:      */ "@\U007F" = "deleteWordBackward:";
 
     /* Shift + Insert:           */ "$\UF727" = "paste:";
     /* Command + Insert:         */ "@\UF727" = "copy:";

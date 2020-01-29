@@ -9,6 +9,7 @@
 DOTFILES = \
 	$(HOME)/.abcde.conf \
 	$(HOME)/.bashrc \
+	$(HOME)/.config/flake8 \
 	$(HOME)/.dircolors \
 	$(HOME)/.elinks/elinks.conf \
 	$(HOME)/.fonts.conf \

@@ -177,6 +177,7 @@ function -define-aliases()
 
     for alias_key in "${!BASH_ALIASES[@]}"; do
         alias_value="${BASH_ALIASES["$alias_key"]}"
+        test -n "$alias_value" || continue
         argv=($alias_value)
         # Ignore environment variables and the paginate function.
         i=0
@@ -463,6 +464,7 @@ function -setup()
 {
     unset -f -- -setup
 
+    set -u
     complete -r
     complete -c which
     complete -d cd
@@ -514,7 +516,6 @@ function -setup()
 
     export COLUMNS
     export LINES
-    set -u
     test "${SHLVL_OFFSET:-}" || export SHLVL_OFFSET="$SHLVL"
     test "$(trap -p DEBUG)" || trap '\-debug-hook "$BASH_COMMAND"' DEBUG
 }

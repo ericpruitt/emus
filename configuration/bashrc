@@ -43,9 +43,6 @@ declare -r XTERM_TITLE_SUPPORT='^(tmux|xterm|screen|st)([+-].+)?$'
 # "calculate" function.
 declare LAST_RESULT="0"
 
-# The contents of this variable can be used with "eval" to define Bash aliases.
-export DECLARE_BASH_ALIASES
-
 # This tracks the history number of the command the last time the
 # "-prompt-command" was executed. This is used to help determine whether a
 # non-zero exit status should be displayed before the next prompt.
@@ -197,6 +194,7 @@ function -define-aliases()
 
     DECLARE_BASH_ALIASES="$(declare -p BASH_ALIASES)"
     DECLARE_BASH_ALIASES="${DECLARE_BASH_ALIASES#declare -A }"
+    export DECLARE_BASH_ALIASES
 }
 
 # Calculate the result of an expression. The result of the last successfully

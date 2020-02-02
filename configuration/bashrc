@@ -21,15 +21,6 @@ test "$PS1" || return 0
 # Bash to pivot into the user's preferred Bash shell.
 test "$BASH" -ef "$(command -v bash || echo "$BASH")" || exec bash ${-:+-$-}
 
-# Integral representation of Bash version useful for conditionally using
-# features associated with certain versions of Bash.
-#
-# Work-arounds for the following issues are implemented using this variable:
-#
-# - In Bash 4.3 and lower, "set -o nounset" breaks autocompletion:
-#   <https://lists.gnu.org/archive/html/bug-bash/2016-04/msg00090.html>
-declare -r BASH_MAJOR_MINOR="$((BASH_VERSINFO[0] * 1000 + BASH_VERSINFO[1]))"
-
 # This regex is used to determine whether a username are included in the shell
 # prompt and title; if the current username does not match this pattern, the
 # username and hostname are inserted in the text.
@@ -411,8 +402,6 @@ function -prompt-command()
     # personal copy of Bash is patched to do this internally, stty is only run
     # if the Bash interpreter is not under $HOME.
     test "$NOT_HOMEDIR_BASH" && $(stty susp undef) && _susp_undef="x"
-
-    test "$BASH_MAJOR_MINOR" -ge 4004 || set +u
 }
 
 # Hook executed before every Bash command that is not run inside a subshell or
@@ -438,7 +427,6 @@ function -debug-hook()
     # complementary comment in the -debug-hook function.
     test -n "${_susp_undef:-}" && unset _susp_undef && $(stty susp "^Z")
 
-    test "$BASH_MAJOR_MINOR" -ge 4004 || set -u
     test "$command" != "$PROMPT_COMMAND" || return 0
 
     # None of my aliases start with environment variables, so they are
@@ -528,7 +516,7 @@ function -setup()
 
     export COLUMNS
     export LINES
-    test "$BASH_MAJOR_MINOR" -lt 4004 || set -u
+    set -u
     test "${SHLVL_OFFSET:-}" || export SHLVL_OFFSET="$SHLVL"
     test "$(trap -p DEBUG)" || trap '\-debug-hook "$BASH_COMMAND"' DEBUG
 }

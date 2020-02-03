@@ -103,8 +103,8 @@ BINARIES = \
 	$(VIM)/src/xxd/xxd \
 
 # Installation directories:
-BIN = ~/.local/bin
-MAN = ~/.local/share/man
+BIN = $(HOME)/.local/bin
+MAN = $(HOME)/.local/share/man
 
 FOLDER_CLEAN_TARGETS = \
 	clean-apple-bash \

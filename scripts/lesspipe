@@ -34,9 +34,9 @@ function view()
       # This pattern matches various man page formats.
       *.@([1-9n]|[1-9]x|man|[0-9]p|nro|3am)*(.@(bz2|[gx]z|lzma)))
         case "$path" in
-          *.@(xz|bz2|lzma)) tar xfO -- "$path" | groff -Tascii -mandoc -  ;;
-          *.gz)             gzip -dc -- "$path" | groff -Tascii -mandoc - ;;
-          *)                groff -Tascii -mandoc -- "$path"              ;;
+          *.@(xz|bz2|lzma)) tar xfO -- "$path" | groff -Tutf8 -mandoc -  ;;
+          *.gz)             gzip -dc -- "$path" | groff -Tutf8 -mandoc - ;;
+          *)                groff -Tutf8 -mandoc -- "$path"              ;;
         esac
       ;;
 

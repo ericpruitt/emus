@@ -24,8 +24,9 @@ Thumbs.db
 # Visual Studio
 .coverage
 
-# Backups (UNIX)
+# Backups
 *~
+*.bak
 
 # Java
 *.class

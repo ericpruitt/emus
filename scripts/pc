@@ -256,7 +256,7 @@ def main(expressions):
     integral_result = int(result)
 
     if integral_result == result:
-        print(int(result))
+        print(integral_result)
     elif isinstance(result, fractions.Fraction):
         fractional_result = str(result)
         decimal.setcontext(decimal.Context(prec=16))

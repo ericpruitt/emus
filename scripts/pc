@@ -236,7 +236,7 @@ def main(expressions):
     for name in dir(math):
         attribute = getattr(math, name)
 
-        if callable(attribute):
+        if callable(attribute) and not name.startswith("_"):
             context[name] = attribute
 
     context.update({

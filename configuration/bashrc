@@ -435,7 +435,7 @@ function -debug-hook()
         command="${command#$env}"
     fi
 
-    if [[ "${TERM:-}" =~ $XTERM_TITLE_SUPPORT ]]; then
+    if [[ -t 1 ]] && [[ "${TERM:-}" =~ $XTERM_TITLE_SUPPORT ]]; then
         # Iterate over all aliases and figure out which ones were likely used
         # to create the command. The looping handles recursive aliases.
         while [[ "${search_again:-}" ]]; do

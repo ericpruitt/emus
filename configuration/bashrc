@@ -428,14 +428,14 @@ function -debug-hook()
 
     test "$command" != "$PROMPT_COMMAND" || return 0
 
-    # None of my aliases start with environment variables, so they are
-    # temporarily stripped before looking for substitutions.
-    if [[ "$command" =~ $envregex ]]; then
-        env="${BASH_REMATCH[0]}"
-        command="${command#$env}"
-    fi
-
     if [[ -t 1 ]] && [[ "${TERM:-}" =~ $XTERM_TITLE_SUPPORT ]]; then
+        # None of my aliases start with environment variables, so they are
+        # temporarily stripped before looking for substitutions.
+        if [[ "$command" =~ $envregex ]]; then
+            env="${BASH_REMATCH[0]}"
+            command="${command#$env}"
+        fi
+
         # Iterate over all aliases and figure out which ones were likely used
         # to create the command. The looping handles recursive aliases.
         while [[ "${search_again:-}" ]]; do

@@ -92,6 +92,7 @@ function user-configure-iterm2()
         "Control -integer 7"
         "HideScrollbar -integer 1"
         "LeftCommand -integer 1"
+        "RightCommand -integer 1"
         "moveToApplicationsFolderAlertSuppress -integer 1"
         "SUEnableAutomaticChecks -integer 0"
     )

@@ -300,8 +300,9 @@ function user-misc-gui-tweaks()
     defaults write -g InitialKeyRepeat -integer 44  #     660ms / 15ms
     defaults write -g KeyRepeat -integer 2          # ceil(25ms / 15ms)
 
-    # Show a 24-hour clock with seconds in the menu bar.
-    defaults write com.apple.menuextra.clock DateFormat "EEE HH:mm:ss"
+    # Show a 24-hour clock with the date, day of the week and seconds in the
+    # menu bar.
+    defaults write com.apple.menuextra.clock DateFormat "EEE MMM d  H:mm:ss"
 
     # Disable mouse acceleration.
     defaults write -g com.apple.mouse.scaling -1

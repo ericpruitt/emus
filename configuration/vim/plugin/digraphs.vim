@@ -8,6 +8,7 @@ digraph pi 960          " π
 digraph si 963          " σ
 digraph -- 8212         " —
 digraph .. 8729         " ∙
+digraph `` 8776         " ≈
 digraph ~~ 8776         " ≈
 digraph ne 8800         " ≠
 digraph le 8804         " ≤

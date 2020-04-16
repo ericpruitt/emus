@@ -1,3 +1,5 @@
+digraph c\ 162          " ¢
+digraph c\| 162         " ¢
 digraph oo 176          " °
 digraph pm 177          " ±
 digraph Pi 928          " Π

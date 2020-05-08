@@ -268,12 +268,14 @@ function init(    argument, command, optind0)
         } else if (argument == "configure") {
             configure_git()
 
-        # Forward Git-specific short flags that accept arguments. They are
-        # parsed by this wrapper so Git's short flags can be combined with this
-        # script's short flags.
+        # Explicitly the handful of relevant git-blame options that require
+        # arguments.
         } else if (argument ~ /^-[LS]/) {
             GIT_BLAME = GIT_BLAME \
                 " -" substr(argument, 2, 1) " " shell_quote(optarg())
+        } else if (argument ~ /^--(contents|reverse|since)(=|$)/) {
+            sub(/=.*$/, "", argument)
+            GIT_BLAME = GIT_BLAME " " argument "=" shell_quote(optarg())
 
         # Unrecognized options and positional parameters are forwarded to Git.
         } else {

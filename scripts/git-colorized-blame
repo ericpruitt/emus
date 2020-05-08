@@ -155,14 +155,14 @@ function abort(text)
     exit 1
 }
 
-# Escape text so it is interpreted as a literal value by POSIX shells.
+# Quote text so it is interpreted as a literal value by POSIX shells.
 #
 # Arguments:
 # - text: Text to escape.
 #
 # Returns: Escaped text.
 #
-function shell_escape(text)
+function shell_quote(text)
 {
     gsub(/'/, "'\"'\"'", text)
     return "'" text "'"
@@ -212,7 +212,7 @@ function configure_git(    format, name, settings, status, value)
         }
 
         value = settings[name]
-        status = system("git config --global " name " " shell_escape(value))
+        status = system("git config --global " name " " shell_quote(value))
 
         if (status != 0) {
             print "error; aborting operation"
@@ -239,7 +239,7 @@ function init(    argument, command, optind0)
     for (OPTIND = 1; (optind0 = OPTIND) < ARGC; ) {
         if ((argument = ARGV[OPTIND]) == "--") {
             while (OPTIND < ARGC) {
-                GIT_BLAME = GIT_BLAME " " shell_escape(ARGV[OPTIND++])
+                GIT_BLAME = GIT_BLAME " " shell_quote(ARGV[OPTIND++])
             }
         } else if (argument ~ /^-(a|-author-time$)/) {
             TIME_FIELD = "author-time"
@@ -273,11 +273,11 @@ function init(    argument, command, optind0)
         # script's short flags.
         } else if (argument ~ /^-[LS]/) {
             GIT_BLAME = GIT_BLAME \
-                " -" substr(argument, 2, 1) " " shell_escape(optarg())
+                " -" substr(argument, 2, 1) " " shell_quote(optarg())
 
         # Unrecognized options and positional parameters are forwarded to Git.
         } else {
-            GIT_BLAME = GIT_BLAME " " shell_escape(argument)
+            GIT_BLAME = GIT_BLAME " " shell_quote(argument)
         }
 
         # If the argument contains multiple short flags, delete the one that
@@ -664,7 +664,7 @@ BEGIN {
         script = "gawk --exec \"$(command -v git-colorized-blame)\""
 
         for (OPTIND = 1; OPTIND < ARGC; OPTIND++) {
-            script = script " " shell_escape(ARGV[OPTIND])
+            script = script " " shell_quote(ARGV[OPTIND])
         }
 
         exit system(script)

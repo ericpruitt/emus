@@ -5,7 +5,8 @@
 #
 # This script displays colorized blame information for a file. The annotation
 # mode controls what information is displayed in the margins. It can be "who",
-# "what" (the default) or "when".
+# "what" (the default) or "when". Unlike "git blame", this script defaults to
+# displaying commit times instead of authorship times.
 #
 # To install this script, copy it into a "$PATH" directory, make it executable
 # ("chmod +x git-colorized-blame") then run "git colorized-blame configure"
@@ -14,6 +15,10 @@
 # script with the respective annotation mode.
 #
 # Options (and Defaults):
+#   -a, --author-time
+#         Annotate commits using the author time instead of the commit time.
+#   -c, --committer-name
+#         Annotate commits using the committer name instead of the author name.
 #   -m, --margin=COLUMNS
 #         Set the width of the commit summary margin. When this is unspecified,
 #         the width varies based on the annotation mode.
@@ -101,6 +106,12 @@ BEGIN {
 
     # Git invocation used to generate porcelain-formatted blame data.
     GIT_BLAME = "git blame --porcelain"
+
+    # These values determine which fields are used for commit metadata.
+    MAIL_FIELD = "author-mail"
+    NAME_FIELD = "author"
+    TIME_FIELD = "committer-time"
+    TZ_FIELD = "committer-tz"
 
     #                          --- Constants ---
 
@@ -230,6 +241,12 @@ function init(    argument, command, optind0)
             while (OPTIND < ARGC) {
                 GIT_BLAME = GIT_BLAME " " shell_escape(ARGV[OPTIND++])
             }
+        } else if (argument ~ /^-(a|-author-time$)/) {
+            TIME_FIELD = "author-time"
+            TZ_FIELD = "author-tz"
+        } else if (argument ~ /^-(c|-committer-name$)/) {
+            MAIL_FIELD = "committer-mail"
+            NAME_FIELD = "committer"
         } else if (argument ~ /^-(m|-margin(=|$))/) {
             MARGIN_WIDTH = optarg()
         } else if (argument ~ /^-N/) {
@@ -470,17 +487,17 @@ function format_columns(left, right,    n)
 #
 function annotate(    clock, date, name, offset, rightcol)
 {
-    name = commits[hash, "author"]
+    name = commits[hash, NAME_FIELD]
     if (!length(name)) {
-        name = commits[hash, "author-mail"]
+        name = commits[hash, MAIL_FIELD]
     }
 
     offset = OUTPUT_TIMEZONE
     if (!length(offset)) {
-        offset = commits[hash, "author-tz"]
+        offset = commits[hash, TZ_FIELD]
     }
 
-    clock = unix2iso(commits[hash, "author-time"], offset)
+    clock = unix2iso(commits[hash, TIME_FIELD], offset)
 
     # Line 1: Author name or email address.
     # Line 2: Date and the commit summary.

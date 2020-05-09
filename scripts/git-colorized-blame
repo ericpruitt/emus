@@ -203,7 +203,7 @@ function optarg()
     } else if (match(ARGV[OPTIND], "^--[^=]+=")) {
         return substr(ARGV[OPTIND++], RLENGTH + 1)
     } else if ((OPTIND + 1) >= ARGC) {
-        abort("missing arg for'" ARGV[OPTIND] "'")
+        abort("missing argument for '" ARGV[OPTIND] "'")
     }
 
     OPTIND++

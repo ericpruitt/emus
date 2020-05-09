@@ -15,6 +15,7 @@
 	what = colorized-blame what
 	when = colorized-blame when
 	who = colorized-blame who
+	heat = colorized-blame what --heat-map
 	mine = log --author=^Eric\\ Pruitt\\ < -p
 	others = log --author=^Eric\\ Pruitt\\ < -p --invert-grep
 

@@ -19,14 +19,18 @@
 #         Annotate commits using the author time instead of the commit time.
 #   -c, --committer-name
 #         Annotate commits using the committer name instead of the author name.
+#   -H, --heat-map
+#         Color commits based on their age.
 #   -m, --margin=COLUMNS
 #         Set the width of the commit summary margin. When this is unspecified,
 #         the width varies based on the annotation mode.
 #   -N    Hide working-copy line numbers.
 #   -n, --show-number
 #         Show line numbers from the original commit.
-#   --palette=NAME ("vivid")
-#         Set the color scheme. The following palettes are supported:
+#   --palette=NAME ("vivid" or, for heat maps, "fire")
+#         Set the color scheme. The following palettes are supported for the
+#         default mode of operation that colors commits to distinguish them
+#         from one another:
 #         - vivd: Very saturated colors of varying hues.
 #         - table: Alternates between a soft purple and gray similar to colors
 #           often used for alternating rows in textbook tables.
@@ -38,6 +42,15 @@
 #         - red-blind: Palette optimized for red-blind vision.
 #         - green-blind: Palette optimized for green-blind vision.
 #         - blue-blind: Palette optimized for blue-blind vision.
+#
+#         Heat maps use a separate set of palettes for their gradients:
+#         - fire: Transitions from white through orange to red.
+#         - gray: Transitions from gray to white.
+#         - viridis: A gradient based on the palette developed by Stéfan van
+#           der Walt and Nathaniel Smith of the same name. It transitions from
+#           teal to yellow-green.
+#         - plasma: A gradient based on the "plasma" variant of viridis that
+#           transitions from magenta through pink to orange.
 #   -s, --short
 #         Show summaries using one line instead of two.
 #   -u, --utc
@@ -68,8 +81,8 @@
 #
 # Portability:
 #   Although the syntax and features of the script itself are POSIX-compliant,
-#   date(1) is invoked with "%z" which is specified for strftime(3) but
-#   unfortunately not date(1).
+#   date(1) is invoked with "%s" which is not specified in POSIX and with "%z"
+#   which is specified for strftime(3) but unfortunately not date(1).
 
 BEGIN {
     #                           --- Options ---
@@ -99,7 +112,7 @@ BEGIN {
     VERBOSE = 1
 
     # Color palette.
-    PALETTE = "vivid"
+    PALETTE = "default"
 
     # Controls whether time zone offsets are displayed.
     SHOW_TIMEZONE = 0
@@ -112,6 +125,9 @@ BEGIN {
     NAME_FIELD = "author"
     TIME_FIELD = "committer-time"
     TZ_FIELD = "committer-tz"
+
+    # Determines whether commits are colored using a heat map gradient.
+    HEAT_MAP = 0
 
     #                          --- Constants ---
 
@@ -141,6 +157,13 @@ BEGIN {
     PALETTES["red-blind"] = "5 10 13 124"
     PALETTES["green-blind"] = "3 14 33 58"
     PALETTES["blue-blind"] = "5 6 9 10 52"
+
+    # Supported heat map gradients with their colors ordered coldest to
+    # hottest.
+    PALETTES["fire"] = "255 223 216 208 202 196"
+    PALETTES["gray"] = "240 243 246 249 252 255"
+    PALETTES["plasma"] = "127 126 168 167 209 208"
+    PALETTES["viridis"] = "31 36 77 112 148 184"
 }
 
 # Write a message to standard error and exit with a non-zero status.
@@ -195,6 +218,7 @@ function configure_git(    format, name, settings, status, value)
     settings["alias.what"] = "colorized-blame what"
     settings["alias.when"] = "colorized-blame when"
     settings["alias.who"] = "colorized-blame who"
+    settings["alias.heat"] = "colorized-blame what --heat-map"
     settings["pager.colorized-blame"] = "true"
 
     print "Configuring Git:"
@@ -247,6 +271,8 @@ function init(    argument, command, optind0)
         } else if (argument ~ /^-(c|-committer-name$)/) {
             MAIL_FIELD = "committer-mail"
             NAME_FIELD = "committer"
+        } else if (argument ~ /^-(H|-heat-map$)/) {
+            HEAT_MAP = 1
         } else if (argument ~ /^-(m|-margin(=|$))/) {
             MARGIN_WIDTH = optarg()
         } else if (argument ~ /^-N/) {
@@ -293,14 +319,24 @@ function init(    argument, command, optind0)
         }
     }
 
+    if (PALETTE == "default") {
+        PALETTE = HEAT_MAP ? "fire" : "vivid"
+    }
+
     if (!(PALETTE in PALETTES)) {
         abort("unrecognized color palette: " PALETTE)
     }
 
-    if (DATETIME == "host") {
-        command = "date +%z"
-        command | getline OUTPUT_TIMEZONE
+    if (HEAT_MAP || DATETIME == "host") {
+        command = "date '+%z %s'"
+        command | getline
         close(command)
+
+        if (DATETIME == "host") {
+            OUTPUT_TIMEZONE = $1
+        }
+
+        TIMESTAMP = $2
     } else if (DATETIME == "utc") {
         OUTPUT_TIMEZONE = "0000"
     } else if (DATETIME == "author") {
@@ -423,7 +459,7 @@ function truncate(text, width)
 
 # Parse a line containing metadata emitted by "git blame --porcelain".
 #
-function handle_metadata(    i, name, spaces, value)
+function handle_metadata(    days, i, name, spaces, value)
 {
     # The length of column 1 is checked because mawk does not support length
     # quantifier brackets ("...{X,Y}").
@@ -440,7 +476,10 @@ function handle_metadata(    i, name, spaces, value)
         if (!(hash in commits)) {
             commits[hash] = 1
             commits[hash, "boundary"] = 0
-            commits[hash, "color"] = color
+
+            if (!HEAT_MAP) {
+                commits[hash, "color"] = color
+            }
         }
     } else {
         name = $1
@@ -459,6 +498,10 @@ function handle_metadata(    i, name, spaces, value)
 
         if (name == "summary" && value == "(" hash ")") {
             value = "No commit summary"
+        } else if (HEAT_MAP && name == TIME_FIELD) {
+            days = (TIMESTAMP - value) / 86400
+            commits[hash, "color"] = (days < 2) + (days < 10) + (days < 32) + \
+                (days < 93) + (days < 184) + 1
         }
 
         commits[hash, name] = value
@@ -621,25 +664,31 @@ function handle_line(    c, furthest, lineno, margin, previous_color)
         margins[1] = truncate(margins[1], MARGIN_WIDTH)
         margins[2] = truncate(margins[2], MARGIN_WIDTH)
 
-        # Reuse the most recently displayed color for the current hash if it
-        # has not been used by another hash in the mean time.
-        previous_color = commits[hash, "color"]
-        if (previous_color != color &&
-          commits[hash, "last_line"] == color_locations[previous_color]) {
-            color = previous_color
 
-        # Otherwise, pick whichever color was least-recently used.
+        if (HEAT_MAP) {
+            color = commits[hash, "color"]
         } else {
-            furthest = source_line
-            for (c = 1; c <= COLOR_COUNT; c++) {
-                if (c != color && color_locations[c] < furthest) {
-                    furthest = color_locations[c]
-                    commits[hash, "color"] = color = c
+            # Reuse the most recently displayed color for the current hash if
+            # it has not been used by another hash in the mean time.
+            previous_color = commits[hash, "color"]
+
+            if (previous_color != color &&
+              commits[hash, "last_line"] == color_locations[previous_color]) {
+                color = previous_color
+
+            # Otherwise, pick whichever color was least-recently used.
+            } else {
+                furthest = source_line
+                for (c = 1; c <= COLOR_COUNT; c++) {
+                    if (c != color && color_locations[c] < furthest) {
+                        furthest = color_locations[c]
+                        commits[hash, "color"] = color = c
+                    }
                 }
             }
-        }
 
-        color_locations[color] = source_line
+            color_locations[color] = source_line
+        }
 
         # If the current group's annotation has two lines but the group is only
         # one line long, add the would-be printed line to the overflow buffer.

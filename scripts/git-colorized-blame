@@ -162,7 +162,7 @@ BEGIN {
     # hottest.
     PALETTES["fire"] = "255 223 216 208 202 196"
     PALETTES["gray"] = "240 243 246 249 252 255"
-    PALETTES["plasma"] = "127 126 168 167 209 208"
+    PALETTES["plasma"] = "55 127 162 209 214 226"
     PALETTES["viridis"] = "31 36 77 112 148 184"
 }
 

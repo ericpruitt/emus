@@ -159,11 +159,11 @@ BEGIN {
     PALETTES["blue-blind"] = "5 6 9 10 52"
 
     # Supported heat map gradients with their colors ordered coldest to
-    # hottest.
-    PALETTES["fire"] = "255 223 216 208 202 196"
-    PALETTES["gray"] = "240 243 246 249 252 255"
-    PALETTES["plasma"] = "55 127 162 209 214 226"
-    PALETTES["viridis"] = "31 36 77 112 148 184"
+    # hottest. Heat map gradients are distinguished by an "H" at the end.
+    PALETTES["fire"] = "255 223 216 208 202 196 H"
+    PALETTES["gray"] = "240 243 246 249 252 255 H"
+    PALETTES["plasma"] = "55 127 162 209 214 226 H"
+    PALETTES["viridis"] = "31 36 77 112 148 184 H"
 }
 
 # Write a message to standard error and exit with a non-zero status.
@@ -360,6 +360,12 @@ function init(    argument, command, optind0)
     COLORS["boundary"] = setaf(BOUNDARY_COMMIT_COLOR)
     COLORS["uncommitted"] = setaf(UNCOMMITTED_COLOR)
     COLORS["reset"] = "\033[m"
+
+    if (HEAT_MAP && COLORS[COLOR_COUNT] != "H") {
+        abort(PALETTE " palette cannot be used for heat maps")
+    } else if (!HEAT_MAP && COLORS[COLOR_COUNT] == "H") {
+        abort(PALETTE " palette can only be used for heat maps")
+    }
 
     FORMAT = "%s%-" MARGIN_WIDTH "s%s"
 }

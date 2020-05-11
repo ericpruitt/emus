@@ -216,6 +216,16 @@ function optarg()
     return ARGV[OPTIND++]
 }
 
+# Abort if an option has an argument when it should not.
+#
+function noarg(    option)
+{
+    if (match(ARGV[OPTIND], "^--[^=]+=")) {
+        option = substr(ARGV[OPTIND], 1, RLENGTH - 1)
+        abort(option " does not accept an argument")
+    }
+}
+
 # Enable pagination for "git colorized-blame" and configure the aliases "what",
 # "when" and "who".
 #
@@ -271,27 +281,34 @@ function init(    argument, command, optind0)
             while (OPTIND < ARGC) {
                 GIT_BLAME = GIT_BLAME " " shell_quote(ARGV[OPTIND++])
             }
-        } else if (argument ~ /^-(a|-author-time$)/) {
+        } else if (argument ~ /^-(a|-author-time(=|$))/) {
+            noarg()
             TIME_FIELD = "author-time"
             TZ_FIELD = "author-tz"
-        } else if (argument ~ /^-(c|-committer-name$)/) {
+        } else if (argument ~ /^-(c|-committer-name(=|$))/) {
+            noarg()
             MAIL_FIELD = "committer-mail"
             NAME_FIELD = "committer"
-        } else if (argument ~ /^-(H|-heat-map$)/) {
+        } else if (argument ~ /^-(H|-heat-map(=|$))/) {
+            noarg()
             HEAT_MAP = 1
         } else if (argument ~ /^-(m|-margin(=|$))/) {
             MARGIN_WIDTH = optarg()
         } else if (argument ~ /^-N/) {
+            noarg()
             LINE_NUMBERS = 0
-        } else if (argument ~ /^-(n|-show-number$)/) {
+        } else if (argument ~ /^-(n|-show-number(=|$))/) {
+            noarg()
             ORIGINAL_LINE_NUMBERS = 1
         } else if (argument ~ /^--palette(=|$)/) {
             if (!((PALETTE = optarg()) in PALETTES)) {
                 abort("unrecognized color palette: " PALETTE)
             }
-        } else if (argument ~ /^-(s|-short$)/) {
+        } else if (argument ~ /^-(s|-short(=|$))/) {
+            noarg()
             VERBOSE = 0
-        } else if (argument ~ /^-(u|-utc$)/) {
+        } else if (argument ~ /^-(u|-utc(=|$))/) {
+            noarg()
             DATETIME = "utc"
         } else if (argument ~ /^-(y|-time(=|$))/) {
             DATETIME = optarg()

@@ -147,6 +147,12 @@ BEGIN {
     # Hash used by Git for lines that have not been committed.
     HASH_OF_UNCOMMITTED_BLOCK = "0000000000000000000000000000000000000000"
 
+    # Default palette
+    DEFAULT_PALETTE = "vivid"
+
+    # Default palette for heat maps
+    DEFAULT_HEAT_MAP_PALETTE = "fire"
+
     # Supported color palettes
     PALETTES["vivid"] = "9 10 11 12 13 14 99 157 202 219"
     PALETTES["table"] = "104 245"
@@ -320,7 +326,7 @@ function init(    argument, command, optind0)
     }
 
     if (PALETTE == "default") {
-        PALETTE = HEAT_MAP ? "fire" : "vivid"
+        PALETTE = HEAT_MAP ? DEFAULT_HEAT_MAP_PALETTE : DEFAULT_PALETTE
     }
 
     if (!(PALETTE in PALETTES)) {

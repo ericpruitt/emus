@@ -31,7 +31,7 @@
 #         Set the color scheme. The following palettes are supported for the
 #         default mode of operation that colors commits to distinguish them
 #         from one another:
-#         - vivd: Very saturated colors of varying hues.
+#         - vivid: Very saturated colors of varying hues.
 #         - table: Alternates between a soft purple and gray similar to colors
 #           often used for alternating rows in textbook tables.
 #         - mode4: Low-intensity yellow, magenta, green and cyan reminiscent of

@@ -1,10 +1,10 @@
 Add support for a new option, "--almost-all-if-not-home", that implicitly shows
 dotfiles for every directory except `$HOME`.
 
---- src/ls.c	2016-01-14 04:16:23.000000000 -0800
-+++ src/ls.c	2016-11-03 16:35:12.787371263 -0700
-@@ -245,7 +245,7 @@
-                           size_t *width);
+--- src/ls.c	2020-03-01 04:30:46.000000000 -0800
++++ src/ls.c	2020-05-14 13:04:20.709426476 -0700
+@@ -269,7 +269,7 @@
+                               bool *pad);
  static char *make_link_name (char const *name, char const *linkname);
  static int decode_switches (int argc, char **argv);
 -static bool file_ignored (char const *name);
@@ -12,7 +12,7 @@ dotfiles for every directory except `$HOME`.
  static uintmax_t gobble_file (char const *name, enum filetype type,
                                ino_t inode, bool command_line_arg,
                                char const *dirname);
-@@ -349,6 +349,10 @@
+@@ -383,6 +383,10 @@
  
  static struct pending *pending_dirs;
  
@@ -23,7 +23,7 @@ dotfiles for every directory except `$HOME`.
  /* Current time in seconds and nanoseconds since 1970, updated as
     needed when deciding whether a file is recent.  */
  
-@@ -832,7 +836,8 @@
+@@ -840,7 +844,8 @@
    SI_OPTION,
    SORT_OPTION,
    TIME_OPTION,
@@ -33,7 +33,7 @@ dotfiles for every directory except `$HOME`.
  };
  
  static struct option const long_options[] =
-@@ -880,6 +885,7 @@
+@@ -888,6 +893,7 @@
    {"block-size", required_argument, NULL, BLOCK_SIZE_OPTION},
    {"context", no_argument, 0, 'Z'},
    {"author", no_argument, NULL, AUTHOR_OPTION},
@@ -41,7 +41,7 @@ dotfiles for every directory except `$HOME`.
    {GETOPT_HELP_OPTION_DECL},
    {GETOPT_VERSION_OPTION_DECL},
    {NULL, 0, NULL, 0}
-@@ -940,6 +946,8 @@
+@@ -953,6 +959,8 @@
    size_t *col_arr;
  };
  
@@ -50,7 +50,7 @@ dotfiles for every directory except `$HOME`.
  /* Array with information about column filledness.  */
  static struct column_info *column_info;
  
-@@ -1466,6 +1474,8 @@
+@@ -1647,6 +1655,8 @@
    current_time.tv_sec = TYPE_MINIMUM (time_t);
    current_time.tv_nsec = -1;
  
@@ -59,7 +59,7 @@ dotfiles for every directory except `$HOME`.
    i = decode_switches (argc, argv);
  
    if (print_with_color)
-@@ -1573,6 +1583,9 @@
+@@ -1756,6 +1766,9 @@
    else if (n_files <= 1 && pending_dirs && pending_dirs->next == 0)
      print_dir_name = false;
  
@@ -69,7 +69,7 @@ dotfiles for every directory except `$HOME`.
    while (pending_dirs)
      {
        thispend = pending_dirs;
-@@ -2096,6 +2109,10 @@
+@@ -2275,6 +2288,10 @@
            print_scontext = true;
            break;
  
@@ -80,7 +80,7 @@ dotfiles for every directory except `$HOME`.
          case_GETOPT_HELP_CHAR;
  
          case_GETOPT_VERSION_CHAR (PROGRAM_NAME, AUTHORS);
-@@ -2580,22 +2587,24 @@
+@@ -2906,22 +2923,25 @@
        return;
      }
  
@@ -90,27 +90,28 @@ dotfiles for every directory except `$HOME`.
 -      int fd = dirfd (dirp);
 +  struct stat dir_stat;
 +  int fd = dirfd (dirp);
-+  /* If dirfd failed, endure the overhead of using stat.  */
-+  if ((0 <= fd
-+       ? fstat (fd, &dir_stat)
-+       : stat (name, &dir_stat)) < 0)
-+    {
-+      file_failure (command_line_arg,
-+                    _("cannot determine device and inode of %s"), name);
-+      closedir (dirp);
-+      return;
-+    }
  
--      /* If dirfd failed, endure the overhead of using stat.  */
+-      /* If dirfd failed, endure the overhead of stat'ing by path  */
 -      if ((0 <= fd
--           ? fstat (fd, &dir_stat)
--           : stat (name, &dir_stat)) < 0)
+-           ? fstat_for_ino (fd, &dir_stat)
+-           : stat_for_ino (name, &dir_stat)) < 0)
 -        {
 -          file_failure (command_line_arg,
 -                        _("cannot determine device and inode of %s"), name);
 -          closedir (dirp);
 -          return;
 -        }
++  /* If dirfd failed, endure the overhead of stat'ing by path  */
++  if ((0 <= fd
++       ? fstat_for_ino (fd, &dir_stat)
++       : stat_for_ino (name, &dir_stat)) < 0)
++    {
++      file_failure (command_line_arg,
++                    _("cannot determine device and inode of %s"), name);
++      closedir (dirp);
++      return;
++    }
++
 +  bool is_home = (dir_stat.st_ino == homedir_stat.st_ino &&
 +                  dir_stat.st_dev == homedir_stat.st_dev);
  
@@ -119,16 +120,16 @@ dotfiles for every directory except `$HOME`.
        /* If we've already visited this dev/inode pair, warn that
           we've found a loop, and do not process this directory.  */
        if (visit_dir (dir_stat.st_dev, dir_stat.st_ino))
-@@ -2636,7 +2645,7 @@
-       next = readdir (dirp);
+@@ -2973,7 +2993,7 @@
        if (next)
          {
+           found_any_entries = true;
 -          if (! file_ignored (next->d_name))
 +          if (! file_ignored (is_home, next->d_name))
              {
                enum filetype type = unknown;
  
-@@ -2754,11 +2763,11 @@
+@@ -3107,11 +3127,11 @@
  /* Return true if FILE should be ignored.  */
  
  static bool

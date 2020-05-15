@@ -1,10 +1,10 @@
 Disable Vim's default/built-in digraphs.
 
-diff --git src/digraph.c src/digraph.c
-index 758c23d36..bbdddce96 100644
+diff --git a/src/digraph.c b/src/digraph.c
+index dd5920a24..7bef9f9d2 100644
 --- src/digraph.c
 +++ src/digraph.c
-@@ -1865,7 +1865,6 @@ get_digraph_for_char(int val_arg)
+@@ -1865,41 +1865,11 @@ get_digraph_for_char(int val_arg)
  {
      int		val = val_arg;
      int		i;
@@ -12,10 +12,29 @@ index 758c23d36..bbdddce96 100644
      digr_T	*dp;
      static      char_u      r[3];
  
-@@ -1892,14 +1891,8 @@ get_digraph_for_char(int val_arg)
-     }
- #endif
- 
+-#if defined(USE_UNICODE_DIGRAPHS)
+-    if (!enc_utf8)
+-    {
+-	char_u	    buf[6], *to;
+-	vimconv_T   vc;
+-
+-	// convert the character from 'encoding' to Unicode
+-	i = mb_char2bytes(val, buf);
+-	vc.vc_type = CONV_NONE;
+-	if (convert_setup(&vc, p_enc, (char_u *)"utf-8") == OK)
+-	{
+-	    vc.vc_fail = TRUE;
+-	    to = string_convert(&vc, buf, &i);
+-	    if (to != NULL)
+-	    {
+-		val = utf_ptr2char(to);
+-		vim_free(to);
+-	    }
+-	    (void)convert_setup(&vc, NULL, NULL);
+-	}
+-    }
+-#endif
+-
 -    for (use_defaults = 0; use_defaults <= 1; use_defaults++)
 -    {
 -	if (use_defaults == 0)
@@ -28,7 +47,7 @@ index 758c23d36..bbdddce96 100644
  	{
  	    if (dp->result == val)
  	    {
-@@ -1910,7 +1903,6 @@ get_digraph_for_char(int val_arg)
+@@ -1910,7 +1880,6 @@ get_digraph_for_char(int val_arg)
  	    }
  	    ++dp;
  	}
@@ -36,7 +55,7 @@ index 758c23d36..bbdddce96 100644
      return NULL;
  }
  
-@@ -1987,22 +1979,6 @@ getexactdigraph(int char1, int char2, int meta_char)
+@@ -1987,22 +1956,6 @@ getexactdigraph(int char1, int char2, int meta_char)
  	++dp;
      }
  
@@ -58,34 +77,4 @@ index 758c23d36..bbdddce96 100644
 -    }
  #ifdef USE_UNICODE_DIGRAPHS
      if (retval != 0 && !enc_utf8)
-     {
-@@ -2141,29 +2117,6 @@ listdigraphs(int use_headers)
- 
-     msg_putchar('\n');
- 
--    dp = digraphdefault;
--    for (i = 0; dp->char1 != NUL && !got_int; ++i)
--    {
--#if defined(USE_UNICODE_DIGRAPHS)
--	digr_T tmp;
--
--	/* May need to convert the result to 'encoding'. */
--	tmp.char1 = dp->char1;
--	tmp.char2 = dp->char2;
--	tmp.result = getexactdigraph(tmp.char1, tmp.char2, FALSE);
--	if (tmp.result != 0 && tmp.result != tmp.char2
--					  && (has_mbyte || tmp.result <= 255))
--	    printdigraph(&tmp, use_headers ? &previous : NULL);
--#else
--
--	if (getexactdigraph(dp->char1, dp->char2, FALSE) == dp->result
--		&& (has_mbyte || dp->result <= 255))
--	    printdigraph(dp, use_headers ? &previous : NULL);
--#endif
--	++dp;
--	ui_breakcheck();
--    }
--
-     dp = (digr_T *)user_digraphs.ga_data;
-     for (i = 0; i < user_digraphs.ga_len && !got_int; ++i)
      {

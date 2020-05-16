@@ -1,5 +1,5 @@
 #!/usr/bin/make -f
-# https://github.com/ericpruitt/static-unix-userland
+# https://github.com/ericpruitt/emus/
 # https://www.codevat.com/
 .POSIX:
 .SILENT:

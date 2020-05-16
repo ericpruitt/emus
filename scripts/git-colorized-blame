@@ -6,7 +6,10 @@
 # This script displays colorized blame information for a file. The annotation
 # mode controls what information is displayed in the margins. It can be "who",
 # "what" (the default) or "when". Unlike "git blame", this script defaults to
-# displaying commit times instead of authorship times.
+# displaying commit times instead of authorship times. Any unrecognized
+# arguments will be passed to git-blame. If, for example, whitespace should be
+# ignored, the script could be invoked like "git colorized-blame who -w ..."
+# or, when using the standard Git alias, "git who -w ...".
 #
 # To install this script, copy it into a "$PATH" directory, make it executable
 # ("chmod +x git-colorized-blame") then run "git colorized-blame configure"
@@ -59,8 +62,6 @@
 #         Controls how dates and times are displayed. This can be "host" to
 #         indicate they should be displayed using the host's timezone, "author"
 #         for the author's time zone or "utc" for UTC.
-#
-# Any unrecognized arguments will be passed to git-blame.
 #
 # Bugs:
 #   The "host" option is not locale aware; the same offset will be used for

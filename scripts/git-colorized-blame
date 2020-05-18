@@ -6,10 +6,7 @@
 # This script displays colorized blame information for a file. The annotation
 # mode controls what information is displayed in the margins. It can be "who",
 # "what" (the default) or "when". Unlike "git blame", this script defaults to
-# displaying commit times instead of authorship times. Any unrecognized
-# arguments will be passed to git-blame. If, for example, whitespace should be
-# ignored, the script could be invoked like "git colorized-blame who -w ..."
-# or, when using the standard Git alias, "git who -w ...".
+# displaying commit times instead of authorship times.
 #
 # To install this script, copy it into a "$PATH" directory, make it executable
 # ("chmod +x git-colorized-blame") then run "git colorized-blame configure"
@@ -20,10 +17,19 @@
 # Options (and Defaults):
 #   -a, --author-time
 #         Annotate commits using the author time instead of the commit time.
+#   -C[SCORE]
+#         Find line copies within and across files. Refer to git-blame(1) for
+#         more details about the optional score argument.
 #   -c, --committer-name
 #         Annotate commits using the committer name instead of the author name.
+#   --contents=FILE
+#         Use file's contents as the final image. Refer to git-blame(1) for
+#         details.
 #   -H, --heat-map
 #         Color commits based on their age.
+#   -M[SCORE]
+#         Find line movements within and across files. Refer to git-blame(1)
+#         for more details about the optional score argument.
 #   -m, --margin=COLUMNS
 #         Set the width of the commit summary margin. When this is unspecified,
 #         the width varies based on the annotation mode.
@@ -54,10 +60,15 @@
 #           teal to yellow-green.
 #         - plasma: A gradient based on the "plasma" variant of viridis that
 #           transitions from magenta through pink to orange.
+#   --root
+#         Do not treat root commits as boundaries.
+#   -S FILE
+#         Use revisions from revs-file instead of calling git-rev-list(1).
 #   -s, --short
 #         Show summaries using one line instead of two.
 #   -u, --utc
 #         Display commit times in UTC.
+#   -w    Ignore whitespace differences.
 #   -y, --time=TYPE ("host")
 #         Controls how dates and times are displayed. This can be "host" to
 #         indicate they should be displayed using the host's timezone, "author"
@@ -203,27 +214,24 @@ function shell_quote(text)
 #
 # Returns: Value associated with an option.
 #
-function optarg()
+function optarg(kind,   option)
 {
-    if (ARGV[OPTIND] ~ /^-[^-]./) {
+    if (kind == "none") {
+        if (match(ARGV[OPTIND], "^--[^=]+=")) {
+            option = substr(ARGV[OPTIND], 1, RLENGTH - 1)
+            abort(option " does not accept an argument")
+        }
+    } else if (kind == "optional" && ARGV[OPTIND] ~ /^-[^-]$/) {
+        return
+    } else if (ARGV[OPTIND] ~ /^-[^-]./) {
         return substr(ARGV[OPTIND++], 3)
     } else if (match(ARGV[OPTIND], "^--[^=]+=")) {
         return substr(ARGV[OPTIND++], RLENGTH + 1)
     } else if ((OPTIND + 1) >= ARGC) {
         abort("missing argument for '" ARGV[OPTIND] "'")
-    }
-
-    OPTIND++
-    return ARGV[OPTIND++]
-}
-
-# Abort if an option has an argument when it should not.
-#
-function noarg(    option)
-{
-    if (match(ARGV[OPTIND], "^--[^=]+=")) {
-        option = substr(ARGV[OPTIND], 1, RLENGTH - 1)
-        abort(option " does not accept an argument")
+    } else {
+        OPTIND++
+        return ARGV[OPTIND++]
     }
 }
 
@@ -283,33 +291,31 @@ function init(    argument, command, optind0)
                 GIT_BLAME = GIT_BLAME " " shell_quote(ARGV[OPTIND++])
             }
         } else if (argument ~ /^-(a|-author-time(=|$))/) {
-            noarg()
+            optarg("none")
             TIME_FIELD = "author-time"
             TZ_FIELD = "author-tz"
         } else if (argument ~ /^-(c|-committer-name(=|$))/) {
-            noarg()
+            optarg("none")
             MAIL_FIELD = "committer-mail"
             NAME_FIELD = "committer"
         } else if (argument ~ /^-(H|-heat-map(=|$))/) {
-            noarg()
+            optarg("none")
             HEAT_MAP = 1
         } else if (argument ~ /^-(m|-margin(=|$))/) {
             MARGIN_WIDTH = optarg()
         } else if (argument ~ /^-N/) {
-            noarg()
+            optarg("none")
             LINE_NUMBERS = 0
         } else if (argument ~ /^-(n|-show-number(=|$))/) {
-            noarg()
+            optarg("none")
             ORIGINAL_LINE_NUMBERS = 1
         } else if (argument ~ /^--palette(=|$)/) {
-            if (!((PALETTE = optarg()) in PALETTES)) {
-                abort("unrecognized color palette: " PALETTE)
-            }
+            PALETTE = optarg()
         } else if (argument ~ /^-(s|-short(=|$))/) {
-            noarg()
+            optarg("none")
             VERBOSE = 0
         } else if (argument ~ /^-(u|-utc(=|$))/) {
-            noarg()
+            optarg("none")
             DATETIME = "utc"
         } else if (argument ~ /^-(y|-time(=|$))/) {
             DATETIME = optarg()
@@ -318,16 +324,26 @@ function init(    argument, command, optind0)
         } else if (argument == "configure") {
             configure_git()
 
-        # Explicitly the handful of relevant git-blame options that require
-        # arguments.
+        # Proxy options and arguments intended for git-blame.
+        } else if (argument ~ /^-[CM]/) {
+            GIT_BLAME = GIT_BLAME \
+                " -" substr(argument, 2, 1) shell_quote(optarg("optional"))
         } else if (argument ~ /^-[LS]/) {
             GIT_BLAME = GIT_BLAME \
-                " -" substr(argument, 2, 1) " " shell_quote(optarg())
+                " -" substr(argument, 2, 1) shell_quote(optarg())
         } else if (argument ~ /^--(contents|reverse|since)(=|$)/) {
             sub(/=.*$/, "", argument)
             GIT_BLAME = GIT_BLAME " " argument "=" shell_quote(optarg())
-
-        # Unrecognized options and positional parameters are forwarded to Git.
+        } else if (argument ~ /^--root(=|$)/) {
+            optarg("none")
+            GIT_BLAME = GIT_BLAME " " argument
+        } else if (argument ~ /^-w/) {
+            GIT_BLAME = GIT_BLAME " " substr(argument, 1, 2)
+        } else if (argument ~ /^--./) {
+            sub(/=.*$/, "", argument)
+            abort(argument ": option not recognized")
+        } else if (argument ~ /^-[^-]/) {
+            abort(substr(argument, 1, 2) ": option not recognized")
         } else {
             GIT_BLAME = GIT_BLAME " " shell_quote(argument)
         }

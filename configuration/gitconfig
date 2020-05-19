@@ -12,10 +12,10 @@
 	cdiff = diff --color-words --word-diff-regex=.
 	cshow = show --color-words --word-diff-regex=.
 	clog = log --word-diff-regex=. -p --diff-filter=M
-	what = colorized-blame what
-	when = colorized-blame when
-	who = colorized-blame who
-	heat = colorized-blame what --heat-map
+	what = colorized-blame what -dc
+	when = colorized-blame when -dc
+	who = colorized-blame who -dc
+	heat = colorized-blame what -dc --heat-map
 	mine = log --author=^Eric\\ Pruitt\\ < -p
 	others = log --author=^Eric\\ Pruitt\\ < -p --invert-grep
 

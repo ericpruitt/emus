@@ -5,8 +5,7 @@
 #
 # This script displays colorized blame information for a file. The annotation
 # mode controls what information is displayed in the margins. It can be "who",
-# "what" (the default) or "when". Unlike "git blame", this script defaults to
-# displaying commit times instead of authorship times.
+# "what" (the default) or "when".
 #
 # To install this script, copy it into a "$PATH" directory, make it executable
 # ("chmod +x git-colorized-blame") then run "git colorized-blame configure"
@@ -15,8 +14,10 @@
 # script with the respective annotation mode.
 #
 # Options (and Defaults):
-#   -a, --author-time
-#         Annotate commits using the author time instead of the commit time.
+#   -a, --attribution=SELECTION ("author")
+#         Change how patches are attributed in the annotations. Using "author"
+#         or the shorthand "a" will show the author's name, and using
+#         "committer" or the shorthand "c" will show the committer s name.
 #   -C[SCORE]
 #         Find line copies within and across files. Refer to git-blame(1) for
 #         more details about the optional score argument.
@@ -25,6 +26,10 @@
 #   --contents=FILE
 #         Use file's contents as the final image. Refer to git-blame(1) for
 #         details.
+#   -d, --date=SELECTION ("author")
+#         Change which timestamp is used for commit dates. Using "author" or
+#         the shorthand "a" will show the author timestamp, and using
+#         "committer" or the shorthand "c" will show the commit timestamp.
 #   -H, --heat-map
 #         Color commits based on their age.
 #   -M[SCORE]
@@ -132,11 +137,11 @@ BEGIN {
     # Git invocation used to generate porcelain-formatted blame data.
     GIT_BLAME = "git blame --porcelain"
 
-    # These values determine which fields are used for commit metadata.
-    MAIL_FIELD = "author-mail"
-    NAME_FIELD = "author"
-    TIME_FIELD = "committer-time"
-    TZ_FIELD = "committer-tz"
+    # Which name or email address is used for attributions.
+    ATTRIBUTION = "author"
+
+    # Which timestamp is used for dates.
+    DATE = "author"
 
     # Determines whether commits are colored using a heat map gradient.
     HEAT_MAP = 0
@@ -290,14 +295,10 @@ function init(    argument, command, optind0)
             while (OPTIND < ARGC) {
                 GIT_BLAME = GIT_BLAME " " shell_quote(ARGV[OPTIND++])
             }
-        } else if (argument ~ /^-(a|-author-time(=|$))/) {
-            optarg("none")
-            TIME_FIELD = "author-time"
-            TZ_FIELD = "author-tz"
-        } else if (argument ~ /^-(c|-committer-name(=|$))/) {
-            optarg("none")
-            MAIL_FIELD = "committer-mail"
-            NAME_FIELD = "committer"
+        } else if (argument ~ /^-(a|-attribution(=|$))/) {
+            ATTRIBUTION = optarg()
+        } else if (argument ~ /^-(d|-date(=|$))/) {
+            DATE = optarg()
         } else if (argument ~ /^-(H|-heat-map(=|$))/) {
             optarg("none")
             HEAT_MAP = 1
@@ -357,6 +358,26 @@ function init(    argument, command, optind0)
         } else if (OPTIND == optind0) {
             OPTIND++
         }
+    }
+
+    if (ATTRIBUTION ~ /^a(uthor)?$/) {
+        MAIL_FIELD = "author-mail"
+        NAME_FIELD = "author"
+    } else if (ATTRIBUTION ~ /^c(ommitter)?$/) {
+        MAIL_FIELD = "committer-mail"
+        NAME_FIELD = "committer"
+    } else {
+        abort("attribution selection must be \"author\" or \"committer\"")
+    }
+
+    if (DATE ~ /^a(uthor)?$/) {
+        TIME_FIELD = "author-time"
+        TZ_FIELD = "author-tz"
+    } else if (DATE ~ /^c(ommitter)?$/) {
+        TIME_FIELD = "committer-time"
+        TZ_FIELD = "committer-tz"
+    } else {
+        abort("date selection must be \"author\" or \"committer\"")
     }
 
     if (PALETTE == "default") {

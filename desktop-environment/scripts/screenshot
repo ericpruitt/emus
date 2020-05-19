@@ -1,17 +1,27 @@
 #!/usr/bin/env bash
 
+printf -v TIMESTAMP "%(%Y-%m-%dT%H:%M:%S%z)T" -1
+
+function metadata()
+{
+    xprop -id "$(xprop -root 32x '\t$0' _NET_ACTIVE_WINDOW | cut -f 2)" \
+    | awk '$1 ~ /^(_NET_)?(WM_CLASS|WM_WINDOW_ROLE|WM_NAME|WM_PID)/'
+}
+
 # Capture a screenshot spanning all displays.
 #
 function screenshot()
 {
-    scrot
+    metadata > "$TIMESTAMP.txt"
+    scrot "$TIMESTAMP.png"
 }
 
 # Capture a screenshot of the currently selected window.
 #
 function window-screenshot()
 {
-    scrot --focused
+    metadata > "$TIMESTAMP.txt"
+    scrot --focused "$TIMESTAMP.png"
 }
 
 function main()

@@ -221,6 +221,11 @@ function shell_quote(text)
 # Get the value of a command line option and advance OPTIND to the next
 # parameter.
 #
+# Arguments:
+# - kind: The type of expected argument. This should be blank/unspecified for
+#   required arguments, "none" for options that do not accept arguments and
+#   "optional" for options with optional arguments.
+#
 # Returns: Value associated with an option.
 #
 function optarg(kind,   option)

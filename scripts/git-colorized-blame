@@ -79,13 +79,12 @@
 #   -z, --timezone=TYPE ("host")
 #         Controls how dates and times are displayed. This can be "host" to
 #         indicate they should be displayed using the host's timezone, "author"
-#         for the author's time zone or "utc" for UTC.
+#         for the author's time zone or "utc" for UTC. The "host" option is NOT
+#         locale aware; the same offset will be used for every commit without
+#         regard to things that change the offset like daylight savings or
+#         changes by regulatory organizations.
 #
 # Bugs:
-#   The "host" option is not locale aware; the same offset will be used for
-#   every commit without regard to things that change the offset like daylight
-#   savings or changes by governing / regulatory organizations.
-#
 #   Due to the way many AWK interpreters handle command line arguments, the
 #   annotation mode may need to be explicitly defined to pass options to this
 #   script. For example, if "/usr/bin/awk" is MAWK (currently v1.3.3), running

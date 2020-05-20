@@ -74,7 +74,8 @@
 #   -s, --short
 #         Show summaries using one line instead of two.
 #   -u, --utc
-#         Display commit times in UTC.
+#         Display commit times in UTC. This is essentially an alias for
+#         "--timezone=utc".
 #   -w    Ignore whitespace differences.
 #   -z, --timezone=TYPE ("host")
 #         Controls how dates and times are displayed. This can be "host" to

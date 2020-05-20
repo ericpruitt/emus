@@ -636,7 +636,7 @@ function annotate(    clock, date, name, offset, rightcol)
         date = substr(clock, 1, 10)
         margins[1] = name
         margins[2] = date ": " commits[hash, "summary"]
-        margins["brief"] = format_columns(name, " (" date ")")
+        margins["brief"] = name
 
     # Line 1: Commit summary and the short hash if it fits on the same line.
     # Line 2: Date & time and the author's name or a medium hash if the short

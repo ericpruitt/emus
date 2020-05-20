@@ -10,8 +10,9 @@
 # To install this script, copy it into a "$PATH" directory, make it executable
 # ("chmod +x git-colorized-blame") then run "git colorized-blame configure"
 # which will update Git's configuration to enable pagination of this script and
-# setup three aliases, "git who", "git what" and "git when", that launch this
-# script with the respective annotation mode.
+# setup aliases some useful aliases: "git who", "git what" and "git when"
+# launch this script with the respective annotation modes; and "git heat"
+# produces a heat map in the "what" annotation mode.
 #
 # Options (and Defaults):
 #   -a, --attribution=SELECTION ("author")

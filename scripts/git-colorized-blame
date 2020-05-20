@@ -76,7 +76,7 @@
 #   -u, --utc
 #         Display commit times in UTC.
 #   -w    Ignore whitespace differences.
-#   -y, --time=TYPE ("host")
+#   -z, --timezone=TYPE ("host")
 #         Controls how dates and times are displayed. This can be "host" to
 #         indicate they should be displayed using the host's timezone, "author"
 #         for the author's time zone or "utc" for UTC.
@@ -120,7 +120,7 @@ BEGIN {
     # - host: Host's time zone. This is the default.
     # - author: Commit authors time zone.
     # - utc: UTC (+00:00).
-    DATETIME = "host"
+    TIMEZONE = "host"
 
     # Type of information highlighted in commit annotations. This can be "who",
     # "what" or "when".
@@ -325,9 +325,9 @@ function init(    argument, command, optind0)
             VERBOSE = 0
         } else if (argument ~ /^-(u|-utc(=|$))/) {
             optarg("none")
-            DATETIME = "utc"
-        } else if (argument ~ /^-(y|-time(=|$))/) {
-            DATETIME = optarg()
+            TIMEZONE = "utc"
+        } else if (argument ~ /^-(z|-timezone(=|$))/) {
+            TIMEZONE = optarg()
         } else if (argument ~ /^(who|what|when)$/) {
             ANNOTATION = ARGV[OPTIND]
         } else if (argument == "configure") {
@@ -396,23 +396,25 @@ function init(    argument, command, optind0)
         abort("unrecognized color palette: " PALETTE)
     }
 
-    if (HEAT_MAP || DATETIME == "host") {
+    if (TIMEZONE == "utc") {
+        TIMEZONE_OFFSET = "0000"
+    } else if (TIMEZONE == "author") {
+        SHOW_TIMEZONE = 1
+        TIMEZONE_OFFSET = ""
+    } else if (TIMEZONE != "host") {
+        abort("timezone selection must be \"author\", \"host\" or \"utc\"")
+    }
+
+    if (HEAT_MAP || TIMEZONE == "host") {
         command = "date '+%z %s'"
         command | getline
         close(command)
 
-        if (DATETIME == "host") {
-            OUTPUT_TIMEZONE = $1
+        if (TIMEZONE == "host") {
+            TIMEZONE_OFFSET = $1
         }
 
         TIMESTAMP = $2
-    } else if (DATETIME == "utc") {
-        OUTPUT_TIMEZONE = "0000"
-    } else if (DATETIME == "author") {
-        SHOW_TIMEZONE = 1
-        OUTPUT_TIMEZONE = ""
-    } else {
-        abort("unrecognized date timezone: " DATETIME)
     }
 
     if (ANNOTATION == "who") {
@@ -612,7 +614,7 @@ function annotate(    clock, date, name, offset, rightcol)
         name = commits[hash, MAIL_FIELD]
     }
 
-    offset = OUTPUT_TIMEZONE
+    offset = TIMEZONE_OFFSET
     if (!length(offset)) {
         offset = commits[hash, TZ_FIELD]
     }

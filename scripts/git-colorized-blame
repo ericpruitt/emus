@@ -597,6 +597,7 @@ function handle_metadata(    days, i, name, spaces, value)
 function format_columns(left, right,    n)
 {
     left = truncate(left, MARGIN_WIDTH - length(right))
+
     for (n = MARGIN_WIDTH - length(left) - length(right); n > 0; n--) {
         left = left " "
     }
@@ -609,11 +610,13 @@ function format_columns(left, right,    n)
 function annotate(    clock, date, name, offset, rightcol)
 {
     name = SHOW_EMAIL ? "" : commits[hash, NAME_FIELD]
+
     if (!length(name)) {
         name = commits[hash, MAIL_FIELD]
     }
 
     offset = TIMEZONE_OFFSET
+
     if (!length(offset)) {
         offset = commits[hash, TZ_FIELD]
     }
@@ -687,7 +690,6 @@ function handle_line(    c, furthest, lineno, margin, previous_color)
     # original file as separate groups even if the lines all come from one
     # commit; for example:
     #
-    #   [...]
     #   498b29f4a84bfb87192d0e5b736c1150feb2773b 130 130
     #                   git blame "$@"
     #   7c6a9aa87d265ad0460a29c1e14dc23911f76e49 199 131 1
@@ -695,7 +697,6 @@ function handle_line(    c, furthest, lineno, margin, previous_color)
     #   7c6a9aa87d265ad0460a29c1e14dc23911f76e49 202 132 2
     #           }
     #   7c6a9aa87d265ad0460a29c1e14dc23911f76e49 203 133
-    #   [...]
     #
     # Although lines 131 and 132 come from the same commit, Git treats them as
     # different groups hence the 4th field on both lines and the reason for the
@@ -722,10 +723,8 @@ function handle_line(    c, furthest, lineno, margin, previous_color)
 
     if (commits[hash, "boundary"]) {
         color = "boundary"
-
     } else if (hash == HASH_OF_UNCOMMITTED_BLOCK) {
         color = "uncommitted"
-
     } else if (continuation_of_group) {
         if (length(overflow_buffer)) {
             printf FORMAT, COLORS[color], margins[1], overflow_buffer
@@ -734,12 +733,10 @@ function handle_line(    c, furthest, lineno, margin, previous_color)
         color_locations[color] = source_line
         margin = margins[2]
         margins[2] = ""
-
     } else {
         annotate()
         margins[1] = truncate(margins[1], MARGIN_WIDTH)
         margins[2] = truncate(margins[2], MARGIN_WIDTH)
-
 
         if (HEAT_MAP) {
             color = commits[hash, "color"]
@@ -755,6 +752,7 @@ function handle_line(    c, furthest, lineno, margin, previous_color)
             # Otherwise, pick whichever color was least-recently used.
             } else {
                 furthest = source_line
+
                 for (c = 1; c <= COLOR_COUNT; c++) {
                     if (c != color && color_locations[c] < furthest) {
                         furthest = color_locations[c]
@@ -814,6 +812,7 @@ BEGIN {
             if (length(overflow_buffer)) {
                 printf FORMAT, COLORS[color], margins["brief"], overflow_buffer
             }
+
             close(script)
             exit substr($0, 4)
         } else if (/^\t/) {

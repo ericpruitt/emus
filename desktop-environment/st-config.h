@@ -39,10 +39,10 @@ char *vtiden = "\033[?6c";
 
 /* Kerning / character bounding-box multipliers */
 static float cwscale = 1.0;
-static float chscale = 1.0;
+static float chscale = 0.94;
 
 /* Scaling factor for font->ascent when glyph is an underscore. */
-static float underscoreascentscale = 0.99;
+static float underscoreascentscale = 0.93;
 
 /*
  * word delimiter string

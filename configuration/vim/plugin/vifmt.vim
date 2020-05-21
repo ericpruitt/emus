@@ -15,5 +15,5 @@ function! ConfigureFormatScript()
 \                  . " -v TEXT_WIDTH=" . &l:textwidth
 endfunction
 
-autocmd BufEnter * call ConfigureFormatScript()
-autocmd InsertLeave * call ConfigureFormatScript()
+"autocmd BufEnter * call ConfigureFormatScript()
+"autocmd InsertLeave * call ConfigureFormatScript()

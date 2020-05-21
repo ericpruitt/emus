@@ -75,7 +75,7 @@ function view()
       ;;
 
       # Pretty-print JSON files
-      *.json)
+      *.json|.arclint)
         jq --color-output --indent 4 < "$path"
       ;;
 

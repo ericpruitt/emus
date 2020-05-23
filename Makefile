@@ -85,7 +85,7 @@ $(GIT_INFO_EXCLUDE): ALWAYS_RUN
 	touch $@
 
 user-configuration:
-	(cd configuration && $(MAKE) prepare && $(MAKE) user)
+	(umask 0077 && cd configuration && $(MAKE) prepare && $(MAKE) user)
 
 host-configuration:
 	(cd configuration && $(MAKE) host)

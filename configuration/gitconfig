@@ -11,11 +11,11 @@
 	wlog = log --word-diff=color -p --diff-filter=M
 	cdiff = diff --color-words --word-diff-regex=.
 	cshow = show --color-words --word-diff-regex=.
-	clog = log --word-diff-regex=. -p --diff-filter=M
-	what = colorized-blame what -dc
-	when = colorized-blame when -dc
-	who = colorized-blame who -dc
-	heat = colorized-blame what -dc --heat-map
+	clog = log --word-tiff-regex=. -p --diff-filter=M
+	what = colorized-blame what -tc
+	when = colorized-blame when -tc
+	who = colorized-blame who -tc
+	heat = colorized-blame what -tc --heat-map
 	mine = log --author=^Eric\\ Pruitt\\ < -p
 	others = log --author=^Eric\\ Pruitt\\ < -p --invert-grep
 

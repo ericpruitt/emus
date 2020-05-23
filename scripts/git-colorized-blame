@@ -27,10 +27,6 @@
 #   --contents=FILE
 #         Use file's contents as the final image. Refer to git-blame(1) for
 #         details.
-#   -d, --date=SELECTION ("author")
-#         Change which timestamp is used for commit dates. Using "author" or
-#         the shorthand "a" will show the author timestamp, and using
-#         "committer" or the shorthand "c" will show the commit timestamp.
 #   -e, --show-email
 #         Show the author email instead of author name.
 #   -H, --heat-map
@@ -74,6 +70,10 @@
 #         Use revisions from revs-file instead of calling git-rev-list(1).
 #   -s, --short
 #         Show summaries using one line instead of two.
+#   -t, --timestamp=SELECTION ("author")
+#         Change which timestamp is used for commit dates. Using "author" or
+#         the shorthand "a" will show the author timestamp, and using
+#         "committer" or the shorthand "c" will show the commit timestamp.
 #   -u, --utc
 #         Display commit times in UTC. This is essentially an alias for
 #         "--timezone=utc".
@@ -148,7 +148,7 @@ BEGIN {
     ATTRIBUTION = "author"
 
     # Which timestamp is used for dates.
-    DATE = "author"
+    TIMESTAMP = "author"
 
     # Determines whether commits are colored using a heat map gradient.
     HEAT_MAP = 0
@@ -312,8 +312,6 @@ function init(    argument, command, optind0)
             }
         } else if (argument ~ /^-(a|-attribution(=|$))/) {
             ATTRIBUTION = optarg()
-        } else if (argument ~ /^-(d|-date(=|$))/) {
-            DATE = optarg()
         } else if (argument ~ /^-(e|-show-email(=|$))/) {
             optarg("none")
             SHOW_EMAIL = 1
@@ -333,6 +331,8 @@ function init(    argument, command, optind0)
         } else if (argument ~ /^-(s|-short(=|$))/) {
             optarg("none")
             VERBOSE = 0
+        } else if (argument ~ /^-(t|-timestamp(=|$))/) {
+            TIMESTAMP = optarg()
         } else if (argument ~ /^-(u|-utc(=|$))/) {
             optarg("none")
             TIMEZONE = "utc"
@@ -388,10 +388,10 @@ function init(    argument, command, optind0)
         abort("attribution selection must be \"author\" or \"committer\"")
     }
 
-    if (DATE ~ /^a(uthor)?$/) {
+    if (TIMESTAMP ~ /^a(uthor)?$/) {
         TIME_FIELD = "author-time"
         TZ_FIELD = "author-tz"
-    } else if (DATE ~ /^c(ommitter)?$/) {
+    } else if (TIMESTAMP ~ /^c(ommitter)?$/) {
         TIME_FIELD = "committer-time"
         TZ_FIELD = "committer-tz"
     } else {
@@ -424,7 +424,7 @@ function init(    argument, command, optind0)
             TIMEZONE_OFFSET = $1
         }
 
-        TIMESTAMP = $2
+        NOW = $2
     }
 
     if (ANNOTATION == "who") {
@@ -586,7 +586,7 @@ function handle_metadata(    days, i, name, spaces, value)
         if (name == "summary" && value == "(" hash ")") {
             value = "No commit summary"
         } else if (HEAT_MAP && name == TIME_FIELD) {
-            days = (TIMESTAMP - value) / 86400
+            days = (NOW - value) / 86400
             commits[hash, "color"] = (days < 2) + (days < 10) + (days < 32) + \
                 (days < 93) + (days < 184) + 1
         }

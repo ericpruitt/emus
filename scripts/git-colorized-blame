@@ -103,6 +103,10 @@
 #   Although the syntax and features of the script itself are POSIX-compliant,
 #   date(1) is invoked with "%s" which is not specified in POSIX and with "%z"
 #   which is specified for strftime(3) but unfortunately not date(1).
+#
+# Author:
+#   Written by Eric Pruitt (https://www.codevat.com/about-me/) and made freely
+#   available under the MIT license (https://opensource.org/licenses/MIT).
 
 BEGIN {
     #                           --- Options ---

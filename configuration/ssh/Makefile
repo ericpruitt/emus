@@ -35,6 +35,7 @@ TARGETS = \
 	untracked \
 
 all: $(TARGETS)
+	chmod 700 config $(LOCAL_CONFIGS) . .. ../..
 
 keygen: $(DEFAULT_IDENTITY) $(TYPED_SSH_KEYS)
 
@@ -56,11 +57,12 @@ $(LOCAL_CONFIGS):
 	touch $@
 
 $(UNTRACKED_FILES):
+	(umask 0077 && \
 	case "$@" in \
 	  */.FOLDER)    mkdir $(@D) && touch $@ ;; \
 	  */)           mkdir $@ ;; \
 	  *)            (set -o noclobber && > $@) ;; \
-	esac
+	esac)
 
 $(TYPED_SSH_KEYS): $(SSH_KEYS_SECRET_FOLDER)
 	case "$@" in \

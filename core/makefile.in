@@ -38,6 +38,7 @@ MUSL = musl-1.2.0
 NCURSES = ncurses-6.2
 PCRE = pcre-8.44
 READLINE = readline-8.0
+RSYNC = rsync-3.1.3
 SED = sed-4.8
 TMUX = tmux-src
 TREE = tree-1.8.0
@@ -96,6 +97,7 @@ BINARIES = \
 	$(LESS)/less \
 	$(LESS)/lessecho \
 	$(LESS)/lesskey \
+	$(RSYNC)/rsync \
 	$(SED)/sed/sed \
 	$(TMUX)/tmux \
 	$(TREE)/tree \
@@ -123,6 +125,7 @@ FOLDER_CLEAN_TARGETS = \
 	clean-ncurses \
 	clean-pcre \
 	clean-readline \
+	clean-rsync \
 	clean-sed \
 	clean-tree \
 
@@ -142,6 +145,7 @@ TAR_GZ_SIGNATURES = \
 	$(NCURSES).tar.gz.sig \
 	$(PCRE).tar.gz.sig \
 	$(READLINE).tar.gz.sig \
+	$(RSYNC).tar.gz.sig \
 
 TAR_XZ_SIGNATURES = \
 	$(COREUTILS).tar.xz.sig \
@@ -918,6 +922,28 @@ $(BIN)/lessecho: $(LESS)/lessecho
 
 $(BIN)/lesskey: $(LESS)/lesskey
 	test -z "$(MAN)" || cp -f $?.nro $(MAN)/man1/$(@F).1
+	cp -f $? $@
+
+$(RSYNC).tar.gz $(RSYNC).tar.gz.asc:
+	$(WGET) -nc https://download.samba.org/pub/rsync/$@
+
+$(RSYNC)/Makefile: $(RSYNC)/.FOLDER
+	(cd $(@D) && \
+	./configure \
+		CC="$(CC)" \
+		CFLAGS="$(CFLAGS) -I$(PWD)/$(COMMON)/include/ncurses" \
+		LDFLAGS="$(LDFLAGS)" \
+	)
+
+$(RSYNC)/rsync: $(RSYNC)/Makefile
+	(cd $(?D) && $(MAKE) -S)
+
+rsync: $(RSYNC)/rsync
+
+$(BIN)/rsync: $(RSYNC)/rsync
+	if [ -n "$(MAN)" ]; then \
+		cp -f $(RSYNC)/rsync.1 $(MAN)/man1/; \
+	fi
 	cp -f $? $@
 
 $(TMUX)/.git:

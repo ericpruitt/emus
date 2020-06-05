@@ -501,7 +501,7 @@ function -setup()
     HISTFILESIZE=""
     HISTIGNORE="history?( -[acdnrw]*):@(fg|help|history)?( ):@(silent|fg) *"
     HISTSIZE="2147483647"
-    HISTTIMEFORMAT=""
+    HISTTIMEFORMAT="%Y-%m-%dT%H:%M:%S%z  "
     TIMEFORMAT="[%Rs (%P%% CPU; User: %U, Sys: %S)]"
     PROMPT_COMMAND="-prompt-command"
 

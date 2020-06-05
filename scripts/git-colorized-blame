@@ -18,7 +18,7 @@
 #   -a, --attribution=SELECTION ("author")
 #         Change how patches are attributed in the annotations. Using "author"
 #         or the shorthand "a" will show the author's name, and using
-#         "committer" or the shorthand "c" will show the committer s name.
+#         "committer" or the shorthand "c" will show the committer's name.
 #   -C[SCORE]
 #         Find line copies within and across files. Refer to git-blame(1) for
 #         more details about the optional score argument.

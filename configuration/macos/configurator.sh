@@ -321,7 +321,10 @@ function user-misc-gui-tweaks()
     # Always show scrollbars.
     defaults write -g AppleShowScrollBars -string Always
 
-    kill-system-ui-server
+    # Automatically hide the dock.
+    defaults write com.apple.dock autohide -integer 1
+
+    kill-ui-processes
 }
 
 # Configure keyboard mappings so common macOS shortcuts can be activated using
@@ -418,7 +421,7 @@ function user-spotlight()
     # Disable Spotlight suggestions when using the OS's "look up word" feature.
     defaults write com.apple.lookup.shared LookupSuggestionsDisabled -bool true
 
-    kill-system-ui-server
+    kill-ui-processes
 }
 
 # Display program usage information.
@@ -489,11 +492,12 @@ function configure()
     return "${return_code:-0}"
 }
 
-# Restart the UI server so changes made to UI preferences go into effect.
+# Restart UI processes so changes made to UI preferences go into effect.
 #
-kill-system-ui-server()
+kill-ui-processes()
 {
     killall SystemUIServer 2>/dev/null || :
+    killall Dock 2>/dev/null || :
 }
 
 function main()

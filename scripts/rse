@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Usage: rse [-d DIRECTORY] [-h] HOSTNAME COMMAND [ARGUMENT]...
+#
+# Execute a program on a remote system using SSH. This tool assumes the script
+# being executed does not have any other dependencies specific to the local
+# host.
+#
+# Options (and Defaults)
+#   -h    Display usage and exit.
+#   -d DIRECTORY (".")
+#         Execute the command from the specified directory.
+set -e -u -o pipefail
+
+declare -r SELF="${0##*/}"
+
+die()
+{
+    printf "%s: %s\n" "$SELF" "$1" >&2
+    exit "${2:-1}"
+}
+
+usage()
+{
+    echo "Usage: $SELF [-d DIRECTORY] [-h] HOSTNAME COMMAND [ARGUMENT]..."
+}
+
+main()
+{
+    local command
+    local host
+    local interpreter
+    local option
+    local path
+
+    local directory="."
+
+    while getopts d:h option "$@"; do
+        case "$option" in
+          d)    directory="$OPTARG" ;;
+          h)    usage; return ;;
+          \?)   usage >&2; return 1 ;;
+        esac
+    done
+
+    shift "$((OPTIND - 1))"
+
+    if [[ "$#" -eq 0 ]]; then
+        die "no host name or command specified"
+    elif [[ "$#" -eq 1 ]]; then
+        die "no command specified"
+    else
+        host="$1"
+        command="$2"
+    fi
+
+    path="$(command -v -- "$command")" || die "$command: command not found" 127
+    interpreter="$(sed -n -e "1s/#!//p" -e "q" -- "$path")"
+    test "$interpreter" || die "$script: no interpreter line found"
+
+    shift 2
+    command="cd -- '${directory//"'"/\'\"\'\"\'}' && \
+        $interpreter /dev/fd/0 ${@@Q}"
+    ssh -S "none" "$host" "$command" < "$path"
+}
+
+main "$@"

@@ -324,6 +324,10 @@ function user-misc-gui-tweaks()
     # Automatically hide the dock.
     defaults write com.apple.dock autohide -integer 1
 
+    # Always use light mode.
+    defaults write -g AppleInterfaceStyleSwitchesAutomatically -integer 0
+    defaults write -g AppleInterfaceStyle "Light"
+
     kill-ui-processes
 }
 

@@ -157,7 +157,9 @@ def build_graph(devices, *, show_sizes, show_device_types, show_fs_types,
       nodes for device types if the device is not a disk, disk partition or a
       loopback device.
 
-    Returns (str): A DOT graph definition.
+    Returns (tuple[str, set[str]]): A tuple with the DOT graph object as the
+    first member, and a set a with the paths of any devices that could not be
+    found as the second member.
     """
     fields = "TYPE,MAJ:MIN,MOUNTPOINT,NAME"
 

@@ -1,0 +1,356 @@
+#!/usr/bin/env python3
+"""
+Usage: graphblk [-abdfhlms] [--help] [DEVICE]...
+
+Generate a dot(1) graph of all available or the specified block devices and
+associated filesystems. Disks with spinning platters are represented by
+cylinders, sold state devices are represented with 3D boxes and disc drives are
+represented by a two concentric circles.
+
+Options:
+  -a    Show as much detail as possible.
+  -b    Show as much detail as possible except volume sizes.
+  -d    Hide device type nodes.
+  -f    Insert filesystem type nodes.
+  -h, --help
+        Show this documentation and exit.
+  -l    Follow loopback devices; try to connect loopback nodes to the
+        mountpoint that hosts the backing file.
+  -m    Do not use media-specific icons for devices.
+  -s    Add sizes to volume labels.
+
+Exit Statuses:
+- 0: Success
+- 1: Failure
+- 32: Some of the specified devices were not found.
+- 64: None of the specified devices were found.
+
+Examples:
+  graphblk -l | dot -T png > graph.png
+  graphblk -a | xdot -
+"""
+import getopt
+import json
+import os
+import re
+import subprocess
+import sys
+
+# Tokens matching this pattern do not need to be quoted; the grammar spec from
+# "The DOT Language" (https://graphviz.org/doc/info/lang.html) reads:
+#
+# > An ID is one of the following:
+# > - Any string of alphabetic ([a-zA-Z\200-\377]) characters, underscores
+# >   ('_') or digits ([0-9]), not beginning with a digit;
+# > - a numeral [-]?(.[0-9]+ | [0-9]+(.[0-9]*)? );
+# > - any double-quoted string ("...") possibly containing escaped quotes (\");
+SAFE_TOKEN_RE = re.compile(
+    r"^([a-zA-Z_\200-\377][\w\200-\377]*|-?(\.[0-9]+|[0-9]+(\.[0-9]*)?))$"
+)
+
+EXIT_SUCCESS = 0
+EXIT_FAILURE = 1
+EXIT_SOME_DEVICES_NOT_FOUND = 64
+
+
+class Graph:
+    """
+    The class provides a interface for generating basic strict, directional
+    DOT graphs.
+    """
+    def __init__(self):
+        self.lines = list()
+        self.nodes = set()
+
+    def __str__(self):
+        """
+        TODO
+        """
+        return "\n".join(["strict digraph {"] + self.lines + ["}\n"])
+
+    def __contains__(self, value):
+        """
+        Return True if the graph has an explicit definition for a node.
+        """
+        return value in self.nodes
+
+    def node(self, name, **attributes):
+        """
+        Define a node and its attributes.
+
+        Arguments:
+        - name (str): Node ID.
+        - attributes dict[str, str]: Node attribute names and values.
+        """
+        parts = list()
+
+        for attribute, value in attributes.items():
+            parts.append(f'{dot_quote(attribute)}={dot_quote(value)}')
+
+        self.lines.append(f'    {dot_quote(name)} [{" ".join(parts)}]')
+        self.nodes.add(name)
+
+    def edge(self, *nodes):
+        """
+        Create one or more edges connecting the specified nodes. An edge is
+        drawn from the first node to the second, from the second to the third,
+        and so on.
+
+        Arguments:
+        - nodes (Sequence[str]): Sequence with at least two node IDs.
+        """
+        assert len(nodes) >= 2, "At least two nodes must be specified"
+        self.lines.append("    " + " -> ".join(map(dot_quote, nodes)))
+        self.nodes.update(nodes)
+
+
+def dot_quote(text):
+    """
+    Quote text as needed so it can be used as a DOT ID.
+
+    Arguments:
+    - text (str)
+
+    Returns (str): Text quoted and escaped as needed.
+    """
+    if not SAFE_TOKEN_RE.match(text):
+        text = '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+        text = text.replace("\n", "\\n")
+
+    return text
+
+
+def is_rotational(name):
+    """
+    Determine if a device uses rotational media.
+
+    Arguments:
+    - name (str): The device name.
+
+    Returns (bool): True if the device uses rotational media and False
+    otherwise.
+    """
+    with open(f"/sys/block/{name}/queue/rotational") as fd:
+        content = fd.read()
+
+    return bool(int(content))
+
+
+def build_graph(devices, *, show_sizes, show_device_types, show_fs_types,
+  distinguish_media, follow_loopback_devices):
+    """
+    Build a DOT graph of block devices and associated filesystems.
+
+    Arguments:
+    - devices (Sequence[str]): Devices to graph. When this is empty, all block
+      devices are included.
+    - show_sizes (bool): When this is true, volume labels will include sizes.
+    - show_device_types (bool): When this is true, the graph will include nodes
+      for device types.
+    - show_fs_types (bool): When this is true, the graph will include nodes for
+      filesystem types.
+    - distinguish_media (bool): When this is true, a disk node's icon will be
+      determined by its physical media. Disks with spinning platters are
+      represented by cylinders, sold state devices are represented with 3D
+      boxes and disc drives are represented by a two concentric circles.
+    - follow_loopback_devices (bool): When this is true, the graph will include
+      nodes for device types if the device is not a disk, disk partition or a
+      loopback device.
+
+    Returns (str): A DOT graph definition.
+    """
+    fields = "TYPE,MAJ:MIN,MOUNTPOINT,NAME"
+
+    if show_fs_types:
+        fields += ",FSTYPE"
+
+    if show_sizes:
+        fields += ",SIZE"
+
+    argv = ["lsblk", "-o", fields, "--json"]
+
+    if devices:
+        argv.append("--")
+        argv.extend(os.path.join("/dev", x) for x in devices)
+
+    try:
+        output = subprocess.check_output(argv)
+    except subprocess.CalledProcessError as error:
+        if error.returncode == EXIT_SOME_DEVICES_NOT_FOUND:
+            output = error.output
+        else:
+            raise
+
+    # Generate nodes and edges for every block device. Devices are pulled from
+    # a stack that consists of tuples of unprocessed device metadata and parent
+    # names.
+    data = json.loads(output)
+    stack = [(device, None) for device in data["blockdevices"]]
+    node_names = dict()
+    mounts = dict()
+    graph = Graph()
+    saw_loopback_device = False
+
+    while stack:
+        device, parent = stack.pop(0)
+        device_node = f'device_{device["maj:min"].replace(":", "_")}'
+        already_defined = device_node in graph
+
+        if not show_device_types:
+            show_its_type = False
+        elif device["type"] == "rom":
+            # When using distinguish_media, disc drives have a unique icon
+            # which making the type information redundant, so we only show the
+            # type node when media is NOT distinguished.
+            show_its_type = not distinguish_media
+        else:
+            show_its_type = device["type"] not in ("disk", "loop", "part")
+            type_node = f'type_of_{device_node}'
+
+        if parent:
+            graph.edge(parent, type_node if show_its_type else device_node)
+
+        if already_defined:
+            continue
+
+        if not saw_loopback_device:
+            saw_loopback_device = (device["type"] == "loop")
+
+        if show_sizes:
+            label = device["name"] + "\n" + device["size"]
+        else:
+            label = device["name"]
+
+        if show_its_type:
+            graph.node(type_node, label=device["type"], shape="diamond")
+            graph.edge(type_node, device_node)
+
+        if device["mountpoint"]:
+            mounts[device["maj:min"]] = device["mountpoint"]
+            graph.node(device["mountpoint"], shape="box")
+
+            if show_fs_types:
+                fs_node = f'fs_of_{device_node}'
+                graph.node(fs_node, label=device["fstype"], shape="diamond")
+                graph.edge(device_node, fs_node, device["mountpoint"])
+            else:
+                graph.edge(device_node, device["mountpoint"])
+
+        if device["type"] not in ("disk", "rom"):
+            shape = "oval"          # Neither a disk nor disc drive
+        elif not distinguish_media:
+            shape = "cylinder"      # Generic default
+        elif device["type"] == "rom":
+            shape = "doublecircle"  # Disc drive
+        elif not is_rotational(device["name"]):
+            shape = "box3d"         # Sold state disk
+        else:
+            shape = "cylinder"      # Probably a disk with platters
+
+        graph.node(device_node, label=label, shape=shape)
+        node_names[device["name"]] = device_node
+
+        # Add any children of this device to the processing stack.
+        for child in device.get("children", ()):
+            stack.append((child, device_node))
+
+    if follow_loopback_devices and saw_loopback_device:
+        # Attempt to determine which mountpoint houses the backing files for
+        # loopback devices.
+        losetup_json = subprocess.check_output(["/sbin/losetup", "--json"])
+        losetup_data = json.loads(losetup_json)
+
+        for device in losetup_data["loopdevices"]:
+            name = os.path.basename(device["name"])
+
+            if name in node_names:
+                graph.edge(device["back-file"], node_names[name]),
+                graph.node(device["back-file"], shape="box"),
+
+                try:
+                    stat = os.stat(device["back-file"])
+                    key = f"{os.major(stat.st_dev)}:{os.minor(stat.st_dev)}"
+                    graph.edge(mounts[key], device["back-file"])
+                except (KeyError, OSError):
+                    pass
+
+    not_found = set()
+
+    for name in devices:
+        if os.path.basename(os.path.realpath(name)) not in node_names:
+            not_found.add(name)
+
+    return graph, not_found
+
+
+def main(argv):
+    command = os.path.basename(argv[0])
+
+    try:
+        options, parameters = getopt.gnu_getopt(argv[1:], "abdfhlms", ["help"])
+    except getopt.GetoptError as error:
+        print(f'{command}: {error}; try "{command} --help"', file=sys.stderr)
+        return EXIT_FAILURE
+
+    distinguish_media = True
+    follow_loopback_devices = False
+    show_device_types = True
+    show_fs_types = False
+    show_sizes = False
+
+    for option, _ in options:
+        if option in ("-h", "--help"):
+            print(__doc__.strip())
+            return
+
+        elif option in ("-a", "-b"):
+            distinguish_media = True
+            follow_loopback_devices = True
+            show_device_types = True
+            show_fs_types = True
+            show_sizes = (option == "-a")
+
+        elif option == "-d":
+            show_device_types = False
+
+        elif option == "-f":
+            show_fs_types = True
+
+        elif option == "-l":
+            follow_loopback_devices = True
+
+        elif option == "-m":
+            distinguish_media = False
+
+        elif option == "-s":
+            show_sizes = True
+
+    exit_status = EXIT_SUCCESS
+
+    try:
+        graph, not_found = build_graph(
+            devices=parameters,
+            show_sizes=show_sizes,
+            show_device_types=show_device_types,
+            show_fs_types=show_fs_types,
+            distinguish_media=distinguish_media,
+            follow_loopback_devices=follow_loopback_devices,
+        )
+    except subprocess.CalledProcessError as error:
+        exit_status = error.returncode
+    except Exception as error:
+        print(f'{command}: {error}', file=sys.stderr)
+        exit_status = EXIT_FAILURE
+    else:
+        if not_found:
+            description = ", ".join(not_found)
+            print(f'{command}: {description} not found',  file=sys.stderr)
+            exit_status = EXIT_SOME_DEVICES_NOT_FOUND
+
+        print(graph, end="")
+
+    return exit_status
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

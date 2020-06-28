@@ -64,7 +64,7 @@ class Graph:
 
     def __str__(self):
         """
-        TODO
+        Return the graph as a string for interpretation by DOT.
         """
         return "\n".join(["strict digraph {"] + self.lines + ["}\n"])
 

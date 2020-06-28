@@ -11,7 +11,7 @@ Options:
   -a    Show as much detail as possible.
   -b    Show as much detail as possible except volume sizes.
   -d    Hide device type nodes.
-  -f    Insert filesystem type nodes.
+  -f    Show filesystem type nodes.
   -h, --help
         Show this documentation and exit.
   -l    Follow loopback devices; try to connect loopback nodes to the

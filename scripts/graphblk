@@ -173,7 +173,7 @@ def build_graph(devices, *, show_sizes, show_device_types, show_fs_types,
 
     if devices:
         argv.append("--")
-        argv.extend(os.path.join("/dev", x) for x in devices)
+        argv.extend(devices)
 
     try:
         output = subprocess.check_output(argv)

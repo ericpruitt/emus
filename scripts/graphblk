@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Usage: graphblk [-abdfhlms] [--help] [DEVICE]...
+Usage: graphblk [-abdfhlmSs] [--help] [DEVICE]...
 
 Generate a dot(1) graph of all available or the specified block devices and
 associated filesystems. Disks with spinning platters are represented by
@@ -17,6 +17,8 @@ Options:
   -l    Follow loopback devices; try to connect loopback nodes to the
         mountpoint that hosts the backing file.
   -m    Do not use media-specific icons for devices.
+  -S    Add sizes to volume labels using SI units, powers of 1,000 instead of
+        1,024.
   -s    Add sizes to volume labels.
 
 Exit Statuses:
@@ -104,6 +106,37 @@ class Graph:
         self.nodes.update(nodes)
 
 
+def human_readable_size(value, *, si_units=False):
+    """
+    Represent the number of bytes with a human-readable string, attempting to
+    use 3 digits at most when possible.
+
+    Arguments:
+    - value (int)
+
+    Returns (str): A human-readable value.
+    """
+    base = 1000 if si_units else 1024
+
+    for suffix in ("B", "KiB", "MiB", "GiB", "TiB", "PiB"):
+        if value < base or suffix == "PiB":
+            if si_units:
+                suffix = suffix.replace("i", "")
+
+            break
+
+        value /= base
+
+    if value >= 100:
+        sizestr = "%i" % value
+    elif value >= 10:
+        sizestr = ("%.1f" % value).replace(".0", "")
+    else:
+        sizestr = ("%.2f" % value).replace(".00", "")
+
+    return sizestr + suffix
+
+
 def dot_quote(text):
     """
     Quote text as needed so it can be used as a DOT ID.
@@ -136,8 +169,8 @@ def is_rotational(name):
     return bool(int(content))
 
 
-def build_graph(devices, *, show_sizes, show_device_types, show_fs_types,
-  distinguish_media, follow_loopback_devices):
+def build_graph(devices, *, show_sizes, si_units, show_device_types,
+  show_fs_types, distinguish_media, follow_loopback_devices):
     """
     Build a DOT graph of block devices and associated filesystems.
 
@@ -145,6 +178,8 @@ def build_graph(devices, *, show_sizes, show_device_types, show_fs_types,
     - devices (Sequence[str]): Devices to graph. When this is empty, all block
       devices are included.
     - show_sizes (bool): When this is true, volume labels will include sizes.
+    - si_units (bool): When this is true, use units based on powers of 1000
+      instead of 1024.
     - show_device_types (bool): When this is true, the graph will include nodes
       for device types.
     - show_fs_types (bool): When this is true, the graph will include nodes for
@@ -169,7 +204,7 @@ def build_graph(devices, *, show_sizes, show_device_types, show_fs_types,
     if show_sizes:
         fields += ",SIZE"
 
-    argv = ["lsblk", "-o", fields, "--json"]
+    argv = ["lsblk", "-b", "-o", fields, "--json"]
 
     if devices:
         argv.append("--")
@@ -218,10 +253,12 @@ def build_graph(devices, *, show_sizes, show_device_types, show_fs_types,
         if not saw_loopback_device:
             saw_loopback_device = (device["type"] == "loop")
 
+        label = device["name"]
+
         if show_sizes:
-            label = device["name"] + "\n" + device["size"]
-        else:
-            label = device["name"]
+            label += (
+                "\n" + human_readable_size(device["size"], si_units=si_units)
+            )
 
         if show_its_type:
             graph.node(type_node, label=device["type"], shape="diamond")
@@ -289,7 +326,9 @@ def main(argv):
     command = os.path.basename(argv[0])
 
     try:
-        options, parameters = getopt.gnu_getopt(argv[1:], "abdfhlms", ["help"])
+        options, parameters = getopt.gnu_getopt(
+            argv[1:], "abdfhlmsS", ["help"]
+        )
     except getopt.GetoptError as error:
         print(f'{command}: {error}; try "{command} --help"', file=sys.stderr)
         return EXIT_FAILURE
@@ -299,6 +338,7 @@ def main(argv):
     show_device_types = True
     show_fs_types = False
     show_sizes = False
+    si_units = False
 
     for option, _ in options:
         if option in ("-h", "--help"):
@@ -324,6 +364,10 @@ def main(argv):
         elif option == "-m":
             distinguish_media = False
 
+        elif option == "-S":
+            show_sizes = True
+            si_units = True
+
         elif option == "-s":
             show_sizes = True
 
@@ -333,6 +377,7 @@ def main(argv):
         graph, not_found = build_graph(
             devices=parameters,
             show_sizes=show_sizes,
+            si_units=si_units,
             show_device_types=show_device_types,
             show_fs_types=show_fs_types,
             distinguish_media=distinguish_media,

@@ -256,9 +256,8 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
         label = device["name"]
 
         if show_sizes:
-            label += (
-                "\n" + human_readable_size(device["size"], si_units=si_units)
-            )
+            size = int(device["size"])  # Required for older lsblk releases.
+            label += "\n" + human_readable_size(size, si_units=si_units)
 
         if show_its_type:
             graph.node(type_node, label=device["type"], shape="diamond")

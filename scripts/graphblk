@@ -24,8 +24,8 @@ Options:
 Exit Statuses:
 - 0: Success
 - 1: Failure
-- 32: Some of the specified devices were not found.
-- 64: None of the specified devices were found.
+- 32: None of the specified devices were found.
+- 64: Some of the specified devices were not found.
 
 Examples:
   graphblk -a | dot -T png > graph.png

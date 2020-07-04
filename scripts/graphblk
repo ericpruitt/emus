@@ -47,7 +47,7 @@ import sys
 # > - a numeral [-]?(.[0-9]+ | [0-9]+(.[0-9]*)? );
 # > - any double-quoted string ("...") possibly containing escaped quotes (\");
 SAFE_TOKEN_RE = re.compile(
-    r"^([a-zA-Z_\200-\377][\w\200-\377]*|-?(\.[0-9]+|[0-9]+(\.[0-9]*)?))$"
+    "^([a-zA-Z_\udc80-\udcff][\w\udc80-\udcff]*|-?(\.\\d+|\\d+(\.\\d*)?))$"
 )
 
 EXIT_SUCCESS = 0
@@ -221,7 +221,7 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
     # Generate nodes and edges for every block device. Devices are pulled from
     # a stack that consists of tuples of unprocessed device metadata and parent
     # names.
-    data = json.loads(output)
+    data = json.loads(output.decode("utf-8", "surrogateescape"))
     stack = [(device, None) for device in data["blockdevices"]]
     node_names = dict()
     mounts = dict()

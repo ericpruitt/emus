@@ -8,8 +8,8 @@ cylinders, sold state devices are represented with 3D boxes and disc drives are
 represented by a two concentric circles.
 
 Options:
-  -a    Show as much topological detail as possible. This is essentially and
-        alias for "-l -f" that also disables "-d".
+  -a    Show all topological details. This is essentially and alias for "-l -f"
+        that also disables "-d".
   -d    Hide device type nodes.
   -f    Show filesystem type nodes.
   -h, --help

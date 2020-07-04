@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Usage: graphblk [-abdfhlmSs] [--help] [DEVICE]...
+Usage: graphblk [-adfhlmSs] [--help] [DEVICE]...
 
 Generate a dot(1) graph of all available or the specified block devices and
 associated filesystems. Disks with spinning platters are represented by
@@ -8,8 +8,8 @@ cylinders, sold state devices are represented with 3D boxes and disc drives are
 represented by a two concentric circles.
 
 Options:
-  -a    Show as much detail as possible.
-  -b    Show as much detail as possible except volume sizes.
+  -a    Show as much topological detail as possible. This is essentially and
+        alias for "-l -f" that also disables "-d".
   -d    Hide device type nodes.
   -f    Show filesystem type nodes.
   -h, --help
@@ -325,9 +325,7 @@ def main(argv):
     command = os.path.basename(argv[0])
 
     try:
-        options, parameters = getopt.gnu_getopt(
-            argv[1:], "abdfhlmsS", ["help"]
-        )
+        options, parameters = getopt.gnu_getopt(argv[1:], "adfhlmsS", ["help"])
     except getopt.GetoptError as error:
         print(f'{command}: {error}; try "{command} --help"', file=sys.stderr)
         return EXIT_FAILURE
@@ -344,12 +342,10 @@ def main(argv):
             print(__doc__.strip())
             return
 
-        elif option in ("-a", "-b"):
-            distinguish_media = True
+        elif option == "-a":
             follow_loopback_devices = True
             show_device_types = True
             show_fs_types = True
-            show_sizes = (option == "-a")
 
         elif option == "-d":
             show_device_types = False

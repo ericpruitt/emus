@@ -28,7 +28,7 @@ Exit Statuses:
 - 64: None of the specified devices were found.
 
 Examples:
-  graphblk -l | dot -T png > graph.png
+  graphblk -a | dot -T png > graph.png
   graphblk -a | xdot -
 """
 import getopt

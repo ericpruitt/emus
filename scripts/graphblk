@@ -2,13 +2,13 @@
 """
 Usage: graphblk [-adfhlmSs] [--help] [DEVICE]...
 
-Generate a dot(1) graph of all available or the specified block devices and
+Generate a DOT graph of all available or the specified block devices and
 associated filesystems. Disks with spinning platters are represented by
-cylinders, sold state devices are represented with 3D boxes and disc drives are
-represented by a two concentric circles.
+cylinders, sold state devices are represented with 3D boxes, and disc drives
+are represented by a two concentric circles.
 
 Options:
-  -a    Show all topological details. This is essentially and alias for "-l -f"
+  -a    Show all topological details. This is essentially an alias for "-l -f"
         that also disables "-d".
   -d    Hide device type nodes.
   -f    Show filesystem type nodes.

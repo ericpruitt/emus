@@ -300,7 +300,9 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
         except FileNotFoundError:
             losetup_json = subprocess.check_output(["/sbin/losetup", "--json"])
 
-        losetup_data = json.loads(losetup_json)
+        losetup_data = json.loads(
+            losetup_json.decode("utf-8", "surrogateescape")
+        )
 
         for device in losetup_data["loopdevices"]:
             name = os.path.basename(device["name"])

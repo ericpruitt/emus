@@ -295,7 +295,11 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
     if follow_loopback_devices and saw_loopback_device:
         # Attempt to determine which mountpoint houses the backing files for
         # loopback devices.
-        losetup_json = subprocess.check_output(["/sbin/losetup", "--json"])
+        try:
+            losetup_json = subprocess.check_output(["losetup", "--json"])
+        except FileNotFoundError:
+            losetup_json = subprocess.check_output(["/sbin/losetup", "--json"])
+
         losetup_data = json.loads(losetup_json)
 
         for device in losetup_data["loopdevices"]:

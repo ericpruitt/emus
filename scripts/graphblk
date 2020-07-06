@@ -204,7 +204,7 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
     if show_sizes:
         fields += ",SIZE"
 
-    argv = ["lsblk", "-b", "-o", fields, "--json"]
+    argv = ["lsblk", "--bytes", "--output", fields, "--json"]
 
     if devices:
         argv.append("--")

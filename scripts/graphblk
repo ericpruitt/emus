@@ -160,8 +160,7 @@ def is_rotational(name):
     Arguments:
     - name (str): The device name.
 
-    Returns (bool): True if the device uses rotational media and False
-    otherwise.
+    Returns (bool): True if the device uses rotational media and False otherwise.
     """
     with open(f"/sys/block/{name}/queue/rotational") as fd:
         content = fd.read()
@@ -204,25 +203,25 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
     if show_sizes:
         fields += ",SIZE"
 
-    argv = ["lsblk", "--bytes", "--output", fields, "--json"]
+    argv = ["lsblk", "--bytes", "--json", "--output", fields]
 
     if devices:
         argv.append("--")
         argv.extend(devices)
 
     try:
-        output = subprocess.check_output(argv)
+        lsblk_json = subprocess.check_output(argv)
     except subprocess.CalledProcessError as error:
-        if error.returncode == EXIT_SOME_DEVICES_NOT_FOUND:
-            output = error.output
-        else:
+        if error.returncode != EXIT_SOME_DEVICES_NOT_FOUND:
             raise
+
+        lsblk_json = error.output
 
     # Generate nodes and edges for every block device. Devices are pulled from
     # a stack that consists of tuples of unprocessed device metadata and parent
     # names.
-    data = json.loads(output.decode("utf-8", "surrogateescape"))
-    stack = [(device, None) for device in data["blockdevices"]]
+    lsblk_data = json.loads(lsblk_json.decode("utf-8", "surrogateescape"))
+    stack = [(device, None) for device in lsblk_data["blockdevices"]]
     node_names = dict()
     mounts = dict()
     graph = Graph()
@@ -237,8 +236,8 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
             show_its_type = False
         elif device["type"] == "rom":
             # When using distinguish_media, disc drives have a unique icon
-            # which making the type information redundant, so we only show the
-            # type node when media is NOT distinguished.
+            # which makes the type information redundant, so only show the type
+            # node when media is NOT distinguished.
             show_its_type = not distinguish_media
         else:
             show_its_type = device["type"] not in ("disk", "loop", "part")

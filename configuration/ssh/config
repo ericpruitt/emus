@@ -36,7 +36,7 @@ StrictHostKeyChecking yes
 UserKnownHostsFile ~/.ssh/known-hosts/suckless.org
 
 # Use brackets around IPv6 addresses in socket file names.
-Host *:*
+Host *:*:*
 ControlPath ~/.ssh/sockets/%r@[%h]:%p
 
 # If it seems the preferred, verbose socket name will be too long for a Unix

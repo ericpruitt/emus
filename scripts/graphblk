@@ -110,7 +110,7 @@ class Graph:
 def human_readable_size(value, *, si_units=False):
     """
     Represent the number of bytes with a human-readable string, attempting to
-    use 3 digits at most when possible. The result is never rounded up.
+    use 3 digits at most when possible.
 
     Arguments:
     - value (int)
@@ -129,11 +129,11 @@ def human_readable_size(value, *, si_units=False):
         value /= base
 
     if value >= 100:
-        sizestr = "%i" % value
+        sizestr = "%i" % (value + 0.5)
+    elif value >= 10:
+        sizestr = ("%.1f" % value).replace(".0", "")
     else:
-        sizestr = str(value)
-        sizestr = sizestr[:sizestr.index(".") + (2 if value >= 10 else 3)]
-        sizestr = sizestr.replace(".00", "").replace(".0", "")
+        sizestr = ("%.2f" % value).replace(".00", "")
 
     return sizestr + suffix
 

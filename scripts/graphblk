@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Usage: graphblk [-adfhlmSs] [--help] [DEVICE]...
+Usage: graphblk [-adfhlmrSs] [--help] [DEVICE]...
 
 Generate a DOT graph of all available or the specified block devices and
 associated filesystems. Disks with spinning platters are represented by
@@ -17,6 +17,7 @@ Options:
   -l    Follow loopback devices; try to connect loopback nodes to the
         mountpoint that hosts the backing file.
   -m    Do not use media-specific icons for devices.
+  -r    Hide nodes for removable media.
   -S    Add sizes to volume labels using SI units, powers of 1,000 instead of
         1,024.
   -s    Add sizes to volume labels.
@@ -28,8 +29,8 @@ Exit Statuses:
 - 64: Some of the specified devices were not found.
 
 Examples:
-  graphblk -a | dot -T png > graph.png
-  graphblk -a | xdot -
+  graphblk -a -r | dot -T png > graph.png
+  graphblk -a -r | xdot -
 """
 import getopt
 import json
@@ -160,7 +161,8 @@ def is_rotational(name):
     Arguments:
     - name (str): The device name.
 
-    Returns (bool): True if the device uses rotational media and False otherwise.
+    Returns (bool): True if the device uses rotational media and False
+    otherwise.
     """
     with open(f"/sys/block/{name}/queue/rotational") as fd:
         content = fd.read()
@@ -169,7 +171,7 @@ def is_rotational(name):
 
 
 def build_graph(devices, *, show_sizes, si_units, show_device_types,
-  show_fs_types, distinguish_media, follow_loopback_devices):
+  show_fs_types, show_removable, distinguish_media, follow_loopback_devices):
     """
     Build a DOT graph of block devices and associated filesystems.
 
@@ -183,6 +185,8 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
       for device types.
     - show_fs_types (bool): When this is true, the graph will include nodes for
       filesystem types.
+    - show_removable (bool): When this is true, the graph will include nodes
+      for removable media.
     - distinguish_media (bool): When this is true, a disk node's icon will be
       determined by its physical media. Disks with spinning platters are
       represented by cylinders, sold state devices are represented with 3D
@@ -195,7 +199,7 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
     first member, and a set a with the paths of any devices that could not be
     found as the second member.
     """
-    fields = "TYPE,MAJ:MIN,MOUNTPOINT,NAME"
+    fields = "TYPE,MAJ:MIN,MOUNTPOINT,NAME,RM"
 
     if show_fs_types:
         fields += ",FSTYPE"
@@ -231,6 +235,9 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
         device, parent = stack.pop(0)
         device_node = f'device_{device["maj:min"].replace(":", "_")}'
         already_defined = device_node in graph
+
+        if not show_removable and device["rm"] in ("1", True):
+            continue
 
         if not show_device_types:
             show_its_type = False
@@ -330,7 +337,9 @@ def main(argv):
     command = os.path.basename(argv[0])
 
     try:
-        options, parameters = getopt.gnu_getopt(argv[1:], "adfhlmsS", ["help"])
+        options, parameters = getopt.gnu_getopt(
+            argv[1:], "adfhlmrsS", ["help"]
+        )
     except getopt.GetoptError as error:
         print(f'{command}: {error}; try "{command} --help"', file=sys.stderr)
         return EXIT_FAILURE
@@ -339,6 +348,7 @@ def main(argv):
     follow_loopback_devices = False
     show_device_types = True
     show_fs_types = False
+    show_removable = True
     show_sizes = False
     si_units = False
 
@@ -364,6 +374,9 @@ def main(argv):
         elif option == "-m":
             distinguish_media = False
 
+        elif option == "-r":
+            show_removable = False
+
         elif option == "-S":
             show_sizes = True
             si_units = True
@@ -380,6 +393,7 @@ def main(argv):
             si_units=si_units,
             show_device_types=show_device_types,
             show_fs_types=show_fs_types,
+            show_removable=show_removable,
             distinguish_media=distinguish_media,
             follow_loopback_devices=follow_loopback_devices,
         )

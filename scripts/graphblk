@@ -18,9 +18,8 @@ Options:
         mountpoint that hosts the backing file.
   -m    Do not use media-specific icons for devices.
   -r    Hide nodes for removable media.
-  -S    Add sizes to volume labels using SI units, powers of 1,000 instead of
-        1,024.
-  -s    Add sizes to volume labels.
+  -S    Add sizes to volume labels using SI units (powers of 1,000).
+  -s    Add sizes to volume labels using IEC units (powers of 1,024).
 
 Exit Statuses:
 - 0: Success

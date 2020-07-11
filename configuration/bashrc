@@ -166,7 +166,7 @@ function -define-aliases()
         alias ps="-paginate ps -- -o user,pid,ppid,start,command"
       ;;
       *procps*)
-        alias ps='-paginate ps -- --sort=uid,pid'
+        alias ps='-paginate ps -- --sort=uid,ppid,pid'
       ;;
     esac
 

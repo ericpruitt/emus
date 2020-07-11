@@ -81,7 +81,7 @@ export PS_FORMAT="$(
         max = length($1) > max ? length($1) : max
     }
     END {
-        print "user:" (max > 0 ? max : 16) ",pid,ppid,etime,comm,cmd"
+        print "user:" (max > 0 ? max : 16) ",ppid,pid,stime,etime,comm,cmd"
     }'
 )"
 

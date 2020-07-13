@@ -213,11 +213,13 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
         argv.extend(devices)
 
     try:
+        not_found = None
         lsblk_json = subprocess.check_output(argv)
     except subprocess.CalledProcessError as error:
         if error.returncode != EXIT_SOME_DEVICES_NOT_FOUND:
             raise
 
+        not_found = set()
         lsblk_json = error.output
 
     # Generate nodes and edges for every block device. Devices are pulled from
@@ -323,11 +325,26 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
                 except (KeyError, OSError):
                     pass
 
-    not_found = set()
+    if not_found is not None:
+        for path in devices:
+            real_path = os.path.realpath(path)
+            basename = os.path.basename(real_path)
 
-    for name in devices:
-        if os.path.basename(os.path.realpath(name)) not in node_names:
-            not_found.add(name)
+            if basename in node_names:
+                continue
+
+            try:
+                # Device mapper-managed devices have an additional name
+                # distinct from the block device's basename.
+                with open(f"/sys/block/{basename}/dm/name") as fd:
+                    dm_name = fd.read()[:-1]
+
+                if dm_name in node_names:
+                    continue
+            except OSError:
+                pass
+
+            not_found.add(path)
 
     return graph, not_found
 

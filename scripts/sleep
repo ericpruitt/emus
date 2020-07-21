@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+"""
+Usage: sleep NUMBER
+
+Pause for the specified number of seconds. If standard error is a TTY and the
+terminal defined in the TERM environment variable is known to support titles,
+the terminal's title will indicate the time remaining before the program
+returns.
+"""
+import os
+import re
+import signal
+import sys
+import time
+
+TITLE_SUPPORT_RE = re.compile("^(tmux|xterm|screen|st)([+-].+)?$")
+
+
+def human_readable_duration(seconds, divisions=2):
+    """
+    Convert seconds to a human-readable string.
+
+    Arguments:
+    - seconds (Number)
+    - divisions (int): Number of time divisions to use. For example, using 3
+      for a time period might return "7d2h3m" while 2 would return "7d2h".
+
+    Returns (str): A human-readable duration.
+    """
+    result = ""
+
+    for unit, period in (("d", 86400), ("h", 3600), ("m", 60), ("s", 1)):
+        if divisions <= 0:
+            break
+
+        if result or seconds >= period:
+            divisions -= 1
+            value = seconds // period
+
+            if value:
+                result += str(value) + unit
+
+            seconds %= period
+
+    return result
+
+
+def set_title(text):
+    """
+    Set the terminal's title.
+
+    Arguments:
+    - text (str)
+    """
+    print("\033]2;%s\033\\" % text, end="", file=sys.stderr, flush=True)
+
+
+def main(argv):
+    if len(argv) != 2:
+        print("Usage: sleep DURATION", file=sys.stderr)
+        return 1
+
+    try:
+        try:
+            duration = int(argv[1])
+        except ValueError:
+            duration = float(argv[1])
+
+        assert duration >= 0
+    except Exception:
+        print("sleep: %s: invalid duration" % duration, file=sys.stderr)
+        return 1
+
+    if sys.stderr.isatty():
+        emit_title = bool(TITLE_SUPPORT_RE.match(os.environ.get("TERM", "")))
+    else:
+        emit_title = False
+
+    try:
+        if emit_title:
+            # XXX: This assumes set_title is and the calculations run
+            # instantly.
+            while duration >= 1:
+                set_title("sleep: %s" % human_readable_duration(int(duration)))
+                duration -= 1
+                time.sleep(1)
+
+            time.sleep(duration)
+            set_title("sleep: done")
+        else:
+            time.sleep(duration)
+
+    except KeyboardInterrupt:
+        return 128 + signal.SIGINT
+
+    except Exception as error:
+        print("sleep: %s" % error, file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

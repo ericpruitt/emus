@@ -63,11 +63,6 @@ static struct lock **locks = NULL;
 static size_t screens = 0;
 static char userinput[256];
 
-static void usage(void)
-{
-    puts("Usage: slock [--help] [cmd [arg ...]]");
-}
-
 static void setcolor(int color)
 {
     size_t screen;

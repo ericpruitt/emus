@@ -58,6 +58,7 @@ function -define-aliases()
     alias cat='-paginate cat --'
     alias cmark='-paginate cmark --'
     alias cp='cp -p -R'
+    alias demo='env PS1=$"$\040" playground'
     alias df='-paginate df -- -h'
     alias diff='-paginate diff -- -u'
     alias dpkg-query='-paginate dpkg-query --'
@@ -398,7 +399,10 @@ function -prompt-command()
         echo -e "($exit_status${signal:+: SIG$signal})\a"
     fi
 
-    PS1="${depth:+$depth: }${SSH_TTY:+\\u@\\h:}\\W${jobs:+ [\\j]}\\$ "
+    # Only set PS1 if a pre-existing value was not inherited.
+    if [[ "${PS1@a}" != *x* ]]; then
+        PS1="${depth:+$depth: }${SSH_TTY:+\\u@\\h:}\\W${jobs:+ [\\j]}\\$ "
+    fi
 
     unset $(compgen -v -X '[A-Z_]*([A-Z0-9_])')
 

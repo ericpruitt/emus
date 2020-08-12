@@ -159,6 +159,12 @@ function -define-aliases()
       ;;
     esac
 
+    case "$(diff --help 2>/dev/null)" in
+      *GNU\ diffutils*)
+        alias diff='-paginate diff --color=always -u'
+      ;;
+    esac
+
     case "$(uname; ps -V 2>/dev/null)" in
       Darwin*|FreeBSD*|OpenBSD*)
         alias pgrep='-paginate epgrep --enhance \

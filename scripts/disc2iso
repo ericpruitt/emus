@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+set -e -f -u -o pipefail
+
+declare -r SELF="${0##*/}"
+
+declare -r USAGE="\
+$SELF [-fhkRruwXx] [-b DEVICE] [-d DIRECTORY] [-o PATH] [-p COUNT]
+
+Decrypt and copy the contents of a disc to a file. This script uses ddrescue(1)
+to make the operation fault tolerant and resumable. The path of the ddrescue(1)
+mapfile used to track the progress of the copy operation is the path of the
+image file suffixed with \".progress\". If the copy operation succeeds, the
+mapfile will be deleted automatically.
+
+Dependencies for Debian-based Systems:
+  apt-get install dvdbackup eject gddrescue genisoimage libdvdcss2
+
+Options (and Defaults):
+  -b DEVICE (\"/dev/sr0\")
+        Copy data from the specified block device.
+  -d DIRECTORY (\".\")
+        Set the output directory. The file name will be derived from the disc's
+        label.
+  -f    Force; overwrite existing files instead of aborting.
+  -h    Show this documentation and exit.
+  -k    Keep the mapfile around even if the copy operation succeeds.
+  -o PATH
+        Set the path of the output file.
+  -p COUNT (1)
+        Number of passes to make when trying to read data from a disc. The
+        default value of 1 means the script will exit with a non-zero status
+        if there was any unreadable data instead of making additional attempts.
+  -R    Do NOT try to resume a previous attempt to copy a disc.
+  -r    Resume a previous attempt to copy a disc when possible. This is the
+        default behavior.
+  -u    Indicate that the disc is unencrypted or that the CSS keys have already
+        been loaded.
+  -w    Make generated filenames Windows-compatible.
+  -X    Do NOT eject the disc after it has been successfully copied. This is
+        the default behavior.
+  -x    Eject the disc if it was successfully copied.
+"
+
+die()
+{
+    local -i exit_status="$?"
+
+    test "$#" -eq 0 || echo "$SELF:" "$@" >&2
+    exit "$((exit_status ? exit_status : 1))"
+}
+
+main()
+{
+    local block_count
+    local block_size
+    local directory
+    local file
+    local isoinfo
+    local label
+    local line
+    local mapfile
+    local option
+    local size
+
+    local device="/dev/sr0"
+    local eject=""
+    local forbidden_label_characters="/"
+    local force=""
+    local IFS=$'\n'
+    local keep_mapfile=""
+    local -x LC_ALL="C"
+    local overwrite=""
+    local -i passes=1
+    local -x PATH="${PATH-}${PATH:+:}/sbin"
+    local resume="x"
+    local unencrypted=""
+
+    while getopts :b:d:fhko:p:RruwXx option; do
+        case "$option" in
+          b)    device="$OPTARG" ;;
+          d)    unset file; directory="$OPTARG" ;;
+          f)    force="x" ;;
+          h)    printf "Usage: %s" "$USAGE"; return ;;
+          k)    keep_mapfile="x" ;;
+          o)    unset directory; file="$OPTARG" ;;
+          R)    resume="x" ;;
+          r)    resume="" ;;
+          u)    unencrypted="x" ;;
+          w)    forbidden_label_characters=$'"*/:<>?\\|\001-\037' ;;
+          X)    eject="" ;;
+          x)    eject="x" ;;
+          :)    die "-$OPTARG: argument is missing; run '$SELF -h' for help" ;;
+          \?)   die "-$OPTARG: unrecognized option; run '$SELF -h' for help" ;;
+
+          p)
+            if [[ "$OPTARG" =~ ^0*([0-9]+)$ ]] && [[ "$OPTARG" -ge 1 ]]; then
+                passes="${BASH_REMATCH[1]}"
+            else
+                die "-$option: value must be an integer greater than 0"
+            fi
+          ;;
+        esac
+    done
+
+    shift "$((OPTIND - 1))"
+    test "$#" -eq 0 || die "$*: unexpected argument; run '$SELF -h' for help"
+
+    # If the user did not supply a file name, try to generate one from the
+    # disc's label.
+    if ! [[ "${file+is_defined}" ]]; then
+        if ! label="$(blkid -o value -s LABEL -- "$device")"; then
+            # Unfortunately blkid does not always emit an error when it fails.
+            die "$device is unreadable; drive may be empty or not ready"
+        elif [[ -z "$label" ]]; then
+            label="UNLABELED_DISC"
+        fi
+
+        test "${directory-}" && directory="${directory%/}/"
+        file="${directory-}${label//[$forbidden_label_characters]/_}.iso"
+    fi
+
+    mapfile="$file.progress"
+
+    if [[ -e "$file" ]] && [[ -e "$mapfile" ]]; then
+        if [[ "$resume" ]]; then
+            : # Nothing to do.
+        elif ! [[ "$force" ]]; then
+            die "$file: will not overwrite incomplete copy without \"-f\""
+        else
+            overwrite="x"
+        fi
+    elif [[ -e "$file" ]]; then
+        test "$force" || die "$file: will not overwrite file without \"-f\""
+        overwrite="x"
+    elif [[ -e "$mapfile" ]]; then
+        test "$force" || die "$mapfile: will not overwrite file without \"-f\""
+        overwrite="x"
+    fi
+
+    isoinfo="$(isoinfo -d -i "$device")"
+
+    for line in $isoinfo; do
+        case "$line" in
+          "Logical block size is: "*)
+            block_size="${line##* }"
+          ;;
+
+          "Volume size is: "*)
+            block_count="${line##* }"
+          ;;
+        esac
+    done
+
+    # XXX: Bash uses intmax_t for numeric calculations which should be at least
+    # 64 bits on a C99 system, so an overflow under normal circumstances seems
+    # unlikely.
+    size="$((block_size * block_count))"
+    test "$((size / block_count))" -eq "$block_size" || die "integer overflow"
+
+    # Running "dvdbackup -I" invokes libdvdread to retrieve CSS keys which
+    # makes the block device readable.
+    test "$unencrypted" || dvdbackup -I --input="$device"
+
+    # Short options are favored for ddrescue(1) because the names of some long
+    # options changed between past releases while most of the short variants of
+    # those options remained the same.
+    test ! "$overwrite" || rm -f -v -- "$file" "$mapfile"
+    ddrescue -duv -b "$block_size" -c 1 -K 0 -r "$((passes - 1))" -s "$size" \
+        -- "$device" "$file" "$mapfile"
+
+    # ddrescue(1) finishes successfully even if some data was unreadable, so
+    # grep(1) is used look for lines in the mapfile indicating the data could
+    # not be read.
+    cat -- "$mapfile"
+    grep -q '^[^#]\+[*/-]$' -- "$mapfile" && die "some data was unrecoverable"
+
+    test "$keep_mapfile" || rm -v -- "$mapfile"
+    test ! "$eject" || eject -- "$device"
+}
+
+main "$@"

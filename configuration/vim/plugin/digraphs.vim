@@ -2,6 +2,8 @@ digraph c\        162  " ¢
 digraph c\|       162  " ¢
 digraph oo        176  " °
 digraph pm        177  " ±
+digraph AE        198  " Æ
+digraph ae        230  " æ
 digraph Pi        928  " Π
 digraph Si        931  " Σ
 digraph pi        960  " π

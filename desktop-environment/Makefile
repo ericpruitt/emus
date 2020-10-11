@@ -12,7 +12,7 @@ RUN_COMMAND_AS_ROOT = $$( \
 ) -c
 
 DMENU_URL = http://git.suckless.org/dmenu
-DMENU_COMMIT = bbc464dc80225b8cf9390f14fac6c682f63940d2
+DMENU_COMMIT = 1a13d0465d1a6f4f74bc5b07b04c9bd542f20ba6
 
 DWM_URL = http://git.suckless.org/dwm
 DWM_COMMIT = 61bb8b2241d4db08bea4261c82e27cd9797099e7

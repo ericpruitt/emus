@@ -68,8 +68,8 @@ index b2bc9bd..d3e1970 100644
 +			selmon->sel->bw = borderpx;
 +		}
  		resize(selmon->sel, selmon->sel->x, selmon->sel->y,
--		       selmon->sel->w, selmon->sel->h, 0);
-+		       selmon->sel->w - selmon->sel->bw * 2, selmon->sel->h - selmon->sel->bw * 2, 0);
+-			selmon->sel->w, selmon->sel->h, 0);
++			selmon->sel->w - selmon->sel->bw * 2, selmon->sel->h - selmon->sel->bw * 2, 0);
 +	}
  	arrange(selmon);
  }

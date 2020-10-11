@@ -15,7 +15,7 @@ DMENU_URL = http://git.suckless.org/dmenu
 DMENU_COMMIT = bbc464dc80225b8cf9390f14fac6c682f63940d2
 
 DWM_URL = http://git.suckless.org/dwm
-DWM_COMMIT = bb3bd6fec37174e8d4bb9457ca815c00609e5157
+DWM_COMMIT = 61bb8b2241d4db08bea4261c82e27cd9797099e7
 
 ST_URL = https://git.suckless.org/st
 ST_COMMIT = fa253f077f19b3220c7655b81bd91e52f4367803
@@ -244,7 +244,7 @@ bin/dwm: dwm-src/dwm
 
 dwm: bin/dwm
 
-screen-locker/screen-locker:
+screen-locker/screen-locker: screen-locker/screen-locker.c
 	cc_shadow_h="$$($(QUIETMAKE) cc-test ARGS=shadow.h)"; \
 	LDFLAGS="$$($(QUIETMAKE) cc-test ARGS='-lcrypt -lpam')"; \
 	echo "$$LDFLAGS" | grep -q -e -lpam && pam_cflags="-DHAVE_PAM_AUTH"; \

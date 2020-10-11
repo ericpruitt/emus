@@ -12,10 +12,10 @@ scroll wheel on top of a window will not shift focus.
   [focusonclick]: http://dwm.suckless.org/patches/focusonclick
 
 diff --git a/dwm.c b/dwm.c
-index 0362114..bef9fbb 100644
+index 664c527..9d2293e 100644
 --- a/dwm.c
 +++ b/dwm.c
-@@ -164,7 +164,6 @@ static void detachstack(Client *c);
+@@ -163,7 +163,6 @@ static void detachstack(Client *c);
  static Monitor *dirtomon(int dir);
  static void drawbar(Monitor *m);
  static void drawbars(void);
@@ -23,7 +23,7 @@ index 0362114..bef9fbb 100644
  static void expose(XEvent *e);
  static void focus(Client *c);
  static void focusin(XEvent *e);
-@@ -248,7 +247,6 @@ static void (*handler[LASTEvent]) (XEvent *) = {
+@@ -250,7 +249,6 @@ static void (*handler[LASTEvent]) (XEvent *) = {
  	[ConfigureRequest] = configurerequest,
  	[ConfigureNotify] = configurenotify,
  	[DestroyNotify] = destroynotify,
@@ -31,22 +31,21 @@ index 0362114..bef9fbb 100644
  	[Expose] = expose,
  	[FocusIn] = focusin,
  	[KeyPress] = keypress,
-@@ -443,7 +441,10 @@ buttonpress(XEvent *e)
+@@ -445,7 +443,8 @@ buttonpress(XEvent *e)
  		else
  			click = ClkWinTitle;
  	} else if ((c = wintoclient(ev->window))) {
 -		focus(c);
 +		if (ev->button != Button4 && ev->button != Button5)
 +			focus(c);
-+		restack(selmon);
-+		XAllowEvents(dpy, ReplayPointer, CurrentTime);
+ 		restack(selmon);
+ 		XAllowEvents(dpy, ReplayPointer, CurrentTime);
  		click = ClkClientWin;
- 	}
- 	for (i = 0; i < LENGTH(buttons); i++)
-@@ -763,25 +764,6 @@ drawbars(void)
+@@ -752,25 +751,6 @@ drawbars(void)
+ 		drawbar(m);
  }
  
- void
+-void
 -enternotify(XEvent *e)
 -{
 -	Client *c;
@@ -65,34 +64,6 @@ index 0362114..bef9fbb 100644
 -	focus(c);
 -}
 -
--void
+ void
  expose(XEvent *e)
  {
- 	Monitor *m;
-@@ -946,17 +928,16 @@ grabbuttons(Client *c, int focused)
- 		unsigned int i, j;
- 		unsigned int modifiers[] = { 0, LockMask, numlockmask, numlockmask|LockMask };
- 		XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
--		if (focused) {
--			for (i = 0; i < LENGTH(buttons); i++)
--				if (buttons[i].click == ClkClientWin)
--					for (j = 0; j < LENGTH(modifiers); j++)
--						XGrabButton(dpy, buttons[i].button,
--						            buttons[i].mask | modifiers[j],
--						            c->win, False, BUTTONMASK,
--						            GrabModeAsync, GrabModeSync, None, None);
--		} else
-+		if(!focused)
- 			XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
--			            BUTTONMASK, GrabModeAsync, GrabModeSync, None, None);
-+			            BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
-+		for(i = 0; i < LENGTH(buttons); i++)
-+			if(buttons[i].click == ClkClientWin)
-+				for(j = 0; j < LENGTH(modifiers); j++)
-+					XGrabButton(dpy, buttons[i].button,
-+					            buttons[i].mask | modifiers[j],
-+					            c->win, False, BUTTONMASK,
-+					            GrabModeAsync, GrabModeSync, None, None);
- 	}
- }
- 

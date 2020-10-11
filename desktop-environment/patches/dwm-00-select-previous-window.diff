@@ -6,7 +6,7 @@ line option "-lrt" must be set and `_POSIX_C_SOURCE` must be greater than or
 equal to 199309 (`cc ... -D_POSIX_C_SOURCE=199309L ...`).
 
 diff --git a/dwm.c b/dwm.c
-index 0362114..b4200c6 100644
+index 664c527..90f1fa5 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -30,6 +30,7 @@
@@ -33,10 +33,11 @@ index 0362114..b4200c6 100644
  static void manage(Window w, XWindowAttributes *wa);
  static void mappingnotify(XEvent *e);
  static void maprequest(XEvent *e);
-@@ -1030,6 +1061,20 @@ killclient(const Arg *arg)
+@@ -1015,6 +1018,20 @@ killclient(const Arg *arg)
+ 	}
  }
  
- void
++void
 +lastclient() {
 +	Client *c, *o;
 +	for (o = selmon->sel, c = selmon->clients; c; c = c->next) {
@@ -50,19 +51,18 @@ index 0362114..b4200c6 100644
 +	}
 +}
 +
-+void
+ void
  manage(Window w, XWindowAttributes *wa)
  {
- 	Client *c, *t = NULL;
-@@ -1038,6 +1083,7 @@ manage(Window w, XWindowAttributes *wa)
+@@ -1024,6 +1041,7 @@ manage(Window w, XWindowAttributes *wa)
  
  	c = ecalloc(1, sizeof(Client));
  	c->win = w;
 +	c->ft = 0;
-	/* geometry */
-	c->x = c->oldx = wa->x;
-	c->y = c->oldy = wa->y;
-@@ -1477,11 +1523,17 @@ sendevent(Client *c, Atom proto)
+ 	/* geometry */
+ 	c->x = c->oldx = wa->x;
+ 	c->y = c->oldy = wa->y;
+@@ -1461,11 +1479,17 @@ sendevent(Client *c, Atom proto)
  void
  setfocus(Client *c)
  {
@@ -70,8 +70,8 @@ index 0362114..b4200c6 100644
  	if (!c->neverfocus) {
  		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
  		XChangeProperty(dpy, root, netatom[NetActiveWindow],
- 		                XA_WINDOW, 32, PropModeReplace,
- 		                (unsigned char *) &(c->win), 1);
+ 			XA_WINDOW, 32, PropModeReplace,
+ 			(unsigned char *) &(c->win), 1);
 +		if (clock_gettime(CLOCK_MONOTONIC, &now)) {
 +			perror("clock_gettime");
 +		} else {

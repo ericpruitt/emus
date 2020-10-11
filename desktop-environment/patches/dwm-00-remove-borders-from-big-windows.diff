@@ -2,14 +2,13 @@
 
 Remove borders from floating windows that fill the display.
 
-diff --git a/dwm.c b/dwm.c
-index d27cb67..e638ed1 100644
+index 664c527..5916a1b 100644
 --- a/dwm.c
 +++ b/dwm.c
-@@ -1049,7 +1049,7 @@ manage(Window w, XWindowAttributes *wa)
+@@ -1048,7 +1048,7 @@ manage(Window w, XWindowAttributes *wa)
  	/* only fix client y-offset, if the client center might cover the bar */
  	c->y = MAX(c->y, ((c->mon->by == c->mon->my) && (c->x + (c->w / 2) >= c->mon->wx)
- 	           && (c->x + (c->w / 2) < c->mon->wx + c->mon->ww)) ? bh : c->mon->my);
+ 		&& (c->x + (c->w / 2) < c->mon->wx + c->mon->ww)) ? bh : c->mon->my);
 -	c->bw = borderpx;
 +	c->bw = (c->w < c->mon->mw || c->h < (c->mon->mh - (c->mon->showbar ? bh : 0))) ? borderpx : 0;
  

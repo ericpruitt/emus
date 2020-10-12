@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""
+Usage: macos-statusline COMMAND [ARGUMENT]...
+
+The script monitors a command for output and sets this script's status bar
+title to the most recently emitted line.
+"""
+import subprocess
+import sys
+import threading
+
+import AppKit
+import Cocoa
+import PyObjCTools.Conversion
+
+import rumps
+
+
+def main(argv):
+    def status_monitor():
+        """
+        Capture the output of the status command and update the widget's title.
+        """
+        statusline = subprocess.Popen(
+            argv, stdout=subprocess.PIPE, universal_newlines=True
+        )
+
+        while True:
+            line = statusline.stdout.readline().rstrip("\n")
+
+            if not line:
+                break
+
+            if not hasattr(app, "_nsapp"):
+                continue
+
+            app._nsapp.nsstatusitem.setTitle_(
+                AppKit.NSAttributedString.alloc().initWithString_attributes_(
+                    line,
+                    text_attributes
+                )
+            )
+
+        return statusline.wait()
+
+    # Select a font with monospaced digits so the text does not shift when the
+    # digits change. The rumps library does not expose any public methods to
+    # allow this, so "_nsapp" is accessed directly. These pages helped me
+    # figure out how to fix this issue:
+    # - https://developer.apple.com/forums/thread/21474
+    # - https://github.com/jaredks/rumps/issues/30
+    text_attributes = PyObjCTools.Conversion.propertyListFromPythonCollection(
+        {
+            Cocoa.NSFontAttributeName: (
+                AppKit.NSFont.monospacedDigitSystemFontOfSize_weight_(14, 0)
+            )
+        },
+        conversionHelper=lambda x: x
+    )
+
+    app = rumps.App("Loading clock...")
+    thread = threading.Thread(target=status_monitor)
+    thread.start()
+    app.run()
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

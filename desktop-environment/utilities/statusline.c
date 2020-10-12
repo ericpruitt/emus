@@ -375,7 +375,7 @@ char *moon_icon(struct tm *tm)
     int e;
     double jd;
 
-    char *icons[] = {"🌕", "🌖", "🌗", "🌘", "🌑", "🌒", "🌓", "🌔"};
+    char *icons[] = {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
 
     int y = tm->tm_year;
     int m = tm->tm_mon + 1;

@@ -1,12 +1,12 @@
 /**
  * Status Line
  *
- * Updates the X11 root window name once per second. It displays the battery
- * status, day of the week, day of the month can also display several
- * supplementary clocks in different time zones. Refer to the "usage" function
- * for more information.
+ * Emit system status lines once per second that typically include the battery
+ * status, day of the week, the day of the month and the time. Supplementary
+ * clocks from different time zones may also be displayed. Refer to the "usage"
+ * function for more information.
  *
- * Make: c99 -o $@ $? $$(pkg-config --cflags --libs x11)
+ * Make: c99 -o $@ $?
  * Copyright: Eric Pruitt (https://www.codevat.com/)
  * License: BSD 2-Clause License (https://opensource.org/licenses/BSD-2-Clause)
  */
@@ -26,8 +26,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <X11/Xlib.h>
-
 static char *battery_indicator(const char *);
 static void delete_range(char *, size_t, size_t);
 static size_t dow_with_ordinal_dom(char *, size_t, struct tm *);
@@ -35,7 +33,6 @@ static void gmt_to_utc(char *);
 static double mtime(const char *);
 static size_t load_indicators_from_file(char *, size_t, const char *,
                                         const char *);
-static void set_root_name(Display *, const char *);
 static size_t tzstrftime(char *, size_t, const char *, time_t, const char *);
 
 /**
@@ -129,19 +126,6 @@ static size_t tzstrftime(char *dest, size_t sizeofdest, const char *format,
     tzset();
     errno = saved_errno;
     return rval;
-}
-
-/**
- * Set the name of the X11 root window.
- *
- * Arguments:
- * - display: X11 display to update.
- * - text: Value to be set.
- */
-static void set_root_name(Display *display, const char *text)
-{
-    XStoreName(display, DefaultRootWindow(display), text);
-    XSync(display, False);
 }
 
 /**
@@ -478,8 +462,6 @@ int main(int argc, char **argv)
     size_t altzones_count = 0;
     const char *battery_data_path = "/sys/class/power_supply/BAT0/uevent";
     int battery_data_path_explicit = 0;
-    Display *display = NULL;
-    int dry_run = isatty(STDOUT_FILENO);
     int first = 1;
     char indicators_from_file[1024] = "";
     int run_once = 0;
@@ -489,7 +471,7 @@ int main(int argc, char **argv)
     const char *eob = message + sizeof(message);
     char *eol = message;
 
-    while ((option = getopt(argc, argv, "+1b:hfns:z:")) != -1) {
+    while ((option = getopt(argc, argv, "+1b:hs:z:")) != -1) {
         switch (option) {
           case '1':
             run_once = 1;
@@ -500,17 +482,9 @@ int main(int argc, char **argv)
             battery_data_path = optarg;
             break;
 
-          case 'f':
-            dry_run = 0;
-            break;
-
           case 'h':
             usage(basename(argv[0]));
             return 0;
-
-          case 'n':
-            dry_run = 1;
-            break;
 
           case 's':
             status_file = optarg;
@@ -533,11 +507,6 @@ int main(int argc, char **argv)
           default:
             return 1;
         }
-    }
-
-    if (!dry_run && !(display = XOpenDisplay(NULL))) {
-        fputs("Could not open X11 display.\n", stderr);
-        return 1;
     }
 
     if (optind != argc) {
@@ -644,12 +613,13 @@ int main(int argc, char **argv)
         }
 
 display_message:
-        puts(message);
+        if (puts(message) == EOF || fflush(stdout) == EOF) {
+            perror(basename(argv[0]));
+            return 1;
+        }
 
         if (run_once) {
             break;
-        } else if (!dry_run) {
-            set_root_name(display, message);
         }
     }
 

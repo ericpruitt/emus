@@ -18,7 +18,7 @@ compton --daemon -C $(
 )
 
 st &
-pgrep -x statusline || statusline -z US/Pacific &
+pgrep -x fifo2rootname || statusline -z US/Pacific | fifo2rootname &
 
 PATH="$EMUS/desktop-environment/scripts:$PATH"
 hid-monitor &

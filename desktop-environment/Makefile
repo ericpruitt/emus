@@ -29,6 +29,7 @@ CONFIG_TARGETS = \
 UTILITIES = \
 	bin/blackwalls \
 	bin/del \
+	bin/fifo2rootname \
 	bin/statusline \
 	bin/xidletime \
 

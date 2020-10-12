@@ -385,11 +385,16 @@ as a front-end so the user can select a command to execute.
 
   [desktop-entry]: https://specifications.freedesktop.org/desktop-entry-spec/latest/
 
+#### fifo2rootname.c ####
+
+This sets the X11 root window name to lines read from standard input until the
+end of the file has been reached or an error occurs.
+
 #### statusline.c ####
 
-This program is used to set the X11 root window name which dwm uses as its
-status bar. It supports displaying clocks for multiple time zones, battery
-status and user-defined indicators that are read from a file.
+This program generates a status line. It supports displaying clocks for
+multiple time zones, battery status and user-defined indicators that are read
+from a file.
 
 #### xidletime.c ####
 

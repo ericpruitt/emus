@@ -360,6 +360,47 @@ static void delete_range(char *text, size_t start, size_t count)
 }
 
 /**
+ * Return an icon representing the phase of the moon. This function is an
+ * adaptation of the code at <http://www.voidware.com/moon_phase.htm>.
+ *
+ * Arguments:
+ * - tm: Time structure representing the date to be displayed.
+ *
+ * Return: An icon representing the current moon phase.
+ */
+char *moon_icon(struct tm *tm)
+{
+    int b;
+    int c;
+    int e;
+    double jd;
+
+    char *icons[] = {"🌕", "🌖", "🌗", "🌘", "🌑", "🌒", "🌓", "🌔"};
+
+    int y = tm->tm_year;
+    int m = tm->tm_mon + 1;
+    int d = tm->tm_mday;
+
+    if (m < 3) {
+        y--;
+        m += 12;
+    }
+
+    m++;
+
+    c = 365.25 * y;
+    e = 30.6 * m;
+    jd = c + e + d - 694039.09;
+    jd /= 29.53;
+    b = jd;
+    jd -= b;
+    b = jd * 8 + 0.5;
+    b = b & 7;
+
+    return icons[b];
+}
+
+/**
  * Replace all occurrences of "GMT" with "UTC".
  *
  * Arguments:
@@ -400,6 +441,7 @@ static void usage(const char *self)
         "           flag, the status bar will only be printed on stdout when\n"
         "           stdout is a TTY.\n"
         "  -h       Show this text and exit.\n"
+        "  -m       Display the current phase of the moon.\n"
         "  -n       Force dry run; do not set the X11 root window name even\n"
         "           if stdout is not a TTY.\n"
         "  -s PATH  Load status bar indicators from this file. Each line is\n"
@@ -465,13 +507,14 @@ int main(int argc, char **argv)
     int first = 1;
     char indicators_from_file[1024] = "";
     int run_once = 0;
+    int show_moon_phase = 0;
     char *status_file = NULL;
     double status_file_mt = -1;
 
     const char *eob = message + sizeof(message);
     char *eol = message;
 
-    while ((option = getopt(argc, argv, "+1b:hs:z:")) != -1) {
+    while ((option = getopt(argc, argv, "+1b:hms:z:")) != -1) {
         switch (option) {
           case '1':
             run_once = 1;
@@ -485,6 +528,9 @@ int main(int argc, char **argv)
           case 'h':
             usage(basename(argv[0]));
             return 0;
+
+          case 'm':
+            show_moon_phase = 1;
 
           case 's':
             status_file = optarg;
@@ -573,6 +619,12 @@ int main(int argc, char **argv)
 
         now = tv.tv_sec;
         nowtm = *ptm;
+
+        if (show_moon_phase) {
+            eol = stpcpy(eol, moon_icon(&nowtm));
+            eol = stpcpy(eol, SEPARATOR);
+        }
+
         eol += dow_with_ordinal_dom(eol, (size_t) (eob - eol + 1), &nowtm);
 
         // Display clocks for any user-defined time zones that differ from the

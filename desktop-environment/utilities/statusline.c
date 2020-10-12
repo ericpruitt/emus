@@ -56,15 +56,6 @@ static size_t tzstrftime(char *, size_t, const char *, time_t, const char *);
 #define SOFT_SEPARATOR " - "
 
 /**
- * Convenience macro for fixed-length buffers that expands to the name of the
- * buffer followed by a comma and the size of the buffer.
- *
- * Arguments:
- * - x: Array
- */
-#define OUTPUTBUF(x) (x), sizeof(x)
-
-/**
  * Works like _strftime(3)_ but expects a `time_t` timestamp instead of a
  * `struct tm *` and accepts an additional parameter, the time zone in which
  * the conversion should take place.
@@ -245,11 +236,11 @@ static char *battery_indicator(const char *path)
             strcpy(icon, "⚡!");
         }
     } else if (trend > 0 && capacity_percent < 100) {
-        snprintf(OUTPUTBUF(icon), "⚡↑%d", capacity_percent);
+        snprintf(icon, sizeof(icon), "⚡↑%d", capacity_percent);
     } else if (trend < 0) {
-        snprintf(OUTPUTBUF(icon), "⚡↓%d", capacity_percent);
+        snprintf(icon, sizeof(icon), "⚡↓%d", capacity_percent);
     } else {
-        snprintf(OUTPUTBUF(icon), "⚡%d", capacity_percent);
+        snprintf(icon, sizeof(icon), "⚡%d", capacity_percent);
     }
 
     fclose(file);
@@ -584,7 +575,7 @@ int main(int argc, char **argv)
                     perror(status_file);
                 } else {
                     load_indicators_from_file(
-                        OUTPUTBUF(indicators_from_file),
+                        indicators_from_file, sizeof(indicators_from_file),
                         status_file,
                         SEPARATOR
                     );
@@ -633,7 +624,7 @@ int main(int argc, char **argv)
         // UTC offset as the local time but different names will still be shown
         // e.g. "10:10 CKT" (Cook Island Time, UTC-10) and "10:10:37 HST"
         // (Hawaii Standard Time, also UTC-10).
-        if (strftime(OUTPUTBUF(localclock), "%T %Z", &nowtm)) {
+        if (strftime(localclock, sizeof(localclock), "%T %Z", &nowtm)) {
             gmt_to_utc(localclock);
         } else {
             localclock[0] = '\0';
@@ -642,10 +633,10 @@ int main(int argc, char **argv)
         clocks = eol;
         for (multiple_clocks = 0, k = 0; k < altzones_count; k++) {
             if (altzones_count == 1 && !strcmp("XXX", altzones[k])) {
-                tzstrftime(OUTPUTBUF(altclock), "", now, altzones[k]);
+                tzstrftime(altclock, sizeof(altclock), "", now, altzones[k]);
                 break;
             }
-            if (tzstrftime(OUTPUTBUF(altclock), "%T %Z", now, altzones[k]) &&
+            if (tzstrftime(altclock, sizeof(altclock), "%T %Z", now, altzones[k]) &&
                 strcmp(altclock, localclock)) {
 
                 // Strip seconds from supplementary clock.

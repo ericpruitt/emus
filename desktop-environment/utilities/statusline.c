@@ -377,7 +377,7 @@ char *moon_icon(struct tm *tm)
 
     char *icons[] = {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
 
-    int y = tm->tm_year;
+    int y = tm->tm_year + 1900;
     int m = tm->tm_mon + 1;
     int d = tm->tm_mday;
 

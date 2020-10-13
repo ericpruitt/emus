@@ -522,6 +522,7 @@ int main(int argc, char **argv)
 
           case 'm':
             show_moon_phase = 1;
+            break;
 
           case 's':
             status_file = optarg;

@@ -422,7 +422,7 @@ static void gmt_to_utc(char *s)
 static void usage(const char *self)
 {
     printf(
-        "Usage: %s [-1] [-b PATH] [-n] [-s PATH] [-f] [-z TIMEZONE]...\n"
+        "Usage: %s [-1] [-b PATH] [-Mmn] [-s PATH] [-f] [-z TIMEZONE]...\n"
         "\n"
         "Updates the X11 root window name once per second. It displays the "
         "battery\nstatus, day of the week, day of the month and can also "

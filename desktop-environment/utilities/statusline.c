@@ -356,17 +356,24 @@ static void delete_range(char *text, size_t start, size_t count)
  *
  * Arguments:
  * - tm: Time structure representing the date to be displayed.
+ * - southern_hemisphere: When this is 0, the moon phase is returned as it
+ *   would appear in the northern hemisphere. Otherwise, it returns it as it
+ *   would appear in the southern hemisphere. The southern hemisphere rendering
+ *   may be inaccurate for some fonts. See
+ *   <https://www.unicode.org/L2/L2017/17304-moon-var.pdf> for details.
  *
  * Return: An icon representing the current moon phase.
  */
-char *moon_icon(struct tm *tm)
+const char *moon_icon(struct tm *tm, int southern_hemisphere)
 {
     int b;
     int c;
     int e;
     double jd;
 
-    char *icons[] = {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
+    static const char *icons[8] = {
+        "🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"
+    };
 
     int y = tm->tm_year + 1900;
     int m = tm->tm_mon + 1;
@@ -387,6 +394,10 @@ char *moon_icon(struct tm *tm)
     jd -= b;
     b = jd * 8 + 0.5;
     b = b & 7;
+
+    if (southern_hemisphere) {
+        b = (8 - b) & 7;
+    }
 
     return icons[b];
 }
@@ -432,7 +443,10 @@ static void usage(const char *self)
         "           flag, the status bar will only be printed on stdout when\n"
         "           stdout is a TTY.\n"
         "  -h       Show this text and exit.\n"
-        "  -m       Display the current phase of the moon.\n"
+        "  -M       Display the current phase of the moon as it would appear\n"
+        "           in the southern hemisphere.\n"
+        "  -m       Display the current phase of the moon as it would appear\n"
+        "           in the northern hemisphere.\n"
         "  -n       Force dry run; do not set the X11 root window name even\n"
         "           if stdout is not a TTY.\n"
         "  -s PATH  Load status bar indicators from this file. Each line is\n"
@@ -499,13 +513,14 @@ int main(int argc, char **argv)
     char indicators_from_file[1024] = "";
     int run_once = 0;
     int show_moon_phase = 0;
+    int southern_hemisphere = 0;
     char *status_file = NULL;
     double status_file_mt = -1;
 
     const char *eob = message + sizeof(message);
     char *eol = message;
 
-    while ((option = getopt(argc, argv, "+1b:hms:z:")) != -1) {
+    while ((option = getopt(argc, argv, "+1b:hMms:z:")) != -1) {
         switch (option) {
           case '1':
             run_once = 1;
@@ -522,6 +537,12 @@ int main(int argc, char **argv)
 
           case 'm':
             show_moon_phase = 1;
+            southern_hemisphere = 0;
+            break;
+
+          case 'M':
+            show_moon_phase = 1;
+            southern_hemisphere = 1;
             break;
 
           case 's':
@@ -613,7 +634,7 @@ int main(int argc, char **argv)
         nowtm = *ptm;
 
         if (show_moon_phase) {
-            eol = stpcpy(eol, moon_icon(&nowtm));
+            eol = stpcpy(eol, moon_icon(&nowtm, southern_hemisphere));
             eol = stpcpy(eol, SEPARATOR);
         }
 

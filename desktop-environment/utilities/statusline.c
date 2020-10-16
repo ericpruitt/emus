@@ -395,6 +395,8 @@ const char *moon_icon(struct tm *tm, int southern_hemisphere)
     b = jd * 8 + 0.5;
     b = b & 7;
 
+    // When viewed from the southern hemisphere, the moon fills left-to-right
+    // instead of right-to-left.
     if (southern_hemisphere) {
         b = (8 - b) & 7;
     }

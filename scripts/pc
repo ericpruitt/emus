@@ -10,7 +10,8 @@ internally. In this calculator, "^" and "^=" are exponentiation operators like
 "**" and "**=" instead of XOR. All callable methods in the "math" module are
 accessible as functions without the module name. For example, to compute the
 square root of 2, this tool could be invoked as "pc 'sqrt(2)'". The constant Pi
-is also accessible as the identifier "pi".
+is also accessible as the identifier "pi", and Euler's constant is accessible
+as "e".
 
 Examples:
 
@@ -249,6 +250,7 @@ def main(expressions):
     context.update({
         "abs": abs,
         "pi": math.pi,
+        "e": math.e,
     })
 
     for expression in expressions:

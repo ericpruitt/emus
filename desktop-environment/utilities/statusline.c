@@ -351,57 +351,35 @@ static void delete_range(char *text, size_t start, size_t count)
 }
 
 /**
- * Return an icon representing the phase of the moon. This function is an
- * adaptation of the code at <http://www.voidware.com/moon_phase.htm>.
+ * Return an icon representing the phase of the moon.
  *
  * Arguments:
- * - tm: Time structure representing the date to be displayed.
- * - southern_hemisphere: When this is 0, the moon phase is returned as it
- *   would appear in the northern hemisphere. Otherwise, it returns it as it
- *   would appear in the southern hemisphere. The southern hemisphere rendering
- *   may be inaccurate for some fonts. See
+ * - when: UNIX timestamp representing the time.
+ * - southern_hemisphere: When this is 0, the icon fills right-to-left as the
+ *   moon does observed from most of the northern hemisphere. For any non-zero
+ *   value, the icon fills left-to-right as the moon does observed most from
+ *   the southern hemisphere. The southern hemisphere rendering may be
+ *   inaccurate for some fonts. See
  *   <https://www.unicode.org/L2/L2017/17304-moon-var.pdf> for details.
  *
  * Return: An icon representing the current moon phase.
  */
-const char *moon_icon(struct tm *tm, int southern_hemisphere)
+const char *moon_icon(time_t when, int southern_hemisphere)
 {
-    int b;
-    int c;
-    int e;
-    double jd;
-
-    static const char *icons[8] = {
-        "🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"
-    };
-
-    int y = tm->tm_year + 1900;
-    int m = tm->tm_mon + 1;
-    int d = tm->tm_mday;
-
-    if (m < 3) {
-        y--;
-        m += 12;
-    }
-
-    m++;
-
-    c = 365.25 * y;
-    e = 30.6 * m;
-    jd = c + e + d - 694039.09;
-    jd /= 29.53;
-    b = jd;
-    jd -= b;
-    b = jd * 8 + 0.5;
-    b = b & 7;
+    // 592500 is the UNIX timestamp of 1970-01-07T20:35Z, the time of the first
+    // new moon of 1970 according to NASA's website
+    // (https://eclipse.gsfc.nasa.gov/SKYCAL/SKYCAL.html).
+    double synodic_months = (when - 592500) / (29.530588 * 86400);
+    double current_ratio = synodic_months - (int) synodic_months;
+    int icon = (int) (current_ratio * 8 + 0.5) % 8;
 
     // When viewed from the southern hemisphere, the moon fills left-to-right
     // instead of right-to-left.
     if (southern_hemisphere) {
-        b = (8 - b) & 7;
+        icon = (8 - icon) % 8;
     }
 
-    return icons[b];
+    return ((char *[]) {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"})[icon];
 }
 
 /**
@@ -636,7 +614,7 @@ int main(int argc, char **argv)
         nowtm = *ptm;
 
         if (show_moon_phase) {
-            eol = stpcpy(eol, moon_icon(&nowtm, southern_hemisphere));
+            eol = stpcpy(eol, moon_icon(now, southern_hemisphere));
             eol = stpcpy(eol, SEPARATOR);
         }
 

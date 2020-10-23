@@ -361,10 +361,14 @@ static void delete_range(char *text, size_t start, size_t count)
  *   the southern hemisphere. The southern hemisphere rendering may be
  *   inaccurate for some fonts. See
  *   <https://www.unicode.org/L2/L2017/17304-moon-var.pdf> for details.
+ * - invert: When this is non-zero, the moon phases are inverted. This is
+ *   useful when the foreground and background colors used to display
+ *   monochrome moon phase icons produce unintuitive pictures when using the
+ *   standard icons.
  *
  * Return: An icon representing the current moon phase.
  */
-const char *moon_icon(time_t when, int southern_hemisphere)
+const char *moon_icon(time_t when, int southern_hemisphere, int invert)
 {
     // 592500 is the UNIX timestamp of 1970-01-07T20:35Z, the time of the first
     // new moon of 1970 according to NASA's website
@@ -372,6 +376,11 @@ const char *moon_icon(time_t when, int southern_hemisphere)
     double synodic_months = (when - 592500) / (29.530588 * 86400);
     double current_ratio = synodic_months - (int) synodic_months;
     int icon = (int) (current_ratio * 8 + 0.5) % 8;
+
+    if (invert) {
+        // Treat the new moon icon as the full moon icon and vice versa.
+        icon = (icon + 4) % 8;
+    }
 
     // When viewed from the southern hemisphere, the moon fills left-to-right
     // instead of right-to-left.
@@ -423,6 +432,8 @@ static void usage(const char *self)
         "           flag, the status bar will only be printed on stdout when\n"
         "           stdout is a TTY.\n"
         "  -h       Show this text and exit.\n"
+        "  -i       Invert moon phase icons; the full moon icon is used for\n"
+        "           new moons and vice versa.\n"
         "  -M       Display the current phase of the moon as it would appear\n"
         "           in the southern hemisphere.\n"
         "  -m       Display the current phase of the moon as it would appear\n"
@@ -491,6 +502,7 @@ int main(int argc, char **argv)
     int battery_data_path_explicit = 0;
     int first = 1;
     char indicators_from_file[1024] = "";
+    int invert_moon = 0;
     int run_once = 0;
     int show_moon_phase = 0;
     int southern_hemisphere = 0;
@@ -500,7 +512,7 @@ int main(int argc, char **argv)
     const char *eob = message + sizeof(message);
     char *eol = message;
 
-    while ((option = getopt(argc, argv, "+1b:hMms:z:")) != -1) {
+    while ((option = getopt(argc, argv, "+1b:hiMms:z:")) != -1) {
         switch (option) {
           case '1':
             run_once = 1;
@@ -514,6 +526,10 @@ int main(int argc, char **argv)
           case 'h':
             usage(basename(argv[0]));
             return 0;
+
+          case 'i':
+            invert_moon = 1;
+            break;
 
           case 'm':
             show_moon_phase = 1;
@@ -614,7 +630,7 @@ int main(int argc, char **argv)
         nowtm = *ptm;
 
         if (show_moon_phase) {
-            eol = stpcpy(eol, moon_icon(now, southern_hemisphere));
+            eol = stpcpy(eol, moon_icon(now, southern_hemisphere, invert_moon));
             eol = stpcpy(eol, SEPARATOR);
         }
 

@@ -370,6 +370,10 @@ static void delete_range(char *text, size_t start, size_t count)
  */
 const char *moon_icon(time_t when, int southern_hemisphere, int invert)
 {
+    static const char *icons[8] = {
+        "🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"
+    };
+
     // 592500 is the UNIX timestamp of 1970-01-07T20:35Z, the time of the first
     // new moon of 1970 according to NASA's website
     // (https://eclipse.gsfc.nasa.gov/SKYCAL/SKYCAL.html).
@@ -388,7 +392,7 @@ const char *moon_icon(time_t when, int southern_hemisphere, int invert)
         icon = (8 - icon) % 8;
     }
 
-    return ((char *[]) {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"})[icon];
+    return icons[icon];
 }
 
 /**

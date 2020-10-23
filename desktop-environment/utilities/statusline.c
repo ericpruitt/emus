@@ -361,10 +361,10 @@ static void delete_range(char *text, size_t start, size_t count)
  *   the southern hemisphere. The southern hemisphere rendering may be
  *   inaccurate for some fonts. See
  *   <https://www.unicode.org/L2/L2017/17304-moon-var.pdf> for details.
- * - invert: When this is non-zero, the moon phases are inverted. This is
- *   useful when the foreground and background colors used to display
- *   monochrome moon phase icons produce unintuitive pictures when using the
- *   standard icons.
+ * - invert: When this is non-zero, the light and dark side of the moon are
+ *   inverted. This is useful when the foreground and background colors used to
+ *   display monochrome moon phase icons produce unintuitive pictures when
+ *   using the correct characters.
  *
  * Return: An icon representing the current moon phase.
  */
@@ -432,8 +432,10 @@ static void usage(const char *self)
         "           flag, the status bar will only be printed on stdout when\n"
         "           stdout is a TTY.\n"
         "  -h       Show this text and exit.\n"
-        "  -i       Invert moon phase icons; the full moon icon is used for\n"
-        "           new moons and vice versa.\n"
+        "  -i       Invert the light and dark side of the moon. This is useful\n"
+        "           when the foreground and background colors used to display\n"
+        "           monochrome moon phase icons produce unintuitive pictures\n"
+        "           when using the correct characters.\n"
         "  -M       Display the current phase of the moon as it would appear\n"
         "           in the southern hemisphere.\n"
         "  -m       Display the current phase of the moon as it would appear\n"

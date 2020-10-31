@@ -378,8 +378,8 @@ const char *moon_icon(time_t when, int southern_hemisphere, int invert)
     // new moon of 1970 according to NASA's website
     // (https://eclipse.gsfc.nasa.gov/SKYCAL/SKYCAL.html).
     double synodic_months = (when - 592500) / (29.530588 * 86400);
-    double current_ratio = synodic_months - (int) synodic_months;
-    int icon = (int) (current_ratio * 8 + 0.5) % 8;
+    double ratio = synodic_months - (int) synodic_months;
+    int icon = (int) (ratio * 8 + 0.5) % 8;
 
     if (invert) {
         // Treat the new moon icon as the full moon icon and vice versa.

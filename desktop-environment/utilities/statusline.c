@@ -423,6 +423,7 @@ static double moon_phase(time_t when)
     static const double moon_mean_longitude_epoch = 64.975464;
     static const double moon_mean_perigee_epoch = 349.383063;
 
+    // Days since the epoch starting at 1979-12-31T00:00:00Z.
     double day = (when / 86400.0) - 3651;
 
     // Solar position calculations

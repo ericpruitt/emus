@@ -6,7 +6,7 @@
  * clocks from different time zones may also be displayed. Refer to the "usage"
  * function for more information.
  *
- * Make: c99 -o $@ $?
+ * Make: c99 -o $@ $? -lm
  * Copyright: Eric Pruitt (https://www.codevat.com/)
  * License: BSD 2-Clause License (https://opensource.org/licenses/BSD-2-Clause)
  */
@@ -16,6 +16,7 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <libgen.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,6 +35,10 @@ static double mtime(const char *);
 static size_t load_indicators_from_file(char *, size_t, const char *,
                                         const char *);
 static size_t tzstrftime(char *, size_t, const char *, time_t, const char *);
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 /**
  * Get the number of members in a fixed-length array.
@@ -351,6 +356,59 @@ static void delete_range(char *text, size_t start, size_t count)
 }
 
 /**
+ * Convert degrees to radians.
+ *
+ * Arguments:
+ * - radians
+ *
+ * Return: Angle in degrees.
+ */
+static inline double to_radians(double degrees)
+{
+    return degrees * M_PI / 180.0;
+}
+
+/**
+ * Bound an angle in degrees to the interval [0, 360).
+ *
+ * Arguments:
+ * - degrees
+ *
+ * Return: An angle greater than or equal to 0 and less than 360.
+ */
+static inline double bound_angle(double degrees)
+{
+    return degrees - 360.0 * floor(degrees / 360.0);
+}
+
+/**
+ * Solve Kepler's equation for the true anomaly given the mean anomaly in
+ * radians and the eccentricity of the orbit.
+ *
+ * Arguments:
+ * - mean_anomaly
+ * - eccentricity
+ *
+ * Return: True anomaly.
+ */
+static inline double kepler(double mean_anomaly, double eccentricity)
+{
+    double delta;
+
+    double m = to_radians(mean_anomaly);
+    double e = m;
+
+    while (1) {
+        delta = e - eccentricity * sin(e) - m;
+        e = e - delta / (1.0 - eccentricity * cos(e));
+
+        if ((delta >= -1e-6) && (delta <= 1e-6)) {
+            return e;
+        }
+    }
+}
+
+/**
  * Return an icon representing the phase of the moon.
  *
  * Arguments:
@@ -370,16 +428,45 @@ static void delete_range(char *text, size_t start, size_t count)
  */
 const char *moon_icon(time_t when, int southern_hemisphere, int invert)
 {
+    static const double earth_eccentricity = 0.016718;
+    static const double ecliptic_longitude_epoch = 278.833540;
+    static const double ecliptic_longitude_perigee = 282.596403;
+    static const double moon_mean_longitude_epoch = 64.975464;
+    static const double moon_mean_perigee_epoch = 349.383063;
+
     static const char *icons[8] = {
         "🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"
     };
 
-    // 592500 is the UNIX timestamp of 1970-01-07T20:35Z, the time of the first
-    // new moon of 1970 according to NASA's website
-    // (https://eclipse.gsfc.nasa.gov/SKYCAL/SKYCAL.html).
-    double synodic_months = (when - 592500) / (29.530588 * 86400);
-    double ratio = synodic_months - (int) synodic_months;
-    int icon = (int) (ratio * 8 + 0.5) % 8;
+    double day = (when / 86400.0) - 3651;
+
+    // Solar position calculations
+    double N = bound_angle(day * 360 / 365.2422);
+    double M = bound_angle(N + ecliptic_longitude_epoch -
+        ecliptic_longitude_perigee);
+    double Ec = 360 / M_PI * atan(tan(kepler(M, earth_eccentricity)/ 2.0) *
+        sqrt((1.0 + earth_eccentricity) / (1.0 - earth_eccentricity)));
+    double lambda_sun = bound_angle(Ec + ecliptic_longitude_perigee);
+
+    // Lunar position calculations
+    double moon_longitude = bound_angle(13.1763966 * day +
+        moon_mean_longitude_epoch);
+    double MM = bound_angle(moon_longitude - 0.1114041 * day -
+        moon_mean_perigee_epoch);
+    double evection = sin(to_radians(2 * (moon_longitude - lambda_sun) - MM)) *
+        1.2739;
+    double annual_eq = 0.1858 * sin(to_radians(M));
+    double A3 = 0.37 * sin(to_radians(M));
+    double MmP = MM + evection - annual_eq - A3;
+    double mEc = 6.2886 * sin(to_radians(MmP));
+    double A4 = 0.214 * sin(to_radians(2 * MmP));
+    double lP = moon_longitude + evection + mEc - annual_eq + A4;
+    double variation = 0.6583 * sin(to_radians(2 * (lP - lambda_sun)));
+    double lPP = lP + variation;
+
+    // Lunar phase calculations
+    double moon_phase = bound_angle(lPP - lambda_sun) / 360.0;
+    int icon = (int) (moon_phase * 8 + 0.5) % 8;
 
     if (invert) {
         // Treat the new moon icon as the full moon icon and vice versa.

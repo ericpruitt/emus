@@ -6,12 +6,10 @@
  * clocks from different time zones may also be displayed. Refer to the "usage"
  * function for more information.
  *
- * Make: c99 -o $@ $? -lm
+ * Make: c99 -D_POSIX_C_SOURCE=200809L -o $@ $? -lm
  * Copyright: Eric Pruitt (https://www.codevat.com/)
  * License: BSD 2-Clause License (https://opensource.org/licenses/BSD-2-Clause)
  */
-#define _POSIX_C_SOURCE 200809L
-
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -27,6 +25,10 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 static char *battery_indicator(const char *);
 static void delete_range(char *, size_t, size_t);
 static size_t dow_with_ordinal_dom(char *, size_t, struct tm *);
@@ -35,10 +37,6 @@ static double mtime(const char *);
 static size_t load_indicators_from_file(char *, size_t, const char *,
                                         const char *);
 static size_t tzstrftime(char *, size_t, const char *, time_t, const char *);
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 /**
  * Get the number of members in a fixed-length array.

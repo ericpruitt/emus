@@ -407,38 +407,21 @@ static inline double kepler(double mean_anomaly, double eccentricity)
 }
 
 /**
- * Return a string indicating the phase of the moon. Within approximately 12
- * hours of a new moon or full moon, a "⁺" is prepended to the icon if the moon
- * is waxing, and a "⁻" if the moon is waning.
+ * Compute the moon phase.
  *
  * Arguments:
  * - when: UNIX timestamp representing the time.
- * - southern_hemisphere: When this is 0, the icon fills right-to-left as the
- *   moon does observed from most of the northern hemisphere. For any non-zero
- *   value, the icon fills left-to-right as the moon does observed most from
- *   the southern hemisphere. The southern hemisphere rendering may be
- *   inaccurate for some fonts. See
- *   <https://www.unicode.org/L2/L2017/17304-moon-var.pdf> for details.
- * - invert: When this is non-zero, the light and dark side of the moon are
- *   inverted. This is useful when the foreground and background colors used to
- *   display monochrome moon phase icons produce unintuitive pictures when
- *   using the correct characters.
  *
- * Return: An icon representing the current moon phase.
+ * Return: A number on the interval [0, 1.0) where 0 represents a new moon and
+ * 0.5 represents a full moon.
  */
-const char *moon_icon(time_t when, int southern_hemisphere, int invert)
+static double moon_phase(time_t when)
 {
     static const double earth_eccentricity = 0.016718;
     static const double ecliptic_longitude_epoch = 278.833540;
     static const double ecliptic_longitude_perigee = 282.596403;
     static const double moon_mean_longitude_epoch = 64.975464;
     static const double moon_mean_perigee_epoch = 349.383063;
-
-    static const char *icons[8] = {
-        "🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"
-    };
-
-    static char text[8] = "";
 
     double day = (when / 86400.0) - 3651;
 
@@ -466,9 +449,51 @@ const char *moon_icon(time_t when, int southern_hemisphere, int invert)
     double variation = 0.6583 * sin(to_radians(2 * (lP - lambda_sun)));
     double lPP = lP + variation;
 
-    // Lunar phase calculations
-    double phase = bound_angle(lPP - lambda_sun) / 360.0;
+    // Final phase calculation
+    return bound_angle(lPP - lambda_sun) / 360.0;
+}
+
+/**
+ * Return a string indicating the phase of the moon. Within 12 hours of a new
+ * moon or full moon, a "⁺" is prepended to the icon if the moon is waxing, and
+ * a "⁻" if the moon is waning.
+ *
+ * Arguments:
+ * - when: UNIX timestamp representing the time.
+ * - southern_hemisphere: When this is 0, the icon fills right-to-left as the
+ *   moon does observed from most of the northern hemisphere. For any non-zero
+ *   value, the icon fills left-to-right as the moon does observed most from
+ *   the southern hemisphere. The southern hemisphere rendering may be
+ *   inaccurate for some fonts. See
+ *   <https://www.unicode.org/L2/L2017/17304-moon-var.pdf> for details.
+ * - invert: When this is non-zero, the light and dark side of the moon are
+ *   inverted. This is useful when the foreground and background colors used to
+ *   display monochrome moon phase icons produce unintuitive pictures when
+ *   using the correct characters.
+ *
+ * Return: An icon representing the current moon phase.
+ */
+const char *moon_icon(time_t when, int southern_hemisphere, int invert)
+{
+    static const char *icons[8] = {
+        "🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"
+    };
+
+    static char text[8] = "";
+
+    double phase = moon_phase(when);
     int icon = (int) (phase * 8 + 0.5) % 8;
+
+    double t_minus_12h = moon_phase(when - 43200);
+    double t_plus_12h = moon_phase(when + 43200);
+
+    if ((phase <= 0.5 && 0.5 <= t_plus_12h) || t_minus_12h > phase) {
+        strcpy(text, "⁺");
+    } else if ((t_minus_12h <= 0.5 && 0.5 <= phase) || t_plus_12h < phase) {
+        strcpy(text, "⁻");
+    } else {
+        text[0] = '\0';
+    }
 
     if (invert) {
         // Treat the new moon icon as the full moon icon and vice versa.
@@ -479,16 +504,6 @@ const char *moon_icon(time_t when, int southern_hemisphere, int invert)
     // instead of right-to-left.
     if (southern_hemisphere) {
         icon = (8 - icon) % 8;
-    }
-
-    // Within about 12 hours of a new moon or full moon, add a marker that
-    // indicates whether the moon is waxing or waning.
-    if ((phase >= 0.48306841 && phase < 0.5) || phase <= 0.01693159) {
-        strcpy(text, "⁺");
-    } else if ((phase >= 0.5 && phase < 0.51693159) || phase >= 0.98306841) {
-        strcpy(text, "⁻");
-    } else {
-        text[0] = '\0';
     }
 
     return strcat(text, icons[icon]);

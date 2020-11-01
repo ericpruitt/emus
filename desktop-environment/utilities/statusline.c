@@ -407,7 +407,9 @@ static inline double kepler(double mean_anomaly, double eccentricity)
 }
 
 /**
- * Return an icon representing the phase of the moon.
+ * Return a string indicating the phase of the moon. Within approximately 12
+ * hours of a new moon or full moon, a "⁺" is prepended to the icon if the moon
+ * is waxing, and a "⁻" if the moon is waning.
  *
  * Arguments:
  * - when: UNIX timestamp representing the time.
@@ -436,6 +438,8 @@ const char *moon_icon(time_t when, int southern_hemisphere, int invert)
         "🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"
     };
 
+    static char text[8] = "";
+
     double day = (when / 86400.0) - 3651;
 
     // Solar position calculations
@@ -463,8 +467,8 @@ const char *moon_icon(time_t when, int southern_hemisphere, int invert)
     double lPP = lP + variation;
 
     // Lunar phase calculations
-    double moon_phase = bound_angle(lPP - lambda_sun) / 360.0;
-    int icon = (int) (moon_phase * 8 + 0.5) % 8;
+    double phase = bound_angle(lPP - lambda_sun) / 360.0;
+    int icon = (int) (phase * 8 + 0.5) % 8;
 
     if (invert) {
         // Treat the new moon icon as the full moon icon and vice versa.
@@ -477,7 +481,17 @@ const char *moon_icon(time_t when, int southern_hemisphere, int invert)
         icon = (8 - icon) % 8;
     }
 
-    return icons[icon];
+    // Within about 12 hours of a new moon or full moon, add a marker that
+    // indicates whether the moon is waxing or waning.
+    if ((phase >= 0.48306841 && phase < 0.5) || phase <= 0.01693159) {
+        strcpy(text, "⁺");
+    } else if ((phase >= 0.5 && phase < 0.51693159) || phase >= 0.98306841) {
+        strcpy(text, "⁻");
+    } else {
+        text[0] = '\0';
+    }
+
+    return strcat(text, icons[icon]);
 }
 
 /**

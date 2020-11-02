@@ -381,13 +381,13 @@ static inline double bound_angle(double degrees)
 
 /**
  * Solve Kepler's equation for the true anomaly given the mean anomaly in
- * radians and the eccentricity of the orbit.
+ * degrees and the eccentricity of the orbit.
  *
  * Arguments:
  * - mean_anomaly
  * - eccentricity
  *
- * Return: True anomaly.
+ * Return: True anomaly in radians.
  */
 static inline double kepler(double mean_anomaly, double eccentricity)
 {

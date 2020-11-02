@@ -363,7 +363,7 @@ static void delete_range(char *text, size_t start, size_t count)
  */
 static inline double to_radians(double degrees)
 {
-    return degrees * M_PI / 180.0;
+    return degrees * M_PI / 180;
 }
 
 /**
@@ -376,7 +376,7 @@ static inline double to_radians(double degrees)
  */
 static inline double bound_angle(double degrees)
 {
-    return degrees - 360.0 * floor(degrees / 360.0);
+    return degrees - 360 * floor(degrees / 360);
 }
 
 /**
@@ -398,7 +398,7 @@ static inline double kepler(double mean_anomaly, double eccentricity)
 
     while (1) {
         delta = e - eccentricity * sin(e) - m;
-        e = e - delta / (1.0 - eccentricity * cos(e));
+        e = e - delta / (1 - eccentricity * cos(e));
 
         if ((delta >= -1e-6) && (delta <= 1e-6)) {
             return e;
@@ -424,14 +424,14 @@ static double moon_phase(time_t when)
     static const double moon_mean_perigee_epoch = 349.383063;
 
     // Days since the epoch starting at 1979-12-31T00:00:00Z.
-    double day = (when / 86400.0) - 3651;
+    double day = (double) when / 86400 - 3651;
 
     // Solar position calculations
     double N = bound_angle(day * 360 / 365.2422);
     double M = bound_angle(N + ecliptic_longitude_epoch -
         ecliptic_longitude_perigee);
-    double Ec = 360 / M_PI * atan(tan(kepler(M, earth_eccentricity)/ 2.0) *
-        sqrt((1.0 + earth_eccentricity) / (1.0 - earth_eccentricity)));
+    double Ec = 360 / M_PI * atan(tan(kepler(M, earth_eccentricity)/ 2) *
+        sqrt((1 + earth_eccentricity) / (1 - earth_eccentricity)));
     double lambda_sun = bound_angle(Ec + ecliptic_longitude_perigee);
 
     // Lunar position calculations
@@ -451,7 +451,7 @@ static double moon_phase(time_t when)
     double lPP = lP + variation;
 
     // Final phase calculation
-    return bound_angle(lPP - lambda_sun) / 360.0;
+    return bound_angle(lPP - lambda_sun) / 360;
 }
 
 /**

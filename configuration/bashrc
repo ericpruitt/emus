@@ -192,6 +192,15 @@ function -define-aliases()
 
     for alias_key in "${!BASH_ALIASES[@]}"; do
         alias_value="${BASH_ALIASES["$alias_key"]}"
+
+        # Always enable aliases for compound commands since figuring out what
+        # programs are invoked would be complicated.
+        case "$alias_value" in
+          *"&&"*|*"||"*)
+            continue
+          ;;
+        esac
+
         test -n "$alias_value" || continue
         argv=($alias_value)
         # Ignore environment variables and the paginate function.

@@ -78,6 +78,16 @@ static const Rule rules[] = {
     { CLASS("Gimp(-.+)?"),                                            TAG(5),  0,     -1,      0   },
     { CLASS("st-256color|xterm|rxvt"),                                TAG(1),  0,     -1,      100 },
 
+    // Thinkorswim
+    // The main thinkorswim window is titled "Main@thinkorswim". Child windows
+    // generally have a qualifier prepended to this. For example, the Live
+    // Support window's title is "Support Main@thinkorswim". These rules tile
+    // the main window while making supporting windows float by default since
+    // they are usually temporary dialogue boxes.
+    { TITLE("^Main@thinkorswim"),                                     TAG(6),  0,     -1,      0   },
+    { TITLE(".+ Main@thinkorswim"),                                   TAG(6),  1,     -1,      0   },
+    { TITLE("^Logon to thinkorswim|^thinkorswim updater$"),           TAG(6),  1,     -1,      0   },
+
     // Firefox and Chrome both go on the same tag. I use Chromium at home and
     // Chrome at work, so Chrome and Firefox are never run together.
     { CLASS("Firefox|Iceweasel"),                                     TAG(2),  0,     -1,      0   },

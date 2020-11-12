@@ -71,6 +71,7 @@ const char *tags[9] = {"1", "2", "3", "4", "5", "6", "7", "Steam", "Chats"};
 static const Rule rules[] = {
     // Match conditions                                               Tags     Float  Monitor  Priority
     { TITLE("File Operation Progress"),                               0,       1,     -1,      0   },
+    { TITLE("This War of Mine"),                                      0,       1,     -1,      0   },
     { INSTANCE("eog"),                                                0,       1,     -1,      0   },
     { INSTANCE("gpick"),                                              0,       1,     -1,      0   },
     { CLASS("VirtualBox"),                                            TAG(4),  0,     -1,      0   },

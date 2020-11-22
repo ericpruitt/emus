@@ -52,7 +52,10 @@ def set_title(text):
     Arguments:
     - text (str)
     """
-    print("\033]2;%s\033\\" % text, end="", file=sys.stderr, flush=True)
+    try:
+        print("\033]2;%s\033\\" % text, end="", file=sys.stderr, flush=True)
+    except Exception:
+        pass
 
 
 def main(argv):

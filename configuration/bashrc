@@ -506,6 +506,7 @@ function -setup()
     shopt -s extglob
     shopt -s globstar
     shopt -s histappend
+    shopt -u hostcomplete
 
     eval -- "${DECLARE_BASH_ALIASES:--define-aliases}"
 

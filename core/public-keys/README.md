@@ -18,6 +18,8 @@ replacement keys easier if they are moved.
 - coreutils-pádraig-brady.asc
   - <https://savannah.gnu.org/forum/forum.php?forum_id=8445>
   - `gpg --keyserver keys.gnupg.net --recv-keys DF6FD971306037D9`
+- findutils-keyring.asc
+  - <https://savannah.gnu.org/project/memberlist-gpgkeys.php?group=findutils>
 - gawk-arnold-robbins.asc
   - <https://savannah.gnu.org/project/memberlist.php?group=gawk>
   - <https://savannah.gnu.org/people/viewgpg.php?user_id=80653>

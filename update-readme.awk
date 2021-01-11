@@ -59,6 +59,12 @@ $0 == "### patches/ ###" {
     for (cursor = 1; cursor <= path_count; cursor++) {
         path = paths[cursor]
 
+        # Do not document security patches since they are not really
+        # customizations.
+        if (path ~ /-CVE-/) {
+            continue
+        }
+
         basename = path
         sub(/^.*\//, "", basename)
 

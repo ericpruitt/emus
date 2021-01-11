@@ -1,13 +1,13 @@
 Do not include the build time in the binary to improve reproducibility.
 
 diff --git a/src/version.c b/src/version.c
-index 061844786..75319efc9 100644
+index 07c784098..3dab7dc73 100644
 --- src/version.c
 +++ src/version.c
-@@ -57,18 +57,16 @@ init_longVersion(void)
-     if (longVersion == NULL)
-     {
+@@ -61,18 +61,16 @@ init_longVersion(void)
+ #else
  	char *date_time = __DATE__ " " __TIME__;
+ #endif
 -	char *msg = _("%s (%s, compiled %s)");
 +	char *msg = _("%s");
  	size_t len = strlen(msg)

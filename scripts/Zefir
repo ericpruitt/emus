@@ -1,0 +1,192 @@
+#!/usr/bin/env python
+"""
+Usage: Zefir [XEHPYR_OPTION]... COMMAND [ARGUMENT]...
+       Zefir [XEHPYR_OPTION]... -- COMMAND [ARGUMENT]...
+
+Zefir is a light wrapper around Xephyr made to simplify the process of
+launching an application within a Xephyr display. This script accepts every
+option that Xephyr does with two additions: the first non-option argument marks
+the beginning of the command to be executed, and "--" can be used to
+prematurely terminate option parsing a la the behavior of GNU getopt(3) which
+is useful when the command is a string that would otherwise be treated as a
+Xephyr option. Zefir first launches Xephyr, reads the display number from the
+child process then sets the "DISPLAY" environment variable accordingly before
+executing the command.
+
+Examples:
+  Zefir -title "iPad Simulator" -screen 2048x2732 firefox https://example.com
+  Zefir -displayfd 1 -- wine start notepad.exe
+"""
+from __future__ import print_function
+
+import os
+import select
+import subprocess
+import sys
+
+SELF = os.path.basename(sys.argv[0])
+
+PYTHON_2 = (sys.version_info.major == 2)
+
+XEPHYR_COMMAND = "Xephyr"
+XEPHYR_OPTIONS_WITH_VALUES = {
+    "+accessx",
+    "+extension",
+    "-a",
+    "-accessx",
+    "-audit",
+    "-auth",
+    "-background",
+    "-cc",
+    "-class",
+    "-cookie",
+    "-deferglyphs",
+    "-displayID",
+    "-displayfd",
+    "-dpi",
+    "-extension",
+    "-f",
+    "-fc",
+    "-fn",
+    "-fp",
+    "-from",
+    "-glamor-skip-present",
+    "-indirect",
+    "-keybd",
+    "-ld",
+    "-lf",
+    "-listen",
+    "-ls",
+    "-maxclients",
+    "-mouse",
+    "-multicast",
+    "-name",
+    "-nolisten",
+    "-origin",
+    "-output",
+    "-p",
+    "-parent",
+    "-port",
+    "-query",
+    "-render",
+    "-rgba",
+    "-s",
+    "-schedInterval",
+    "-screen",
+    "-seat",
+    "-t",
+    "-title",
+    "-to",
+    "-verbosity",
+    "c",
+}
+
+
+class Error(Exception):
+    """
+    Module-specific base exception class.
+    """
+
+
+def main(argv):
+    # Xephyr does not use getopt(3), so a custom option parser is required.
+    xehpyr_args = list()
+    command = list()
+    display_fd = None
+    argn = 1
+
+    while argn < len(argv):
+        argument = argv[argn]
+
+        if argument == "--":
+            command.extend(argv[argn + 1:])
+            break
+
+        elif argument == "-help":
+            print(__doc__.strip(), end="\n\n", file=sys.stderr)
+            print("Xephyr ", end="", file=sys.stderr)
+            sys.stderr.flush()
+            subprocess.check_call([XEPHYR_COMMAND, "-help"])
+            return
+
+        elif argument in XEPHYR_OPTIONS_WITH_VALUES:
+            # XXX: This logic might not be correct for [+-]accessx which looks
+            # like it can accept up to 4 values.
+            argn += 1
+
+            if argn >= len(argv):
+                raise Error("missing value for %r option" % argument)
+
+            if argument == "-displayfd":
+                try:
+                    display_fd = int(argv[argn])
+                except ValueError:
+                    raise Error("%r is not a valid integer" % argv[argn])
+
+                if display_fd < 0:
+                    raise Error("file descriptors cannot be negative")
+            else:
+                xehpyr_args.extend((argument, argv[argn]))
+
+        elif (argument in ("r", "v") or argument.startswith("tty") or
+          argument.startswith(("+", "-", ":"))):
+            xehpyr_args.append(argument)
+
+        else:
+            command = argv[argn:]
+            break
+
+        argn += 1
+
+    if not command:
+        raise Error('no command specified; try "%s -help"' % SELF)
+
+    child_output, child_fd = os.pipe()
+    xephyr = [XEPHYR_COMMAND, "-displayfd", str(child_fd)] + xehpyr_args
+
+    try:
+        if PYTHON_2:
+            name, value = "close_fds", False
+        else:
+            name, value = "pass_fds", [child_fd]
+
+        process = subprocess.Popen(xephyr, **{name: value})
+    finally:
+        os.close(child_fd)
+
+    try:
+        readable, _, _ = select.select([child_output], [], [child_output])
+        display = None
+
+        if readable:
+            display = os.read(child_output, 1024)
+
+            if display and display_fd is not None:
+                try:
+                    os.write(display_fd, display)
+                except Exception as error:
+                    raise Error(
+                        "unable to write to file descriptor %i: %s" %
+                        (display_fd, getattr(error, "strerror", str(error)))
+                    )
+    finally:
+        os.close(child_output)
+
+    if not display:
+        return process.wait()
+
+    env = os.environ.copy()
+    env["DISPLAY"] = b":" + display.rstrip()
+    os.execvpe(command[0], command, env)
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv))
+    except Error as error:
+        try:
+            print("%s: %s" % (SELF, error), file=sys.stderr)
+        except IOError:
+            pass
+
+        sys.exit(1)

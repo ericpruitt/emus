@@ -19,7 +19,11 @@ test "$PS1" || return 0
 
 # If the current Bash interpreter is not the first entry in a $PATH, re-execute
 # Bash to pivot into the user's preferred Bash shell.
-test "$BASH" -ef "$(command -v bash || echo "$BASH")" || exec bash ${-:+-$-}
+if ! test "$BASH" -ef "$(command -v bash || echo "$BASH")"; then
+    options="${-:+-$-}"
+    set -m 2>&-  # Without this, Bash may send itself SIGTTIN.
+    exec bash $options
+fi
 
 # This regex is used to determine whether a username are included in the shell
 # prompt and title; if the current username does not match this pattern, the

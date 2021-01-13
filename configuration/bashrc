@@ -514,6 +514,9 @@ function -setup()
     shopt -s histappend
     shopt -u hostcomplete
 
+    # If the current directory is not readable, "cd" to the home directory.
+    test -r . || cd
+
     eval -- "${DECLARE_BASH_ALIASES:--define-aliases}"
 
     if [[ "${TMUX:-}" ]]; then

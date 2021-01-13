@@ -499,8 +499,10 @@ function -setup()
 
     set -u
     complete -r
+    complete -a unalias
     complete -c which
-    complete -d cd
+    complete -d cd rmdir
+    complete -v export unset
     shopt -s autocd
     shopt -s cdspell
     shopt -s checkwinsize

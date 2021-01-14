@@ -652,7 +652,6 @@ $(BASH)/Makefile: $(BASH)/.FOLDER $(COMMON)/$(READLINE)
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
 		LDFLAGS="$(LDFLAGS)" \
-		ac_cv_header_dlfcn_h="no" \
 		--disable-nls \
 		--enable-static-link \
 		--with-installed-readline="$(PWD)/$(COMMON)" \

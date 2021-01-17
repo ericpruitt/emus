@@ -23,7 +23,6 @@ Bugs:
   the script interactively to verify that it works as expected.
 """
 import pipes
-import sysconfig
 import signal
 import getopt
 import getpass

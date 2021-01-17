@@ -18,11 +18,11 @@ compton --daemon -C $(
 )
 
 st &
-pgrep -x fifo2rootname || statusline -i -m -z US/Pacific | fifo2rootname &
+statusline -i -m -z US/Pacific | singleton fifo2rootname &
 
 PATH="$EMUS/desktop-environment/scripts:$PATH"
-hid-monitor &
-media-control monitor &
+singleton hid-monitor &
+singleton media-control monitor &
 
 until dwm; do sleep 1; done
 kill -SIGHUP -$$

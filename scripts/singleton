@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+"""
+Usage: singleton [-cehkV] [--help] COMMAND [ARGUMENT]...
+
+Execute a command in a way that tries* to ensure only one instance runs at a
+time.
+
+Options (and Defaults):
+  -c        When checking to see if a command is already running, look for any
+            process with the same name regardless of whether or not the options
+            are the same.
+  -e CODE (255)
+            Set the exit code used to indicate that an instance of the command
+            already exists. This option has no effect when "-k" is specified.
+  -h, -V, --help
+            Show this documentation and exit.
+  -k        If an instance of the specified command already exists, kill it and
+            execute the specified command.
+
+Bugs:
+  The heuristics used by this script are imperfect and are inherently racy
+  although the race conditions are unlikely to be an issue in practice. Test
+  the script interactively to verify that it works as expected.
+"""
+import pipes
+import sysconfig
+import signal
+import getopt
+import os
+import subprocess
+import sys
+
+SELF = os.path.basename(sys.argv[0])
+
+PGREP = "pgrep"
+
+
+def command_path(command):
+    """
+    Return the full path of a command. If the command cannot be found in
+    `$PATH`, the input value is returned.
+
+    Arguments:
+    - command (str)
+
+    Returns (str): Path of the command.
+    """
+    path = None
+
+    try:
+        output = subprocess.check_output(
+            ["sh", "-c", f"command -v -- {pipes.quote(command)}"],
+            universal_newlines=True,
+        )
+        path = output[:-1]
+    except Exception:
+        pass
+
+    return path or command
+
+
+def regex_escape(text):
+    r"""
+    Use brackets ("[...]") to escape metacharacters in a regular expression.
+    Brackets are used because they are less ambiguous than "\" characters.
+
+    Arguments:
+    - text (str)
+
+    Returns (str): Text with metacharacters escaped.
+    """
+    text = text.replace("[", "[[]")
+
+    for character in "$())*+.?\\]^{|}":
+        text.replace(character, f"[{character}]")
+
+    return text
+
+
+def pgrep(*arguments):
+    """
+    Execute _pgrep(1)_ using the specified arguments. This function
+    automatically inserts `-u $LOGNAME` before the user-specified arguments so
+    only PIDs of processes belonging to the current user are returned.
+
+    Arguments:
+    - arguments (tuple): Arguments for _pgrep(1)_.
+
+    Returns (set[int]): Set with the PIDs of the matching processes.
+    """
+    process = subprocess.Popen(
+        [PGREP, "-u", os.getlogin()] + list(arguments),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+    )
+    stdout, stderr = process.communicate()
+
+    if process.returncode not in (0, 1):
+        raise Exception(stderr.strip())
+
+    return set(pid for pid in map(int, stdout.split()) if pid != os.getpid())
+
+
+def warn(*args, **kwargs):
+    """
+    Works the same as the "print" builtin, but the output destination defaults
+    to sys.stderr instead of sys.stdout, and the program name is prepended to
+    each message.
+    """
+    kwargs.setdefault("file", sys.stderr)
+    print("%s:" % SELF, *args, **kwargs)
+
+
+def main(argv):
+    kill_duplicates = False
+    only_match_command = False
+    conflict_exit_status = 255
+
+    try:
+        options, command = getopt.getopt(argv, "ce:hkV", ["help"])
+    except getopt.GetoptError as error:
+        warn(error)
+        return 1
+
+    for option, value in options:
+        if option == "-c":
+            only_match_command = True
+        elif option == "-e":
+            try:
+                conflict_exit_status = int(value)
+            except Exception:
+                warn(f"{value!r} is not a valid integer")
+                return 1
+        elif option == "-k":
+            kill_duplicates = True
+        elif option in ("-h", "-V", "--help"):
+            print(__doc__.strip())
+            return
+        else:
+            raise AssertionError(f"{option}: option not handled")
+
+    if not command:
+        warn(f'no command specified; try "{SELF} --help"')
+        return 1
+
+    original_command = command.copy()
+    command_matches = pgrep("-x", "--", regex_escape(command[0]))
+
+    if not command_matches:
+        # If no programs match the specified command, the program may be a
+        # script invoked with env(1) which means that the process's command
+        # name will be the interpreter, not the script being executed e.g.:
+        #
+        #     ~$ pgrep -f hid-monitor
+        #     COMMAND         CMD
+        #     bash            bash .../hid-monitor
+        #     bash            bash .../hid-monitor
+        #
+        # The logic to account for this is far from perfect and will not work
+        # for every interpreter.
+        try:
+            with open(command_path(command[0])) as fd:
+                shebang = None
+
+                try:
+                    if fd.read(2) == "#!":
+                        shebang = fd.readline().split()
+                except Exception:
+                    pass
+
+            if shebang:
+                interpreter = shebang[0]
+                arguments = shebang[1:]
+
+                if os.path.basename(interpreter) == "env":
+                    # Resolve the script to its full path since that is what will
+                    # appear in the process's invocation.
+                    command[0] = command_path(command[0])
+
+                    # Remove env(1) options from the list. This does not
+                    # support options that accept values.
+                    option_words = list()
+
+                    for index, argument in enumerate(arguments):
+                        if not argument.startswith("-"):
+                            break
+
+                        option_words.insert(0, index)
+
+                    for index in option_words:
+                        del arguments[index]
+
+                    command[:0] = arguments
+                    command_matches = pgrep("-x", "--", regex_escape(command[0]))
+
+                    # If "-c" is specified, remove all arguments after the
+                    # script name so they are not used in the pgrep(1) query.
+                    if only_match_command:
+                        del command[len(arguments) + 1:]
+                        only_match_command = False
+        except EnvironmentError:
+            pass
+
+    if only_match_command or not command_matches or len(command) == 1:
+        common_matches = command_matches
+    else:
+        argument_regex = regex_escape(" %s$" % " ".join(command[1:]))
+        argument_matches = pgrep("-f", "--", argument_regex)
+        common_matches = command_matches.intersection(argument_matches)
+
+    if common_matches:
+        if kill_duplicates:
+            for pid in common_matches:
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+        else:
+            warn(
+                f"{original_command[0]}: command already running:",
+                ", ".join(sorted(map(str, common_matches))),
+            )
+
+            return conflict_exit_status
+
+    try:
+        os.execvp(original_command[0], original_command)
+    except FileNotFoundError:
+        warn(f"{original_command[0]}: command not found")
+        return 127
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

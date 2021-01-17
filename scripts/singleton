@@ -199,7 +199,7 @@ def main(argv):
                     if only_match_command:
                         del command[len(arguments) + 1:]
                         only_match_command = False
-        except EnvironmentError:
+        except OSError:
             pass
 
     if only_match_command or not command_matches or len(command) == 1:

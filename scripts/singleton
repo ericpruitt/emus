@@ -22,11 +22,11 @@ Bugs:
   although the race conditions are unlikely to be an issue in practice. Test
   the script interactively to verify that it works as expected.
 """
-import pipes
-import signal
 import getopt
 import getpass
 import os
+import pipes
+import signal
 import subprocess
 import sys
 

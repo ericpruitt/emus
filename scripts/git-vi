@@ -72,7 +72,7 @@ def gitz(command, *arguments):
     """
     records = subprocess.check_output([GIT, command, "-z"] + list(arguments))
     assert not records or b"\000" in records, (
-        "%s: output is not NUL-separated" % " ".join(argv))
+        "%s: output is not NUL-separated" % " ".join(arguments))
     return [record for record in records.split(b"\000") if record]
 
 

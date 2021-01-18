@@ -72,7 +72,7 @@ def regex_escape(text):
     """
     text = text.replace("[", "[[]")
 
-    for character in "$())*+.?\\]^{|}":
+    for character in "$()*+.?\\]^{|}":
         text.replace(character, f"[{character}]")
 
     return text

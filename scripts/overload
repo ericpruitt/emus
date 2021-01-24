@@ -4,7 +4,7 @@ ka=(... "?" "!")
 nyaa=(
     .zZ mňau maullar meong meow miáú miaŭ miaau miao miaou miar miau miauw miav
     mijau mijav miob miyav miyavlamak mjau mjaullin mjaw mjäu muyawo myau .zZ
-    nyaa meow
+    nyaa meow mau
 )
 cats="$((2 * $(nproc)))"
 echo "Spawning $cats cats (^人^):"

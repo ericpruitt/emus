@@ -975,5 +975,11 @@ int main(int argc, char **argv)
 
     free(commands.entries);
 
+    for (i = 0; i < exclusions.count; i++) {
+        free(exclusions.entries[i]);
+    }
+
+    free(exclusions.entries);
+
     return exit_status;
 }

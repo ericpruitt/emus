@@ -10,8 +10,10 @@
  * License: BSD 2-Clause License (https://opensource.org/licenses/BSD-2-Clause)
  */
 
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fnmatch.h>
 #include <ftw.h>
 #include <getopt.h>
 #include <libgen.h>
@@ -25,10 +27,25 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-static int add_command_to_list(const char *);
+/**
+ * Unsorted, in-memory list of strings. This uses a dynamically allocated array
+ * that is resized in fixed chunks once it needs to beyond its original size.
+ * Membership tests are done with a linear search of the array until a match is
+ * found. This simple approach is taken to reduce complexity of this
+ * application since it is unlikely that the number of items in the lists will
+ * a bottleneck for this application.
+ */
+typedef struct list_st {
+    size_t length;      // Maximum number of entries list may contain.
+    size_t count;       // Number of entries the list contains.
+    char **entries;     // List of strings in list.
+} list_st;
+
+static int add_to_list(list_st *, const char *);
 static int can_execute(const char *);
-static int command_list_contains(const char *);
+static int list_contains(list_st *, const char *);
 static const char *command_path(const char *);
+static int load_list_from_file(list_st *, const char *);
 static int load_commands_from_file(const char *, FILE *);
 static int menu(const char *, char **);
 static int parse_desktop_entry(const char *, const struct stat *, int,
@@ -49,6 +66,11 @@ static void usage(const char *);
 #define DEFAULT_COMMAND_LIST_BASENAME ".del"
 
 /**
+ * The suffix added to the command list path for the command exclusion list.
+ */
+#define EXCLUSION_LIST_SUFFIX "-exclusions"
+
+/**
  * Default command used to present a menu to the user.
  */
 #define DEFAULT_MENU_COMMAND "dmenu"
@@ -59,6 +81,21 @@ static void usage(const char *);
 #define MAX_OPEN_FILES ( \
     (int) (sysconf(_SC_OPEN_MAX) > INT_MAX ? INT_MAX : sysconf(_SC_OPEN_MAX)) \
 )
+
+/**
+ * Maximum permitted size of list entries.
+ */
+#define MAX_LIST_ENTRY_SIZE 4096
+
+/**
+ * Maximum strength length of list entries.
+ */
+#define MAX_LIST_ENTRY_STRLEN (MAX_LIST_ENTRY_SIZE - 1)
+
+/**
+ * _sscanf(3)_ pattern used to match Freedesktop Desktop Entry "Exec" lines.
+ */
+#define EXEC_LINE_PATTERN "Exec = %4095s %n"
 
 /**
  * Works like _printf(3)_ but writes to stderr and implicitly adds a newline to
@@ -89,27 +126,18 @@ typedef enum {
 } action_et;
 
 /**
- * Unsorted, in-memory list of commands. This is just a dynamically allocated
- * array that is resized in fixed chunks once it grows beyond its original
- * size. Membership tests are done by iterating the array until a match is
- * found. This simple approach is taken to reduce complexity of this
- * application since it is unlikely that the number of items in the list will a
- * bottleneck for this application.
+ * List of commands to use in the menu.
  */
-static char **commands = NULL;
+static list_st commands;
 
 /**
- * Maximum number of pointers that "commands" can hold.
+ * List of case-insensitive _fnmatch(3)_ patterns that are used to exclude
+ * commands from the menu.
  */
-static size_t max_commands = 0;
+static list_st exclusions;
 
 /**
- * Number of pointers in "commands" that have been assigned.
- */
-static size_t command_count = 0;
-
-/**
- * Value set by functions involved with updating "commands" when there was a
+  Value set by functions involved with updating lists when there was a
  * memory allocation failure that is used to propagate errors generated inside
  * of _nftw(3)_ to the caller.
  */
@@ -155,6 +183,10 @@ static const char command_usage[] =
 "        launcher list. The programs must exist in $PATH or they will be\n"
 "        silently ignored.\n"
 "\n"
+"        Commands can be excluded by specifying case-insensitive fnmatch(3)\n"
+"        patterns in a file that is the path of the command list with\n"
+"        \"" EXCLUSION_LIST_SUFFIX "\" appended.\n"
+"\n"
 "Exit Statuses:\n"
 "- 1: Fatal error encountered.\n"
 "- 2: Non-fatal error encountered.\n"
@@ -176,21 +208,22 @@ static int stringcomparator(const void *a, const void *b)
 }
 
 /**
- * Check to see if a given command is already in the command list. The search
- * is case insensitive.
+ * Check to see if a given value is already in a list. The search is case
+ * insensitive.
  *
  * Arguments:
- * - needle: Name of the command.
+ * - list: List to search.
+ * - needle: Value to search for.
  *
  * Return: 0 if the command is not the command list and a non-zero value
  * otherwise.
  */
-static int command_list_contains(const char *needle)
+static int list_contains(list_st *list, const char *needle)
 {
     size_t i;
 
-    for (i = 0; i < command_count; i++) {
-        if (!strcasecmp(commands[i], needle)) {
+    for (i = 0; i < list->count; i++) {
+        if (!strcasecmp(list->entries[i], needle)) {
             return 1;
         }
     }
@@ -199,38 +232,97 @@ static int command_list_contains(const char *needle)
 }
 
 /**
- * Add given a given command to the command list. This function does not check
- * for duplicates. If memory allocation fails, the global variable
- * "malloc_failed" is set to 1.
+ * This function works like _fnmatch(3)_, but the matches are case insensitive,
+ * and this function does not accept any flags.
+ *
+ * - pattern: An _fnmatch(3)_ pattern.
+ * - string: String to test against pattern.
+ *
+ * Return: 0 if the string matches the pattern, FNM_NOMATCH if there is no
+ * match or another nonzero value if there is an error.
+ */
+static int fnimatch(const char *pattern, const char *string)
+{
+    size_t i;
+
+    char string_lower[MAX_LIST_ENTRY_SIZE] = "";
+    char pattern_lower[MAX_LIST_ENTRY_SIZE] = "";
+
+    for (i = 0; pattern[i] != '\0'; i++) {
+        pattern_lower[i] = tolower(pattern[i]);
+    }
+
+    for (i = 0; string[i] != '\0'; i++) {
+        string_lower[i] = tolower(string[i]);
+    }
+
+    return fnmatch(pattern_lower, string_lower, 0);
+}
+
+/**
+ * Determine whether a command should be excluded from the menu.
  *
  * Arguments:
- * - command: Name of the command to add to the command list.
+ * - command
+ *
+ * Return: 0 if the command should be excluded and a non-zero value otherwise.
+ */
+static int excluded(const char *command)
+{
+    size_t i;
+
+    for (i = 0; i < exclusions.count; i++) {
+        if (fnimatch(exclusions.entries[i], command) == 0) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * Add given a given string to a list. This function does not check for
+ * duplicates. If memory allocation fails, the global variable "malloc_failed"
+ * is set to 1.
+ *
+ * Arguments:
+ * - list: List to update.
+ * - value: String to add to the list.
  *
  * Return: 0 if the addition succeeded and a non-zero value otherwise.
  */
-static int add_command_to_list(const char *command)
+static int add_to_list(list_st *list, const char *value)
 {
-    char **_commands;
+    char **buffer;
 
-    if (command_count >= max_commands) {
-        max_commands += INCREMENTAL_ALLOCATION_SIZE;
-        if (!(_commands = realloc(commands, sizeof(char *) * max_commands))) {
-            max_commands -= INCREMENTAL_ALLOCATION_SIZE;
-            perror("del: could not resize command list");
+    if (strlen(value) > MAX_LIST_ENTRY_STRLEN) {
+        fmterr(
+            "del: %s: length exceeds %iB limit", value, MAX_LIST_ENTRY_STRLEN
+        );
+        errno = EOVERFLOW;
+        return 1;
+    }
+
+    if (list->count >= list->length) {
+        list->length += INCREMENTAL_ALLOCATION_SIZE;
+
+        if (!(buffer = realloc(list->entries, sizeof(char *) * list->length))) {
+            list->length -= INCREMENTAL_ALLOCATION_SIZE;
+            perror("del: could not resize list");
             malloc_failed = 1;
             return 1;
         }
 
-        commands = _commands;
+        list->entries = buffer;
     }
 
-    if (!(commands[command_count] = strdup(command))) {
-        perror("del: could not update command list");
+    if (!(list->entries[list->count] = strdup(value))) {
+        perror("del: could not update list");
         malloc_failed = 1;
         return 1;
     }
 
-    command_count++;
+    list->count++;
     return 0;
 }
 
@@ -312,7 +404,7 @@ static const char *command_path(const char *command)
 
         strcpy(dest, command);
 
-        if (can_execute(path)) {
+        if (!excluded(command) && can_execute(path)) {
             return path;
         } else if (*src == '\0') {
             return NULL;
@@ -349,7 +441,7 @@ static int parse_desktop_entry(const char *fpath, const struct stat *_2,
 
     size_t bufsize = 0;
     int case_changed = 0;
-    char command[4096] = "";
+    char command[MAX_LIST_ENTRY_SIZE] = "";
     const char *command_basename = NULL;
     int inside_desktop_entry = 0;
     char *line = NULL;
@@ -379,7 +471,7 @@ static int parse_desktop_entry(const char *fpath, const struct stat *_2,
           !strcmp(type, "KonsoleApplication")) {
             command[0] = '\0';
             break;
-        } else if (sscanf(line, "Exec = %4095s %n", command, &offset) > 0) {
+        } else if (sscanf(line, EXEC_LINE_PATTERN, command, &offset) > 0) {
             command_basename = basename(command);
 
             // If the desktop entry uses env(1), use the first word that
@@ -402,7 +494,7 @@ static int parse_desktop_entry(const char *fpath, const struct stat *_2,
     fclose(file);
     free(line);
 
-    if (command[0] == '\0' || command_list_contains(command_basename)) {
+    if (command[0] == '\0' || list_contains(&commands, command_basename)) {
         return 0;
     } else if (!(lowercase_basename = strdup(command_basename))) {
         perror("del: could not allocate memory for command name");
@@ -418,14 +510,51 @@ static int parse_desktop_entry(const char *fpath, const struct stat *_2,
 
     if (command_path(lowercase_basename)) {
         printf("+ %s (%s)\n", lowercase_basename, fpath);
-        add_command_to_list(lowercase_basename);
+        add_to_list(&commands, lowercase_basename);
     } else if (case_changed && command_path(command_basename)) {
         printf("+ %s (%s)\n", command_basename, fpath);
-        add_command_to_list(command_basename);
+        add_to_list(&commands, command_basename);
     }
 
     free(lowercase_basename);
     return malloc_failed;
+}
+
+/**
+ * Populate a list with the lines in a file.
+ *
+ * Arguments:
+ * - list: List to populate.
+ * - path: File from which lines are read.
+ *
+ * Returns: 0 if the there were no errors and a non-zero value if there were.
+ */
+static int load_list_from_file(list_st *list, const char *path)
+{
+    FILE *file;
+    ssize_t line_length;
+
+    size_t bufsize = 0;
+    char *entry = NULL;
+    int failed = 0;
+
+    if ((file = fopen(path, "r"))) {
+        while ((line_length = getline(&entry, &bufsize, file)) != -1) {
+            if (line_length >= 1 && entry[line_length - 1] == '\n') {
+                entry[line_length - 1] = '\0';
+            }
+
+            if ((failed = add_to_list(list, entry))) {
+                break;
+            }
+
+            printf("* %s\n", entry);
+        }
+    } else {
+        failed = (errno != ENOENT);
+    }
+
+    return failed;
 }
 
 /**
@@ -463,7 +592,8 @@ static int load_commands_from_file(const char *path, FILE *file)
             entry[line_length - 1] = '\0';
         }
         if (command_path(entry)) {
-            if ((failed = add_command_to_list(entry))) {
+            if ((failed = add_to_list(&commands, entry))) {
+                saved_errno = errno;
                 break;
             }
         } else {
@@ -519,6 +649,8 @@ static int refresh_command_list(const char *path, char **dirs, size_t n)
 
     char tempname[PATH_MAX + 6];  // 6: strlen of the mkstemp suffix
 
+    puts("Loading commands from existing list...");
+
     if (!isatty(STDIN_FILENO) && errno != EBADF &&
       load_commands_from_file(NULL, stdin)) {
         perror("del: could not load commands from stdin");
@@ -536,6 +668,8 @@ static int refresh_command_list(const char *path, char **dirs, size_t n)
     // never be negative.
     nftw_maxopen = MAX_OPEN_FILES - 4;
 
+    puts("Searching for desktop entries...");
+
     if (dirs && n) {
         for (i = 0; i < n; i++) {
             if (nftw(dirs[i], parse_desktop_entry, nftw_maxopen, FTW_MOUNT)) {
@@ -552,7 +686,7 @@ static int refresh_command_list(const char *path, char **dirs, size_t n)
         return 1;
     }
 
-    if (!command_count) {
+    if (!commands.count) {
         fmterr("del: no commands found");
         return 1;
     }
@@ -565,11 +699,11 @@ static int refresh_command_list(const char *path, char **dirs, size_t n)
         goto error;
     }
 
-    qsort(commands, command_count, sizeof(char *), stringcomparator);
+    qsort(commands.entries, commands.count, sizeof(char *), stringcomparator);
 
-    for (i = 0; i < command_count; i++) {
-        if ((!i || strcmp(commands[i - 1], commands[i])) &&
-            fprintf(ftemp, "%s\n", commands[i]) < 0) {
+    for (i = 0; i < commands.count; i++) {
+        if ((!i || strcmp(commands.entries[i - 1], commands.entries[i])) &&
+            fprintf(ftemp, "%s\n", commands.entries[i]) < 0) {
 
             goto error;
         }
@@ -743,6 +877,7 @@ int main(int argc, char **argv)
 
     action_et action = LAUNCH_MENU;
     char *command_list_path = NULL;
+    char *exclusion_list_path = NULL;
     int must_free_command_list_path = 0;
 
     while ((option = getopt(argc, argv, "+hf:r")) != -1) {
@@ -796,8 +931,29 @@ int main(int argc, char **argv)
 
     switch (action) {
       case REFRESH_COMMAND_LIST:
-        exit_status = refresh_command_list(command_list_path, argv + optind,
-          (size_t) (argc - optind));
+
+        exclusion_list_path = malloc(
+            strlen(command_list_path) + strlen(EXCLUSION_LIST_SUFFIX) + 1
+        );
+
+        if (!exclusion_list_path) {
+            perror("del: could not allocate memory for filename");
+            return 1;
+        }
+
+        strcat(exclusion_list_path, command_list_path);
+        strcat(exclusion_list_path, EXCLUSION_LIST_SUFFIX);
+
+        puts("Loading exclusion patterns...");
+        exit_status = load_list_from_file(&exclusions, exclusion_list_path);
+
+        if (exit_status == 0) {
+            exit_status = refresh_command_list(
+                command_list_path, argv + optind, (size_t) (argc - optind)
+            );
+        } else {
+            verror("del: could not load patterns from '%s'", exclusion_list_path);
+        }
         break;
 
       case LAUNCH_MENU:
@@ -813,11 +969,11 @@ int main(int argc, char **argv)
         free(command_list_path);
     }
 
-    for (i = 0; i < command_count; i++) {
-        free(commands[i]);
+    for (i = 0; i < commands.count; i++) {
+        free(commands.entries[i]);
     }
 
-    free(commands);
+    free(commands.entries);
 
     return exit_status;
 }

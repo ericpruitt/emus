@@ -43,7 +43,7 @@ typedef struct list_st {
 
 static int add_to_list(list_st *, const char *);
 static int can_execute(const char *);
-static int list_contains(list_st *, const char *);
+static int list_contains(const list_st *, const char *);
 static const char *command_path(const char *);
 static int load_list_from_file(list_st *, const char *);
 static int load_commands_from_file(const char *, FILE *);
@@ -218,7 +218,7 @@ static int stringcomparator(const void *a, const void *b)
  * Return: 0 if the command is not the command list and a non-zero value
  * otherwise.
  */
-static int list_contains(list_st *list, const char *needle)
+static int list_contains(const list_st *list, const char *needle)
 {
     size_t i;
 

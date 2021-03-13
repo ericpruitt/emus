@@ -10,7 +10,6 @@
  * License: BSD 2-Clause License (https://opensource.org/licenses/BSD-2-Clause)
  */
 
-#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <fnmatch.h>
@@ -237,11 +236,11 @@ static int fnimatch(const char *pattern, const char *string)
     char pattern_lower[MAX_LIST_ENTRY_SIZE] = "";
 
     for (i = 0; pattern[i] != '\0'; i++) {
-        pattern_lower[i] = tolower(pattern[i]);
+        pattern_lower[i] = pattern[i] | 32;
     }
 
     for (i = 0; string[i] != '\0'; i++) {
-        string_lower[i] = tolower(string[i]);
+        string_lower[i] = string[i] | 32;
     }
 
     return fnmatch(pattern_lower, string_lower, 0);

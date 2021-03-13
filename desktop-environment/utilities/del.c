@@ -41,19 +41,6 @@ typedef struct list_st {
     char **entries;     // List of strings in list.
 } list_st;
 
-static int add_to_list(list_st *, const char *);
-static int can_execute(const char *);
-static int list_contains(const list_st *, const char *);
-static const char *command_path(const char *);
-static int load_list_from_file(list_st *, const char *);
-static int load_commands_from_file(const char *, FILE *);
-static int menu(const char *, char **);
-static int parse_desktop_entry(const char *, const struct stat *, int,
-                               struct FTW *);
-static int refresh_command_list(const char *, char **, size_t);
-static int stringcomparator(const void *, const void *);
-static void usage(const char *);
-
 /**
  * This value controls the number of additional members the command list will
  * have allocated when it needs to be resized.

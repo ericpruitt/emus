@@ -9,7 +9,6 @@
  * Copyright: Eric Pruitt (https://www.codevat.com/)
  * License: BSD 2-Clause License (https://opensource.org/licenses/BSD-2-Clause)
  */
-
 #include <errno.h>
 #include <fcntl.h>
 #include <fnmatch.h>
@@ -25,20 +24,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
-/**
- * Unsorted, in-memory list of strings. This uses a dynamically allocated array
- * that is resized in fixed chunks once it needs to beyond its original size.
- * Membership tests are done with a linear search of the array until a match is
- * found. This simple approach is taken to reduce complexity of this
- * application since it is unlikely that the number of items in the lists will
- * a bottleneck for this application.
- */
-typedef struct list_st {
-    size_t length;      // Maximum number of entries list may contain.
-    size_t count;       // Number of entries the list contains.
-    char **entries;     // List of strings in list.
-} list_st;
 
 /**
  * This value controls the number of additional members the command list will
@@ -101,6 +86,20 @@ typedef struct list_st {
  * format string and, optionally, a list of values for format substitution.
  */
 #define verror(fmt, ...) _eprintf(fmt ": %s", __VA_ARGS__, strerror(errno), "")
+
+/**
+ * Unsorted, in-memory list of strings. This uses a dynamically allocated array
+ * that is resized in fixed chunks once it needs to beyond its original size.
+ * Membership tests are done with a linear search of the array until a match is
+ * found. This simple approach is taken to reduce complexity of this
+ * application since it is unlikely that the number of items in the lists will
+ * a bottleneck for this application.
+ */
+typedef struct list_st {
+    size_t size;    // Maximum number of entries list may contain.
+    size_t count;   // Number of entries the list contains.
+    char **entries; // List of strings in list.
+} list_st;
 
 /**
  * Values that represent the action to be taken based on the command line
@@ -228,7 +227,7 @@ static int list_contains(const list_st *list, const char *needle)
  * Return: 0 if the string matches the pattern, FNM_NOMATCH if there is no
  * match or another nonzero value if there is an error.
  */
-static int fnimatch(const char *pattern, const char *string)
+static int fncasematch(const char *pattern, const char *string)
 {
     size_t i;
 
@@ -259,7 +258,7 @@ static int excluded(const char *command)
     size_t i;
 
     for (i = 0; i < exclusions.count; i++) {
-        if (fnimatch(exclusions.entries[i], command) == 0) {
+        if (fncasematch(exclusions.entries[i], command) == 0) {
             return 1;
         }
     }
@@ -290,11 +289,11 @@ static int add_to_list(list_st *list, const char *value)
         return 1;
     }
 
-    if (list->count >= list->length) {
-        list->length += INCREMENTAL_ALLOCATION_SIZE;
+    if (list->count >= list->size) {
+        list->size += INCREMENTAL_ALLOCATION_SIZE;
 
-        if (!(buffer = realloc(list->entries, sizeof(char *) * list->length))) {
-            list->length -= INCREMENTAL_ALLOCATION_SIZE;
+        if (!(buffer = realloc(list->entries, sizeof(char *) * list->size))) {
+            list->size -= INCREMENTAL_ALLOCATION_SIZE;
             perror("del: could not resize list");
             malloc_failed = 1;
             return 1;
@@ -442,6 +441,7 @@ static int parse_desktop_entry(const char *fpath, const struct stat *_2,
     if ((strlen_fpath = strlen(fpath)) < (sizeof(extension) - 1) ||
         strcmp(fpath + strlen_fpath - sizeof(extension) + 1, extension) ||
         !(file = fopen(fpath, "r"))) {
+
         return 0;
     }
 
@@ -578,6 +578,7 @@ static int load_commands_from_file(const char *path, FILE *file)
         if (line_length >= 1 && entry[line_length - 1] == '\n') {
             entry[line_length - 1] = '\0';
         }
+
         if (command_path(entry)) {
             if ((failed = add_to_list(&commands, entry))) {
                 saved_errno = errno;
@@ -594,9 +595,11 @@ static int load_commands_from_file(const char *path, FILE *file)
     }
 
     free(entry);
+
     if (path) {
         fclose(file);
     }
+
     errno = saved_errno;
     return failed;
 }
@@ -663,6 +666,7 @@ static int refresh_command_list(const char *path, char **dirs, size_t n)
                 if (!malloc_failed) {
                     verror("del: unable to walk '%s'", dirs[i]);
                 }
+
                 return 1;
             }
         }
@@ -670,6 +674,7 @@ static int refresh_command_list(const char *path, char **dirs, size_t n)
         if (!malloc_failed) {
             perror("del: unable to walk '/'");
         }
+
         return 1;
     }
 
@@ -709,6 +714,7 @@ error:
         verror("del: mkstemp: %s", tempname);
     } else {
         verror("del: %s", tempname);
+
         if (unlink(tempname)) {
             verror("del: could not delete temporary file '%s'", tempname);
         }
@@ -779,6 +785,7 @@ static int menu(const char *menu_list_path, char **argv)
             execvp(argv[0], argv);
             verror("del: %s", argv[0]);
         }
+
         _exit(1);
     }
 
@@ -788,6 +795,7 @@ static int menu(const char *menu_list_path, char **argv)
         verror("del: could not execute fdopen on %s pipe", argv[0]);
     } else {
         failure = 0;
+
         while (!failure &&
           (line_length = getline(&command, &bufsize, menu_output)) >= 0) {
             if (line_length >= 1 && command[line_length - 1] == '\n') {
@@ -807,6 +815,7 @@ static int menu(const char *menu_list_path, char **argv)
                     } else if (execlp(command, command, NULL)) {
                         verror("del: %s", command);
                     }
+
                     _exit(1);
                 }
             } else {
@@ -832,20 +841,24 @@ static int menu(const char *menu_list_path, char **argv)
     while (1) {
         if (waitpid(menu_pid, &wait_status, 0) == -1) {
             verror("del: error waiting on %s", argv[0]);
+
             if (!failure) {
                 failure = 2;
             }
+
             break;
         } else if (WIFEXITED(wait_status)) {
             if (!failure && (failure = WEXITSTATUS(wait_status))) {
                 fmterr("del: %s died with exit status %d", argv[0], failure);
             }
+
             break;
         } else if (WIFSIGNALED(wait_status)) {
             if ((signum = WTERMSIG(wait_status)) != menu_kill_signal) {
                 fmterr("del: %s received signal %d", argv[0], signum);
                 failure = failure ? failure : 128 + signum;
             }
+
             break;
         }
     }
@@ -901,24 +914,28 @@ int main(int argc, char **argv)
         strlen_home = strlen(home);
 
         // The +1 is to ensure there's room to add a '/' if needed.
-        if (!(command_list_path = malloc(
-           sizeof(DEFAULT_COMMAND_LIST_BASENAME) + strlen_home + 1))) {
+        command_list_path = malloc(
+            sizeof(DEFAULT_COMMAND_LIST_BASENAME) + strlen_home + 1
+        );
+
+        if (!command_list_path) {
             perror("del: could not allocate memory for filename");
             return 1;
         }
 
         strcpy(command_list_path, home);
+
         if (command_list_path[strlen_home - 1] != '/') {
             command_list_path[strlen_home] = '/';
             command_list_path[strlen_home + 1] = '\0';
             strlen_home++;
         }
+
         strcat(command_list_path + strlen_home, DEFAULT_COMMAND_LIST_BASENAME);
     }
 
     switch (action) {
       case REFRESH_COMMAND_LIST:
-
         exclusion_list_path = malloc(
             strlen(command_list_path) + strlen(EXCLUSION_LIST_SUFFIX) + 1
         );
@@ -939,15 +956,18 @@ int main(int argc, char **argv)
                 command_list_path, argv + optind, (size_t) (argc - optind)
             );
         } else {
-            verror("del: could not load patterns from '%s'", exclusion_list_path);
+            verror("del: %s: could not load patterns", exclusion_list_path);
         }
+
         break;
 
       case LAUNCH_MENU:
         menu_argv0 = *(argv + optind);
+
         if (optind <= argc && (!menu_argv0 || menu_argv0[0] == '-')) {
             *(argv + (--optind)) = DEFAULT_MENU_COMMAND;
         }
+
         exit_status = menu(command_list_path, argv + optind);
         break;
     }

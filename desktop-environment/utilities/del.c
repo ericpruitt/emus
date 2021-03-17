@@ -351,9 +351,9 @@ static const char *command_path(const char *command)
     char *dest;
     const char *env_value;
     static char path[PATH_MAX];
+    size_t sizeof_command;
     const char *src;
     const char *src_mark;
-    size_t strlen_command;
 
     // This behavior is defined by POSIX 2.9.1 -- "Command Search and
     // Execution," item 2.
@@ -366,11 +366,17 @@ static const char *command_path(const char *command)
     dest = path;
     src = env_value;
     src_mark = src;
-    strlen_command = strlen(command);
+    sizeof_command = strlen(command) + 1;
 
     while (1) {
         if (*src != ':' && *src != '\0') {
             *dest++ = *src++;
+
+            if (((size_t) (dest - path) + sizeof_command) >= sizeof(path)) {
+                errno = ENAMETOOLONG;
+                return NULL;
+            }
+
             continue;
         }
 
@@ -381,11 +387,11 @@ static const char *command_path(const char *command)
             *dest++ = '/';
         } else if (*(dest - 1) != '/') {
             *dest++ = '/';
-        }
 
-        if (((size_t) (dest - path) + strlen_command) >= sizeof(path)) {
-            errno = ENAMETOOLONG;
-            return NULL;
+            if (((size_t) (dest - path) + sizeof_command) >= sizeof(path)) {
+                errno = ENAMETOOLONG;
+                return NULL;
+            }
         }
 
         strcpy(dest, command);

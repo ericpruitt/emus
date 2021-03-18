@@ -396,7 +396,7 @@ static const char *command_path(const char *command)
 
         strcpy(dest, command);
 
-        if (!excluded(command) && can_execute(path)) {
+        if (can_execute(path)) {
             return path;
         } else if (*src == '\0') {
             return NULL;
@@ -494,19 +494,21 @@ static int parse_desktop_entry(const char *fpath, const struct stat *_2,
         return 1;
     }
 
-    for (k = lowercase_basename; *k; k++) {
-        if (*k >= 'A' && *k <= 'Z') {
-            *k += 32;
-            case_changed = 1;
+    if (!excluded(command_basename)) {
+        for (k = lowercase_basename; *k; k++) {
+            if (*k >= 'A' && *k <= 'Z') {
+                *k += 32;
+                case_changed = 1;
+            }
         }
-    }
 
-    if (command_path(lowercase_basename)) {
-        printf("+ %s (%s)\n", lowercase_basename, fpath);
-        add_to_list(&commands, lowercase_basename);
-    } else if (case_changed && command_path(command_basename)) {
-        printf("+ %s (%s)\n", command_basename, fpath);
-        add_to_list(&commands, command_basename);
+        if (command_path(lowercase_basename)) {
+            printf("+ %s (%s)\n", lowercase_basename, fpath);
+            add_to_list(&commands, lowercase_basename);
+        } else if (case_changed && command_path(command_basename)) {
+            printf("+ %s (%s)\n", command_basename, fpath);
+            add_to_list(&commands, command_basename);
+        }
     }
 
     free(lowercase_basename);
@@ -585,7 +587,7 @@ static int load_commands_from_file(const char *path, FILE *file)
             entry[line_length - 1] = '\0';
         }
 
-        if (command_path(entry)) {
+        if (!excluded(entry) && command_path(entry)) {
             if ((failed = add_to_list(&commands, entry))) {
                 saved_errno = errno;
                 break;

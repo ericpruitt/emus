@@ -69,6 +69,11 @@
 #define EXEC_LINE_PATTERN "Exec = %4095s %n"
 
 /**
+ * Suffix template used for _mkstemp(3)_ calls.
+ */
+#define TEMPFILE_TEMPLATE "XXXXXX"
+
+/**
  * Works like _printf(3)_ but writes to stderr and implicitly adds a newline to
  * the output. This macro should not be used directly because passing a format
  * string without additional arguments may produce syntactically invalid code.
@@ -640,8 +645,13 @@ static int refresh_command_list(const char *path, char **dirs, size_t n)
     FILE *ftemp;
     size_t i;
     int nftw_maxopen;
+    char tempname[PATH_MAX];
 
-    char tempname[PATH_MAX + 6];  // 6: strlen of the mkstemp suffix
+    if ((strlen(path) + strlen(TEMPFILE_TEMPLATE) + 1) >= sizeof(tempname)) {
+        errno = ENAMETOOLONG;
+        verror("del: unable to update '%s'", path);
+        return 1;
+    }
 
     puts("Loading commands from existing list...");
 
@@ -688,8 +698,7 @@ static int refresh_command_list(const char *path, char **dirs, size_t n)
     }
 
     strcpy(tempname, path);
-    strcat(tempname, "XXXXXX");
-    tempname[sizeof(tempname) - 1] = '\0';
+    strcat(tempname, TEMPFILE_TEMPLATE);
 
     if ((fdtemp = mkstemp(tempname)) == -1 || !(ftemp = fdopen(fdtemp, "w"))) {
         goto error;

@@ -132,7 +132,7 @@ static int malloc_failed = 0;
  * Command usage documentation.
  */
 static const char command_usage[] =
-"Usage: %s [-h] [-f PATH] [-r] [ARGUMENTS...]\n"
+"Usage: %1$s [-h] [-f PATH] [-r] [ARGUMENTS...]\n"
 "\n"
 "DEL searches for Freedesktop Desktop Entries, generates a list of graphical\n"
 "commands and uses dmenu as a front-end so the user can select a command to\n"
@@ -144,10 +144,10 @@ static const char command_usage[] =
 "dmenu or use a different menu altogether:\n"
 "\n"
 "    Set the background color of selected text to red:\n"
-"    $ %s -- -sb \"#ff0000\"\n"
+"    $ %1$s -- -sb \"#ff0000\"\n"
 "\n"
 "    Use rofi in dmenu mode instead of dmenu:\n"
-"    $ %s rofi -dmenu\n"
+"    $ %1$s rofi -dmenu\n"
 "\n"
 "Options:\n"
 "  -h    Show this text and exit.\n"
@@ -620,17 +620,6 @@ static int load_commands_from_file(const char *path, FILE *file)
 }
 
 /**
- * Display application usage information.
- *
- * Arguments:
- * - self: Name or path of compiled executable.
- */
-static void usage(const char *self)
-{
-    printf(command_usage, self, self, self);
-}
-
-/**
  * Update list of runnable commands by searching for Freedesktop Desktop
  * Entries in a set of folders. The search will not cross filesystem
  * boundaries, so subdirectories on devices that differ from the parent must be
@@ -898,7 +887,7 @@ int main(int argc, char **argv)
     while ((option = getopt(argc, argv, "+hf:r")) != -1) {
         switch (option) {
           case 'h':
-            usage(argv[0]);
+            printf(command_usage, argv[0]);
             return 0;
 
           case 'f':

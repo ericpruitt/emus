@@ -351,6 +351,7 @@ static const char *command_path(const char *command)
     char *dest;
     const char *env_value;
     static char path[PATH_MAX];
+    int saved_errno;
     size_t sizeof_command;
     const char *src;
     const char *src_mark;
@@ -374,7 +375,7 @@ static const char *command_path(const char *command)
 
             if (((size_t) (dest - path) + sizeof_command) >= sizeof(path)) {
                 errno = ENAMETOOLONG;
-                return NULL;
+                goto error;
             }
 
             continue;
@@ -390,7 +391,7 @@ static const char *command_path(const char *command)
 
             if (((size_t) (dest - path) + sizeof_command) >= sizeof(path)) {
                 errno = ENAMETOOLONG;
-                return NULL;
+                goto error;
             }
         }
 
@@ -405,6 +406,12 @@ static const char *command_path(const char *command)
         dest = path;
         src_mark = ++src;
     }
+
+error:
+    saved_errno = errno;
+    verror("del: %s: unable to resolve command to path", command);
+    errno = saved_errno;
+    return NULL;
 }
 
 /**

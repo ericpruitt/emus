@@ -378,7 +378,7 @@ static const char *command_path(const char *command)
         if (*src != ':' && *src != '\0') {
             *dest++ = *src++;
 
-            if (((size_t) (dest - path) + sizeof_command) >= sizeof(path)) {
+            if (((size_t) (dest - path) + sizeof_command) > sizeof(path)) {
                 errno = ENAMETOOLONG;
                 goto error;
             }
@@ -394,7 +394,7 @@ static const char *command_path(const char *command)
         } else if (*(dest - 1) != '/') {
             *dest++ = '/';
 
-            if (((size_t) (dest - path) + sizeof_command) >= sizeof(path)) {
+            if (((size_t) (dest - path) + sizeof_command) > sizeof(path)) {
                 errno = ENAMETOOLONG;
                 goto error;
             }
@@ -647,7 +647,7 @@ static int refresh_command_list(const char *path, char **dirs, size_t n)
     int nftw_maxopen;
     char tempname[PATH_MAX];
 
-    if ((strlen(path) + strlen(TEMPFILE_TEMPLATE) + 1) >= sizeof(tempname)) {
+    if ((strlen(path) + strlen(TEMPFILE_TEMPLATE) + 1) > sizeof(tempname)) {
         errno = ENAMETOOLONG;
         verror("del: unable to update '%s'", path);
         return 1;

@@ -84,6 +84,7 @@ function -define-aliases()
     alias ls='-paginate ls -C -A -F -h'
     alias lsblk='-paginate lsblk --'
     alias make='gmake'
+    alias meme='sed -r "s/([a-z])([^a-z]*)([a-z])/\\l\\1\\2\\u\\3/gI" --'
     alias mtr='mtr -t'
     alias nohist='HISTFILE=/dev/null && exit'
     alias otr='env HISTFILE=/dev/null bash'

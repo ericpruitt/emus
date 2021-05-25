@@ -328,6 +328,10 @@ function user-misc-gui-tweaks()
     defaults write -g AppleInterfaceStyleSwitchesAutomatically -integer 0
     defaults write -g AppleInterfaceStyle "Light"
 
+    # Do not store screenshots on the desktop by default.
+    mkdir -p ~/screenshots
+    defaults write com.apple.screencapture location ~/screenshots/
+
     kill-ui-processes
 }
 

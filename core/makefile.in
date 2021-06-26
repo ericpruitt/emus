@@ -49,7 +49,7 @@ APPLE_BASH_RELEASE = bash-118.40.2
 APPLE_BASH = apple-$(APPLE_BASH_RELEASE)
 
 # Revision-controlled package versions:
-TMUX_VERSION = 3.1c
+TMUX_VERSION = 3.2a
 UTF8PROC_VERSION = 2.6.1
 VIM_VERSION = 8.2.2324
 

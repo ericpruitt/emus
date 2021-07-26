@@ -18,6 +18,7 @@ XTerm*scaleHeight: 1.0000001
 XTerm.vt100.faceName: DejaVu Sans Mono:pixelsize=14
 XTerm.vt100.faceNameDoublesize: VL Gothic:pixelsize=14
 XTerm.vt100.utf8: 1
+XTerm.VT100.utf8Title: true
 
 ! Create escape sequences for Ctrl+(Shift)+Tab to be used with GNU screen.
 ! http://www.staldal.nu/tech/2009/01/10/how-to-use-ctrl-tab-in-gnu-screen/

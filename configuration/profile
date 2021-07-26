@@ -51,12 +51,12 @@ export ETCPATHS="$(
     for path in $(cat /etc/paths /etc/paths.d/* 2>/dev/null); do
         case "$PATH" in
           ("$path"|"$path":*|*:"$path"|*:"$path":*) ;;
-          (*) printf "%s:" "$path" ;;
+          (*) printf ":%s" "$path" ;;
         esac
     done
 )"
 
-export PATH="$HOME/bin:$EMUS/scripts:$HOME/.local/bin:$ETCPATHS$PATH"
+export PATH="$HOME/bin:$EMUS/scripts:$HOME/.local/bin:$PATH$ETCPATHS"
 
 # Secondary profile for machine-specific settings.
 test -e "$HOME/.local.profile" && . "$HOME/.local.profile"

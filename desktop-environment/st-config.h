@@ -230,7 +230,7 @@ static Shortcut shortcuts[] = {
  */
 static KeySym mappedkeys[] = {
     XK_1, XK_2, XK_3, XK_4, XK_5, XK_6, XK_7, XK_8, XK_9, XK_0, XK_bracketleft,
-    XK_bracketright, XK_j
+    XK_bracketright, XK_j, XK_equal
 };
 
 /*
@@ -263,6 +263,9 @@ static Key key[] = {
 
 	// Custom mapping for Ctrl+J
 	{ XK_j,             ControlMask,    "\033[^j~",      0,    0},
+
+	// Custom mapping for Ctrl+Equals
+	{ XK_equal,         ControlMask,    "\033[^=",       0,    0},
 
 	// Make Ctrl+[/] behave like Ctrl+Left/Right
 	{ XK_bracketleft,   ControlMask,    "\033[1;5D",     0,    0},

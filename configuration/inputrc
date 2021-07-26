@@ -39,6 +39,9 @@ $if Bash
 "\e[20~": "\C-a\C-kfg 9 \C-m"
 "\e[21~": "\C-a\C-kfg 10 \C-m"
 
+# Use Ctrl+'=' to evaluate a math expression
+"\e[^=": "\C-a= \C-m"
+
 # Allows Ctrl+Z to be used to bring programs back into the foreground. The
 # cursor is moved to the beginning of the line before typing so a specific job
 # can be resumed by typing its identifier (e.g. a number) then hitting Ctrl+Z.

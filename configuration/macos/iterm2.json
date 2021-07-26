@@ -204,6 +204,10 @@
                     "Action": 10,
                     "Text": "[20~"
                 },
+                "0x3d-0x40000-0x18": {
+                    "Action": 10,
+                    "Text": "[^="
+                },
                 "0x56-0x60000": {
                     "Action": 41,
                     "Text": "{\"ConvertUnicodePunctuation\":false,\"WaitForPrompts\":false,\"Substitution\":\"\",\"EscapeForShell\":false,\"Base64\":false,\"TabStopSize\":4,\"Delay\":0.01,\"RemoveNewlines\":false,\"Regex\":\"\",\"ConvertNewlines\":true,\"TabTransform\":0,\"BracketAllowed\":true,\"UseRegexSubstitution\":false,\"ChunkSize\":1024,\"RemoveControls\":true}"

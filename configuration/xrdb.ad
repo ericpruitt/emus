@@ -26,6 +26,9 @@ XTerm.vt100.translations: #override \
     Ctrl ~Shift <Key>Tab: string(0x1b) string("[27;5;9~") \n \
     Ctrl Shift <Key>Tab: string(0x1b) string("[27;6;9~")
 
+! Allow HT (TAB) in paste; i.e. do not convert to space character
+XTerm*VT100.DisallowedPasteControls: BS,DEL,ESC
+
 XTerm.vt100.background: black
 XTerm.vt100.foreground: gray90
 

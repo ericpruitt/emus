@@ -76,7 +76,7 @@ export PS_FORMAT="$(
         # the current user is not in /etc/passwd because of NSS / LDAP, etc.
         max = length(ENVIRON["LOGNAME"] ? ENVIRON["LOGNAME"] : ENVIRON["USER"])
     }
-    $1 !~ /#/ {
+    $1 !~ /^#/ {
         max = length($1) > max ? length($1) : max
     }
     END {

@@ -2,6 +2,7 @@
 
 Remove borders from floating windows that fill the display.
 
+diff --git a/dwm.c b/dwm.c
 index 664c527..5916a1b 100644
 --- a/dwm.c
 +++ b/dwm.c

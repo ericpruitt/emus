@@ -75,6 +75,7 @@ cnoremap <C-d> <Del>
 cnoremap <C-e> <End>
 cnoremap <C-f> <Right>
 cnoremap <C-h> <BS>
+cnoremap <C-k> <C-f>D<C-c><C-c>:<Up>
 cnoremap <C-n> <Down>
 cnoremap <C-p> <Up>
 

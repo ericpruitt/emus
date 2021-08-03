@@ -241,6 +241,19 @@ function command_not_found_handle()
     eval "= ${1#=} ${@:2}"
 }
 
+# Handler used to intercept arithmetic expressions so they can be entered
+# without having to add a space after the "=".
+#
+function no_such_file_handle()
+{
+    if [[ "$1" != =* ]]; then
+        printf "%s: No such file or directory\n" "$1" >&2
+        return 127
+    fi
+
+    eval "= ${1#=} ${@:2}"
+}
+
 # Calculate the result of an expression. The result of the last successfully
 # evaluated expression is made available as the variable "x". The expression
 # must appear in the command history to be evaluated.

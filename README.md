@@ -235,6 +235,11 @@ repeatedly with "errexit" set results in `${FUNCNAME[@]}` getting longer:
     x x x
     (1)
 
+#### bash-5.1-nosuchfile-hook.patch ####
+
+Allow the user to define a "no_such_file_handle" function which is analogous to
+"command_not_found_handle" but also runs when a command contain a "/".
+
 #### bash-5.1-prompt-on-clean-line.patch ####
 
 Ensure the prompt will always be displayed on a clean line even if the output

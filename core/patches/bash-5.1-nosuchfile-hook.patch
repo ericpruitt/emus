@@ -1,0 +1,41 @@
+Allow the user to define a "no_such_file_handle" function which is analogous to
+"command_not_found_handle" but also runs when a command contains a "/".
+
+--- execute_cmd.c	2020-10-12 07:16:13.000000000 -0700
++++ execute_cmd.c	2021-08-03 09:39:01.138503014 -0700
+@@ -5438,6 +5438,11 @@
+ #  define NOTFOUND_HOOK "command_not_found_handle"
+ #endif
+ 
++/* Name of a shell function to call when a command path does not exist. */
++#ifndef NOSUCHFILE_HOOK
++#  define NOSUCHFILE_HOOK "no_such_file_handle"
++#endif
++
+ static int
+ execute_disk_command (words, redirects, command_line, pipe_in, pipe_out,
+ 		      async, fds_to_close, cmdflags)
+@@ -5587,7 +5592,23 @@
+ 	  wl = make_word_list (make_word (NOTFOUND_HOOK), words);
+ 	  exit (execute_shell_function (hookf, wl));
+ 	}
++      else if (strchr (pathname, '/') && access (pathname, F_OK))
++	{
++	  hookf = find_function (NOSUCHFILE_HOOK);
++	  if (hookf == 0)
++	    goto run_shell_execve;
++
++	  without_job_control ();
++
++#if defined (JOB_CONTROL)
++	  set_sigchld_handler ();
++#endif
++
++	  wl = make_word_list (make_word (NOTFOUND_HOOK), words);
++	  exit (execute_shell_function (hookf, wl));
++	}
+ 
++run_shell_execve:
+       /* Execve expects the command name to be in args[0].  So we
+ 	 leave it there, in the same format that the user used to
+ 	 type it in. */

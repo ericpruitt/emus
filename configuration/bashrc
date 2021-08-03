@@ -242,7 +242,7 @@ function command_not_found_handle()
 }
 
 # Calculate the result of an expression. The result of the last successfully
-# evaluated expression as made available as the variable "x". The expression
+# evaluated expression is made available as the variable "x". The expression
 # must appear in the command history to be evaluated.
 #
 function calculate()

@@ -44,7 +44,7 @@ declare -r NOT_HOMEDIR_BASH="${BASH##$HOME/*}"
 declare -r XTERM_TITLE_SUPPORT='^(tmux|xterm|screen|st)([+-].+)?$'
 
 # Result of the last expression that was successfully evaluated by the
-# "calculate" function.
+# "-calculate" function.
 declare LAST_RESULT="0"
 
 # This tracks the history number of the command the last time the
@@ -127,7 +127,7 @@ function -define-aliases()
 
     # BASH_ALIASES is used because the "alias" command will not accept "=" as
     # an identifier.
-    BASH_ALIASES[=]='calculate #'
+    BASH_ALIASES[=]='-calculate #'
 
     # take advantage of GNU extensions when coreutils is installed.
     case "$(ls --help 2>/dev/null)" in
@@ -258,7 +258,7 @@ function no_such_file_handle()
 # evaluated expression is made available as the variable "x". The expression
 # must appear in the command history to be evaluated.
 #
-function calculate()
+function -calculate()
 {
     local result
 

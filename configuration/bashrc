@@ -262,6 +262,12 @@ function calculate()
 {
     local result
 
+    # The use of eval and echo makes it possible to use command substitution in
+    # arithmetic expressions when using the "=" alias:
+    #
+    #    $ = $(cat * | wc -l) / $(echo * | wc -w)
+    #    88887
+    #
     result="$(
         expression="$(HISTTIMEFORMAT= \history 1)"
         pc "x = $LAST_RESULT" "$(eval "echo \" ${expression#*=}\"")"

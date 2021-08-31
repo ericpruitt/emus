@@ -241,6 +241,29 @@ def evaluate(expression, context):
     return context[result_identifier]
 
 
+def factorial(x):
+    """
+    Compute the factorial of a number.
+
+    Arguments:
+    - x
+
+    Returns: The factorial of "x".
+    """
+    if x % 1:
+        raise ValueError("Cannot compute factorial of non-integer value")
+
+    if x < 0:
+        raise ValueError("Cannot compute factorial of negative value")
+
+    product = 1
+
+    for k in range(1, int(x) + 1):
+        product *= k
+
+    return product
+
+
 def main(expressions):
     if not expressions:
         raise Error("At least one expression must be specified")
@@ -257,6 +280,8 @@ def main(expressions):
         "abs": abs,
         "pi": math.pi,
         "e": math.e,
+        "fac": factorial,
+        "factorial": factorial,
     })
 
     for expression in expressions:

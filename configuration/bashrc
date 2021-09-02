@@ -210,7 +210,7 @@ function -define-aliases()
         while [[ "${argv[i]}" = @(env|-paginate|--|[A-Z_]*([A-Z0-9_])=*) ]]; do
             let i++
         done
-        if ! hash "${argv[i]}" 2>&-; then
+        if ! hash -- "${argv[i]}" 2>&-; then
             # Disable aliases for unrecognized commands
             test -z "$alias_value" || unalias "$alias_key"
         elif [[ "$alias_value" = *$'\n'* ]]; then

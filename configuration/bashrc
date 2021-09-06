@@ -479,10 +479,6 @@ function -debug-hook()
     local search_again="x"
     local shortest_guess="$command"
 
-    # Remap Ctrl+Z to SIGTSTP before executing a command. Refer to the
-    # complementary comment in the -debug-hook function.
-    test -n "${_susp_undef:-}" && unset _susp_undef && $(stty susp "^Z")
-
     test "$command" != "$PROMPT_COMMAND" || return 0
 
     if [[ -w /dev/tty ]] 2>/dev/null &&

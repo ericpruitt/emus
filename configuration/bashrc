@@ -419,7 +419,9 @@ function -prompt-command()
     # once; the first word of "history_number" was "6868*" instead of just
     # 6868. To prevent this from happening again, strip off non-numeric
     # suffixes.
-    test "${history_number:-}" && history_number="${history_number%%[!0-9]*}"
+    if [[ "$history_number" =~ ([0-9]+) ]]; then
+        history_number="${BASH_REMATCH[0]}"
+    fi
 
     # This function originally used the variable "debug_hook_ran" to determine
     # if the user executed a command or if the input was blank, but that meant

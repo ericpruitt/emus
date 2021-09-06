@@ -412,14 +412,14 @@ function -prompt-command()
 {
     local exit_status="$?"
 
-    local history_number="$(HISTTIMEFORMAT= \history 1)"
+    local -i history_number=-1
     local signal=""
 
     # XXX: Not entirely sure why this is necessary as I only observed the bug
     # once; the first word of "history_number" was "6868*" instead of just
     # 6868. To prevent this from happening again, strip off non-numeric
     # suffixes.
-    if [[ "$history_number" =~ ([0-9]+) ]]; then
+    if [[ "$(HISTTIMEFORMAT= \history 1)" =~ ([0-9]+) ]]; then
         history_number="${BASH_REMATCH[0]}"
     fi
 
@@ -428,7 +428,7 @@ function -prompt-command()
     # that non-zero exit statuses of subshells would not be shown. To work
     # around this, the history index of the command being executed is checked
     # in conjunction with "debug_hook_ran".
-    if [[ "${history_number:=-1}" -ne "$PROMPT_HISTORY_NUMBER" ]]; then
+    if [[ "$history_number" -ne "$PROMPT_HISTORY_NUMBER" ]]; then
         PROMPT_HISTORY_NUMBER="$history_number"
 
     # If the history number did not change and the debug hook was not executed,

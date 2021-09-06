@@ -444,7 +444,7 @@ function -prompt-command()
     jobs % &> /dev/null && jobs="x"
     test "$depth" -gt 1 || depth=""
 
-    if [[ "${exit_status:=0}" -ne 0 ]]; then
+    if [[ "$exit_status" -ne 0 ]]; then
         if ((exit_status <= (128 + RTSIG_MAX) && exit_status > 128)); then
             signal="$(\kill -l "$((exit_status - 128))" 2>/dev/null || :)"
         fi

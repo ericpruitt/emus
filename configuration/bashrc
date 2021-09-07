@@ -159,11 +159,7 @@ function -define-aliases()
     fi
 
     # Disable hyphenated word-breaks when showing manuals.
-    case "$(man -h 2>/dev/null)" in
-      *no-hyphenation*)
-        alias man='man --no-hyphenation'
-      ;;
-    esac
+    man --no-hyphenation --help &>/dev/null && alias man='man --no-hyphenation'
 
     case "$(diff --help 2>/dev/null)" in
       *GNU\ diffutils*)

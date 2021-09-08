@@ -1,0 +1,29 @@
+Apply URL encoding to anchors when using "-C".
+
+--- html.c	2021-09-07 18:36:47.019831344 -0700
++++ html.c	2021-09-07 18:40:54.913037707 -0700
+@@ -192,17 +192,16 @@
+ 	    (*dir)->isexe ?  "EXEC" :
+ 	    (*dir)->isfifo ? "FIFO" :
+ 	    (*dir)->issok ?  "SOCK" : "NORM");
+-	  fprintf(outfile,"<a class=\"%s\" href=\"%s%s/%s%s\">%s</a>", hclr, host,d+1,(*dir)->name,
+-	    ((*dir)->isdir?"/":""),(*dir)->name);
++	  fprintf(outfile,"<a class=\"%s\" href=\"%s",hclr,host);
+ 	} else {
+ 	  fprintf(outfile,"<a href=\"%s",host);
+-	  url_encode(outfile,d+1);
+-	  putc('/',outfile);
+-	  url_encode(outfile,(*dir)->name);
+-	  fprintf(outfile,"%s\">",((*dir)->isdir?"/":""));
+-	  html_encode(outfile,(*dir)->name);
+-	  fprintf(outfile,"</a>");
+ 	}
++	url_encode(outfile,d+1);
++	putc('/',outfile);
++	url_encode(outfile,(*dir)->name);
++	fprintf(outfile,"%s\">",((*dir)->isdir?"/":""));
++	html_encode(outfile,(*dir)->name);
++	fprintf(outfile,"</a>");
+       }
+     }
+     

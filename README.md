@@ -341,6 +341,10 @@ less than one screen of text has been shown, and both "--no-init" ("-X") and
 
 Adjust some preprocessor guards to resolve build failures on OpenBSD.
 
+#### tree-1.8.0-fix-url-encoding.patch ####
+
+Apply URL encoding to anchors when using "-C".
+
 #### vim-src-disable-check_more.patch ####
 
 Disable error 173, "... more files to edit" which is generated when "the last

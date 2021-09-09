@@ -147,12 +147,22 @@ function any_match()
 #
 function git-commit()
 {
+    local author
+    local committer
+
     local -a dates=()
     local message_file="$_GIT_DIR/COMMIT_EDITMSG"
     local -a options=("--untracked-files=no" "--verbose")
 
     if [[ -z "${GIT_COMMITTER_DATE:-}" ]] && any_match "^--amend$" "$@"; then
-        local -x GIT_COMMITTER_DATE="$(git log -1 --format="%cI" 2>/dev/null)"
+        author="$(git log -1 --format="%an <%aE>")"
+        committer="$(git log -1 --format="%cn <%cE>")"
+
+        if [[ "$author" = "$committer" ]]; then
+            local -x GIT_COMMITTER_DATE="$(
+                git log -1 --format="%cI" 2>/dev/null
+            )"
+        fi
     fi
 
     if ! any_match "^-[^-]*m" "$@" && sed -i '/^#/,$d' "$message_file" &&

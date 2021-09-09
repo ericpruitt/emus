@@ -477,8 +477,7 @@ function -debug-hook()
 
     test "$command" != "$PROMPT_COMMAND" || return 0
 
-    if [[ -w /dev/tty ]] 2>/dev/null &&
-      [[ "${TERM:-}" =~ $XTERM_TITLE_SUPPORT ]]; then
+    if [[ -w /dev/tty ]] && [[ "${TERM:-}" =~ $XTERM_TITLE_SUPPORT ]]; then
         # None of my aliases start with environment variables, so they are
         # temporarily stripped before looking for substitutions.
         if [[ "$command" =~ $envregex ]]; then

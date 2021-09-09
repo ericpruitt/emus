@@ -18,6 +18,7 @@
 	heat = colorized-blame what -tc --heat-map
 	mine = log --author=^Eric\\ Pruitt\\ < -p
 	others = log --author=^Eric\\ Pruitt\\ < -p --invert-grep
+	save = stash push --keep-index
 
 [pager]
 	colorized-blame = true

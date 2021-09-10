@@ -75,7 +75,7 @@ function -define-aliases()
     alias help='-paginate help --'
     alias history='-paginate history --'
     alias info='info --vi-keys'
-    alias jq='-paginate jq -C --indent=4'
+    alias jq='-paginate jq -C --indent 4'
     alias ldd='-paginate ldd --'
     alias ls='-paginate ls -C -A -F -h'
     alias lsblk='-paginate lsblk --'

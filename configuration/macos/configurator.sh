@@ -83,6 +83,7 @@ function create-account()
 function user-configure-iterm2()
 {
     local guid
+    local warning_key_prefix
 
     local iterm2_json="$OLDPWD/iterm2.json"
     local -a option_set=(
@@ -112,6 +113,12 @@ function user-configure-iterm2()
             }
         }'
     )"
+
+    warning_key_prefix="NeverWarnAboutShortLivedSessions_$guid"
+    option_set+=(
+        "$warning_key_prefix -integer 1"
+        "${warning_key_prefix}_selection -integer 0"
+    )
 
     mkdir -p "$profiles"
     cp "$iterm2_json" "$profiles"

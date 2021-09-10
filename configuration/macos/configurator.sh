@@ -99,20 +99,9 @@ function user-configure-iterm2()
     )
     local profiles="$HOME/Library/Application Support/iTerm2/DynamicProfiles"
 
-    guid="$(awk < "$iterm2_json" '
-        $1 == "\"Guid\":" {
-            gsub(/[",]/, "")
-            print $2
-            ok = 1
-            exit
-        }
-        END {
-            if (!ok) {
-                print "Unable to extract GUID of iTerm2 profile" > "/dev/fd/2"
-                exit 1
-            }
-        }'
-    )"
+    if ! guid="$(jq -e --raw-output '.Profiles[0].Guid' "$iterm2_json")"; then
+        die "Unable to extract GUID from iTerm2 configuration"
+    fi
 
     warning_key_prefix="NeverWarnAboutShortLivedSessions_$guid"
     option_set+=(

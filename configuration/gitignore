@@ -40,6 +40,7 @@ Thumbs.db
 *.pyc
 *.pywc
 __pycache__
+.mypy_cache
 
 # Compiled Objects
 *.o

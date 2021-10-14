@@ -120,20 +120,24 @@ class AugmentedFraction(fractions.Fraction):
         int_other = int(other)
 
         if int_other != other:
-            raise Error("Cannot shift a fractional number of bits (%g)"
-                % other)
+            raise Error(
+                f"Cannot shift a fractional number of bits ({other:g})"
+            )
 
         int_self = int(self)
 
         if int_self != self:
-            raise Error("Cannot shift a fractional number (%g)" % self)
+            raise Error(f"Cannot shift a fractional number ({self:g})")
 
         if direction == "left":
             return int_self << int_other
         elif direction == "right":
             return int_self >> int_other
         else:
-            raise Error("%r is not a valid direction" % direction)
+            raise Error(f"{direction!r} is not a valid direction")
+
+    def __format__(self, format_spec):
+        return ("%" + format_spec) % self
 
     def __lshift__(self, other):
         return self._shift(other, direction="left")
@@ -181,7 +185,7 @@ def evaluate(expression, context):
                 raise Error("Strings are not supported by the interpreter")
 
             if toknum not in TOKEN_WHITELIST:
-                raise Error("Unsupported token: %s (%s)" % (tokval, toknum))
+                raise Error(f"Unsupported token {tokval!r} ({toknum})")
 
             if toknum == tokenize.NUMBER and not tokval.endswith("j"):
                 if tokval.startswith("0x"):
@@ -200,26 +204,23 @@ def evaluate(expression, context):
             elif toknum == tokenize.NAME:
                 if tokval.startswith("_"):
                     raise Error(
-                        "Illegal reference to %r; identifier starts with '_'" %
-                        tokval
+                        f"Illegal reference to {tokval!r}; starts with '_'"
                     )
 
                 if "__" in tokval:
                     raise Error(
-                        "Illegal reference to %r; identifier contains '__'" %
-                        tokval
+                        f"Illegal reference to {tokval!r}; contains '__'"
                     )
 
                 if keyword.iskeyword(tokval):
                     raise Error(
-                        "%r is a Python keyword and cannot be used in an"
-                        " expression" % tokval
+                        f"Keyword {tokval!r} cannot be used in an expression"
                     )
 
                 tokens.append((toknum, tokval))
             elif toknum == tokenize.OP:
                 if tokval not in OPERATOR_WHITELIST:
-                    raise Error("%r is not a supported operator" % tokval)
+                    raise Error(f"{tokval!r} is not a supported operator")
 
                 if tokval == "^":
                     tokens.append((tokenize.DOUBLESTAR, "**"))
@@ -248,11 +249,12 @@ def evaluate(expression, context):
             pass
 
         elif result_identifier in ("e", "pi"):
-            raise Error("%r is a read-only variable" % result_identifier)
+            raise Error(f"{result_identifier!r} is a read-only variable")
 
         elif callable(context[result_identifier]):
-            raise Error("%r is a built-in function and cannot be used as an"
-                " identifier" % result_identifier)
+            raise Error(
+                f"{result_identifier!r} is a read-only, built-in function"
+            )
     else:
         expression = b"_ = " + expression
         result_identifier = "_"
@@ -329,7 +331,7 @@ def main(expressions):
         try:
             result = evaluate(expression, context)
         except ZeroDivisionError:
-            raise Error("Division by zero in %r" % expression)
+            raise Error(f"Division by zero in {expression.strip()!r}")
 
         show_hex = show_hex or "0x" in expression
         show_octal = show_octal or "0o" in expression
@@ -355,7 +357,7 @@ def main(expressions):
             alternatives.append(bin(integral_result))
 
         if alternatives:
-            print(" ".join(alternatives), "(%d)" % integral_result)
+            print(*alternatives, f"({integral_result})")
         else:
             print(integral_result)
     elif isinstance(result, fractions.Fraction):
@@ -365,9 +367,9 @@ def main(expressions):
             decimal.Decimal(result.denominator))
 
         if len(fractional_result) < 11:
-            print("%s (%s)" % (decimal_result, fractional_result))
+            print(f"{decimal_result} ({fractional_result})")
         else:
-            print("%s" % decimal_result)
+            print(decimal_result)
     else:
         print(result)
 

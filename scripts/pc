@@ -316,6 +316,10 @@ def main(expressions):
         "factorial": factorial,
     })
 
+    show_hex = False
+    show_octal = False
+    show_binary = False
+
     for expression in expressions:
         if not expression.strip():
             raise Error("Cannot evaluate empty expression")
@@ -325,10 +329,28 @@ def main(expressions):
         except ZeroDivisionError:
             raise Error("Division by zero in %r" % expression)
 
+        show_hex = show_hex or "0x" in expression
+        show_octal = show_octal or "0o" in expression
+        show_binary = show_binary or "0b" in expression
+
     integral_result = int(result)
 
     if integral_result == result:
-        print(integral_result)
+        alternatives = list()
+
+        if show_hex:
+            alternatives.append(hex(integral_result))
+
+        if show_octal:
+            alternatives.append(oct(integral_result))
+
+        if show_binary:
+            alternatives.append(bin(integral_result))
+
+        if alternatives:
+            print(" ".join(alternatives), "(%d)" % integral_result)
+        else:
+            print(integral_result)
     elif isinstance(result, fractions.Fraction):
         fractional_result = str(result)
         decimal.setcontext(decimal.Context(prec=16))

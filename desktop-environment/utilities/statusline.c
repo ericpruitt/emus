@@ -6,6 +6,10 @@
  * clocks from different time zones may also be displayed. Refer to the "usage"
  * function for more information.
  *
+ * The moon phase logic was adapted from release 2.5 of John Walker's "A Moon
+ * for the Sun" (AKA "moontool") and Kevin Turner's Python port of the same
+ * tool.
+ *
  * Make: c99 -D_POSIX_C_SOURCE=200809L -o $@ $? -lm
  * Copyright: Eric Pruitt (https://www.codevat.com/)
  * License: BSD 2-Clause License (https://opensource.org/licenses/BSD-2-Clause)
@@ -423,7 +427,18 @@ static double moon_phase(time_t when)
     static const double moon_mean_longitude_epoch = 64.975464;
     static const double moon_mean_perigee_epoch = 349.383063;
 
-    // Days since the epoch starting at 1979-12-31T00:00:00Z.
+    // Days since 1979-12-31T00:00:00Z. In John Walker's moontool.c, the epoch
+    // is commented as "1980 January 0.0." I'm not sure why January 0 is used
+    // instead of December 31, but the value of "day" computed here for a given
+    // timestamp is the same as what the "phase" function in moontool.c
+    // computes for Day via "jtime(gmtime(&t)) - epoch /* 2444238.5 */", so I
+    // think the math is still correct. On my Debian 10 system with
+    // python-egenix-mxdatetime version 3.2.9-1, the result of Kevin Turner's
+    // calculation of this value differs slightly from Walker's. For some
+    // reason, mx.DateTime.jdn is 7 hours behind Walker's value at the time of
+    // this writing (2021-10-14 US/Pacific) which happens to be the UTC offset
+    // of my time zone, so I think there is a bug in the mx library or in
+    // Turner's usage of it.
     double day = (double) when / 86400 - 3651;
 
     // Solar position calculations

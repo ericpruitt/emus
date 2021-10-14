@@ -369,7 +369,15 @@ def main(expressions):
         if len(fractional_result) < 11:
             print(f"{decimal_result} ({fractional_result})")
         else:
-            print(decimal_result)
+            result_str = str(decimal_result)
+
+            if "." in result_str:
+                integral, fractional = result_str.split(".")
+
+                if int(fractional) == 0:
+                    result_str = integral
+
+            print(result_str)
     else:
         print(result)
 

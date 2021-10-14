@@ -246,7 +246,7 @@ def evaluate(expression, context):
         if result_identifier not in context:
             pass
 
-        elif result_identifier == "pi":
+        elif result_identifier in ("e", "pi"):
             raise Error("%r is a read-only variable" % result_identifier)
 
         elif callable(context[result_identifier]):

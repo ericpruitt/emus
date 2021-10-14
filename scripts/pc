@@ -30,6 +30,7 @@ Examples:
     $ pc "log(2048, 2)"
     11
 """
+import cmath
 import decimal
 import fractions
 import io
@@ -302,11 +303,12 @@ def main(expressions):
 
     context = dict()
 
-    for name in dir(math):
-        attribute = getattr(math, name)
+    for module in (math, cmath):
+        for name in dir(module):
+            attribute = getattr(module, name)
 
-        if callable(attribute) and not name.startswith("_"):
-            context[name] = attribute
+            if callable(attribute) and not name.startswith("_"):
+                context[name] = attribute
 
     context.update({
         "abs": abs,
@@ -333,7 +335,12 @@ def main(expressions):
         show_octal = show_octal or "0o" in expression
         show_binary = show_binary or "0b" in expression
 
-    integral_result = int(result)
+    if not isinstance(result, complex):
+        integral_result = int(result)
+    elif result.imag == 0:
+        integral_result = int(result.real)
+    else:
+        integral_result = None
 
     if integral_result == result:
         alternatives = list()

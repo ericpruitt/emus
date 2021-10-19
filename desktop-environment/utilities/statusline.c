@@ -63,6 +63,21 @@ static size_t tzstrftime(char *, size_t, const char *, time_t, const char *);
 #define SOFT_SEPARATOR " - "
 
 /**
+ * Identifiers for the named phases of the moon.
+ */
+enum {
+    MOON_PHASE_NEW_MOON,
+    MOON_PHASE_WAXING_CRESCENT,
+    MOON_PHASE_FIRST_QUARTER,
+    MOON_PHASE_WAXING_GIBBOUS,
+    MOON_PHASE_FULL_MOON,
+    MOON_PHASE_WANING_GIBBOUS,
+    MOON_PHASE_LAST_QUARTER,
+    MOON_PHASE_WANING_CRESCENT,
+    MOON_PHASE_COUNT,
+} moon_phase_et;
+
+/**
  * Works like _strftime(3)_ but expects a `time_t` timestamp instead of a
  * `struct tm *` and accepts an additional parameter, the time zone in which
  * the conversion should take place.
@@ -491,8 +506,15 @@ static double moon_phase(time_t when)
  */
 const char *moon_icon(time_t when, int southern_hemisphere, int invert)
 {
-    static const char *icons[8] = {
-        "🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"
+    static const char *icons[MOON_PHASE_COUNT] = {
+        [MOON_PHASE_NEW_MOON] =        "🌑",
+        [MOON_PHASE_WAXING_CRESCENT] = "🌒",
+        [MOON_PHASE_FIRST_QUARTER] =   "🌓",
+        [MOON_PHASE_WAXING_GIBBOUS] =  "🌔",
+        [MOON_PHASE_FULL_MOON] =       "🌕",
+        [MOON_PHASE_WANING_GIBBOUS] =  "🌖",
+        [MOON_PHASE_LAST_QUARTER] =    "🌗",
+        [MOON_PHASE_WANING_CRESCENT] = "🌘",
     };
 
     static char text[8] = "";

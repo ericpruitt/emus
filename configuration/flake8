@@ -2,10 +2,16 @@
 # Only enable non-cosmetic warnings; the list of selected rules eschews style
 # problems in favor of things that cause a script to not behave as expected.
 select =
+    E711, # comparison to None should be 'if cond is None:'
+    E713, # test for membership should be 'not in' instead of 'not ... in ...'
+    E714, # test for identity should be 'is not' instead of 'not ... is ...'
+    E721, # do not compare types, use 'isinstance()'
+    E722, # do not use bare except, specify exception instead
     E901, # SyntaxError: invalid syntax
     F401, # module imported but unused
     F402, # import module from line N shadowed by loop variable
     F403, # 'from module import *' used; unable to detect undefined names
+    F404, # future import after other statements
     F601, # dictionary key name repeated with different values
     F602, # dictionary key variable name repeated with different values
     F621, # too many expressions in an assignment with star-unpacking
@@ -27,3 +33,4 @@ select =
     F831, # duplicate argument name in function definition
     F841, # local variable name is assigned to but never used
     F901, # raise NotImplemented should be raise NotImplementedError
+    W605, # invalid escape sequence

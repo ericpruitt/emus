@@ -42,6 +42,12 @@ Thumbs.db
 __pycache__
 .mypy_cache
 
+# Coverage.py Artifacts
+*.py,cover
+coverage.json
+coverage.xml
+htmlcov
+
 # Compiled Objects
 *.o
 *.so

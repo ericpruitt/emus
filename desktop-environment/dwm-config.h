@@ -100,6 +100,8 @@ static const Rule rules[] = {
     // Instant messaging:
     // - Pidgin
     { CLASS("Pidgin"),                                                TAG(9),  0,     -1,      20  },
+    // - Signal
+    { CLASS("Signal"),                                                TAG(9),  0,     -1,      20  },
     // - Steam buddy list and chat windows.
     { CLASS_W_TITLE("Steam", "Friends|- Chat$"),                      TAG(9),  0,     -1,      20  },
     // - Google Hangouts Chrome extensions; all Chrome extensions have instance

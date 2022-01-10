@@ -1,0 +1,11 @@
+#!/bin/sh
+# Usage: atrace [STRACE_OPTION]... COMMAND [ARGUMENT]...
+FILE_ACCESSING_SYSCALLS="
+    access bind chdir chmod chown creat execve getxattr lchown lgetxattr link
+    linkat listxattr llistxattr lremovexattr lsetxattr lstat mkdirat mknod
+    mknodat mount name_to_handle_at open open_by_handle_at openat readlink
+    readlinkat removexattr rename renameat setxattr stat statfs swapoff swapon
+    symlink symlinkat syslog truncate umount umount2 unlink unlinkat
+"
+
+strace -s 100000 -e $(echo $FILE_ACCESSING_SYSCALLS | tr " " ",") "$@"

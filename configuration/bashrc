@@ -500,7 +500,7 @@ function -debug-hook()
             command="$shortest_guess"
         done
 
-        test -z "$env" || command="$env $command"
+        test -z "$env" || command="$env$command"
         printf > /dev/tty \
             '\e]2;%s\e\' "${SSH_TTY:+${LOGNAME:-$USER}@$HOSTNAME: }$command"
     fi

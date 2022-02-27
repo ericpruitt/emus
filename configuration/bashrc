@@ -48,6 +48,9 @@ declare LAST_RESULT="0"
 # non-zero exit status should be displayed before the next prompt.
 declare -i PROMPT_HISTORY_NUMBER=0
 
+# Ensure TERM is always defined.
+: "${TERM:=}"
+
 # Define various command aliases.
 #
 function -define-aliases()
@@ -487,7 +490,7 @@ function -debug-hook()
 
     test "$command" != "$PROMPT_COMMAND" || return 0
 
-    if [[ -w /dev/tty ]] && [[ "${TERM:-}" =~ $XTERM_TITLE_SUPPORT ]]; then
+    if [[ -w /dev/tty ]] && [[ "$TERM" =~ $XTERM_TITLE_SUPPORT ]]; then
         # None of my aliases start with environment variables, so they are
         # temporarily stripped before looking for substitutions.
         if [[ "$command" =~ $envregex ]]; then
@@ -548,10 +551,10 @@ function -setup()
 
     if [[ "${TMUX:-}" ]]; then
         trap 'metamux shell-exit-hook "$PPID" 2>&-' EXIT
-    elif [[ "${TERM:-}" = tmux* ]]; then
+    elif [[ "$TERM" = tmux* ]]; then
         # If a terminfo definition for tmux is not available, use screen's.
         tput -S 2>&- < /dev/null || export TERM="screen"
-    elif [[ "${TERM:-}" ]] && ! [[ "$TERM" =~ $NO_AUTO_TMUX ]]; then
+    elif [[ "$TERM" ]] && ! [[ "$TERM" =~ $NO_AUTO_TMUX ]]; then
         exec tmux new -A -s 0
     fi
 

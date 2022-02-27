@@ -203,9 +203,10 @@ function -define-aliases()
 
         test -n "$alias_value" || continue
         argv=($alias_value)
-        # Ignore environment variables and the paginate function.
+        # Ignore env(1), the paginate function and any associated options.
         i=0
-        while [[ "${argv[i]}" = @(env|-paginate|--|[A-Z_]*([A-Z0-9_])=*) ]]; do
+        while [[ "${argv[i]}" = @(env|[+-]*|[A-Z_]*([A-Z0-9_])=*) ]]; do
+            test "${argv[i]}" = "-calculate" && break
             let i++
         done
         if ! hash -- "${argv[i]}" 2>&-; then
@@ -276,6 +277,8 @@ function -calculate()
 # but in practice, this is rarely a problem.
 #
 # Arguments:
+# - $@: Any arguments that start with "-" or "+" before the command name are
+#   treated as Less options.
 # - $1: Name or path of the command to execute.
 # - $2: White-space separated list of options to pass to the command when
 #   stdout is a TTY. If there are no TTY-dependent options, this should be
@@ -285,6 +288,12 @@ function -calculate()
 function -paginate()
 {
     local errfd=1
+    local -a lessopts=("-XFR")
+
+    while [[ "${1:-}" = [-+]* ]]; do
+        lessopts+=("$1")
+        shift
+    done
 
     local command="$1"
     local tty_specific_args="$2"
@@ -293,7 +302,7 @@ function -paginate()
     if [[ -t 1 ]]; then
         test "$tty_specific_args" != "--" || tty_specific_args=""
         test -t 2 || errfd=2
-        "$command" $tty_specific_args "$@" 2>&"$errfd" | less -X -F -R
+        "$command" $tty_specific_args "$@" 2>&"$errfd" | less "${lessopts[@]}"
         return "${PIPESTATUS[0]/141/0}"  # Ignore SIGPIPE failures.
     fi
 

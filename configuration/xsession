@@ -19,6 +19,7 @@ compton --daemon -C $(
 
 st &
 statusline -i -m -z US/Pacific | singleton fifo2rootname &
+thunar --daemon &
 
 PATH="$EMUS/desktop-environment/scripts:$PATH"
 singleton hid-monitor &

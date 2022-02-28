@@ -16,8 +16,8 @@
 	when = colorized-blame when -tc
 	who = colorized-blame who -tc
 	heat = colorized-blame what -tc --heat-map
-	mine = log --author=^Eric\\ Pruitt\\ < -p
-	others = log --author=^Eric\\ Pruitt\\ < -p --invert-grep
+	mine = log --author=^Eric\\ Pruitt\\ <
+	others = log --author=^Eric\\ Pruitt\\ < --invert-grep
 	save = stash push --keep-index
 
 [pager]

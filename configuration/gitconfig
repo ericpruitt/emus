@@ -19,6 +19,8 @@
 	mine = log --author=^Eric\\ Pruitt\\ <
 	others = log --author=^Eric\\ Pruitt\\ < --invert-grep
 	save = stash push --keep-index
+	staged = diff --cached
+	cstaged = !git cdiff --cached
 
 [pager]
 	colorized-blame = true

@@ -111,6 +111,7 @@ function -define-aliases()
     alias uniq='-paginate uniq --'
     alias units='units -1 -v'
     alias vi='vim'
+    alias vlc='vlc --verbose -1'
     alias watch='env TERM="${TERM/#tmux*/vt100}" watch'
     alias whois='-paginate whois --'
     alias wmctrl='-paginate env -- DISPLAY="${DISPLAY:-:0.0}" wmctrl'

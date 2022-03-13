@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+set -e -f -u -o pipefail
+
+declare -r SELF="${0##*/}"
+
+declare -r USAGE="\
+$SELF [-e EXIT_CODE] [-t TIMEOUT_DUATION] IDLE_DURATION"'
+
+Wait until an X11 session has been idle for the specified duration before
+returning.
+
+Duration arguments are specified as numbers optionally followed by a "d" for
+days, "h" for hours, "m" for minutes and "s" for seconds. If no suffix is
+specified, the value is treated as a number of seconds. When multiple durations
+are specified in an argument, they are added together. For example, "1m 30s"
+will be translated to 90 seconds. Spaces between numbers with suffixes and
+spaces around suffixes are optional; "1m30s" is acceptable as is "1 m 30 s".
+
+Options (and Defaults):
+  -e EXIT_CODE (1)
+        Exit code to use when the program times out.
+  -t TIMEOUT_DURATION (0)
+        Amount of time to wait before exiting even if the specified duration of
+        time has not passed. When this is 0, the script will wait indefinitely.
+        When non-zero, the timeout must be at least as long as the idle
+        duration.
+'
+
+# Optionally display a message then exit with a non-zero status. If the
+# previous command's exit status is non-zero, that value is used. Otherwise, 2
+# is used.
+#
+# Arguments:
+# - $@: Message to display.
+#
+die()
+{
+    local -i exit_code="$?"
+
+    test "$#" -eq 0 || echo "$SELF:" "$@" >&2
+    exit "$((exit_code ? exit_code : 2))"
+}
+
+# Convert a human-readable duration to seconds. A duration is specified as a
+# number optionally followed by a "d" for days, "h" for hours, "m" for minutes
+# and "s" for seconds. If no suffix is specified, the value is treated as a
+# number of seconds. When multiple durations are specified, they are added
+# together. For example, "1m 30s" will be translated to 90 seconds. Spaces
+# between numbers with suffixes and spaces around suffixes are optional;
+# "1m30s" is acceptable as is "1 m 30 s".
+#
+# Arguments:
+# - $1: Duration
+#
+duration_to_seconds()
+{
+    local base
+    local -i factor
+    local part
+    local parts
+    local -i value
+
+    local -i total=0
+
+    parts="$(
+        printf "%s " $1 | grep -E -o '\s*[0-9]+\s*[dmhs]?\s*|.' | tr -d " "
+    )"
+
+    for part in $parts; do
+        if ! [[ "$part" =~ ^0*(([0-9]+)([dmhs]?))$ ]]; then
+            die "'$part' is not a valid duration"
+        fi
+
+        value="${BASH_REMATCH[2]}"
+        base="${BASH_REMATCH[3]}"
+
+        case "${base:-s}" in
+          d)    factor=86400 ;;
+          h)    factor=3600 ;;
+          m)    factor=60 ;;
+          s)    factor=1 ;;
+        esac
+
+        total+=$((factor * value))
+    done
+
+    echo "$total"
+}
+
+main()
+{
+    local -i elapsed
+    local -i now
+    local -i start
+    local -i idle_time_ms
+    local -i idle_time_sec
+
+    local -i duration=0
+    local -i timeout=0
+    local -i timeout_exit_code=1
+
+    command -v xidletime >/dev/null || die "xidletime: command not found"
+
+    while getopts :e:ht: option; do
+        case "$option" in
+          e)
+            if ! [[ "$OPTARG" =~ ^0*([0-9]+)$ ]] || [[ "$OPTARG" -lt 0 ]]; then
+                die "-$option: must be an integer greater than or equal to 0"
+            fi
+
+            timeout_exit_code="$OPTARG"
+          ;;
+          h)
+            printf "Usage: %s" "$USAGE"
+            return
+          ;;
+          t)
+            timeout="$(duration_to_seconds "$OPTARG")"
+          ;;
+          :)
+            die "-$OPTARG: argument is missing; run '$SELF -h' for help"
+          ;;
+          \?)
+            die "-$OPTARG: unrecognized option; run '$SELF -h' for help"
+          ;;
+        esac
+    done
+
+    shift "$((OPTIND - 1))"
+
+    if [[ "$#" -ne 1 ]]; then
+        die "unexpected argument after duration; run '$SELF -h' for help"
+    fi
+
+    duration="$(duration_to_seconds "$1")"
+
+    if [[ "$timeout" -ne 0 ]]; then
+        if [[ "$timeout" -lt "$duration" ]]; then
+            die "timeout cannot be less than the idle duration"
+        fi
+
+        printf -v start "%(%s)T"
+    fi
+
+    while :; do
+        if ! idle_time_ms="$(xidletime)"; then
+            die "unable run run xidletime"
+        fi
+
+        idle_time_sec="$((idle_time_ms / 1000))"
+        test "$idle_time_sec" -lt "$duration" || break
+
+        if [[ "$timeout" -ne 0 ]]; then
+            printf -v now "%(%s)T"
+            elapsed="$((now - start))"
+            test "$elapsed" -lt "$timeout" || return "$timeout_exit_code"
+        fi
+
+        sleep 1
+    done
+}
+
+test "${BASH_SOURCE:-}" != "$0" || main "$@"

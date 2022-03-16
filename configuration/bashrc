@@ -253,6 +253,14 @@ function no_such_file_handle()
     eval "= ${1#=} ${@:2}"
 }
 
+# Executed when the shell exits.
+#
+function -exit-trap()
+{
+    rm -f "$TMUX_ENV_TIMESTAMP_FILE"
+    test -z "${TMUX:-}" || metamux shell-exit-hook "$PPID" 2>&-
+}
+
 # Calculate the result of an expression. The result of the last successfully
 # evaluated expression is made available as the variable "x". The expression
 # must appear in the command history to be evaluated.
@@ -403,6 +411,30 @@ function run()
     return "$exit_status"
 }
 
+# Reload environment variables from tmux that are specified in its
+# "update-environment" configuration option. The variables TMUX and
+# TMUX_ENV_FILE must be set to non-empty strings or this function is a no-op.
+# TMUX_ENV_FILE should be the path of a file that contains the output of `tmux
+# show-environment -s`. This function always finishes with a return code of 0
+# even if there were errors.
+#
+function -reload-tmux-env()
+{
+    test "${TMUX:-}" -a "${TMUX_ENV_FILE:-}" || return 0
+
+    # Use an empty file to keep track of when the tmux environment file was
+    # last read so it is only sourced when there have been changes to the file.
+    if [[ -z "${TMUX_ENV_TIMESTAMP_FILE:-}" ]]; then
+        # The use of "declare" with a process substitution is deliberate; the
+        # substitution failing should be a non-fatal error.
+        declare -g TMUX_ENV_TIMESTAMP_FILE="$(
+            mktemp -t .$$-tmux-env-last-read-timestamp-XXXXXX 2>/dev/null
+        )"
+    elif [[ "$TMUX_ENV_TIMESTAMP_FILE" -ot "$TMUX_ENV_FILE" ]]; then
+        > "$TMUX_ENV_TIMESTAMP_FILE" && source ~/.tmux.env || return 0
+    fi
+}
+
 # Update the Bash prompt and display the exit status of the previously executed
 # command if it was non-zero. The prompt has the following indicators:
 #
@@ -468,6 +500,7 @@ function -prompt-command()
     fi
 
     unset $(compgen -v -X '[A-Z_]*([A-Z0-9_])')
+    -reload-tmux-env
 }
 
 # Hook executed before every Bash command that is not run inside a subshell or
@@ -518,6 +551,13 @@ function -debug-hook()
             '\e]2;%s\e\' "${SSH_TTY:+${LOGNAME:-$USER}@$HOSTNAME: }$command"
     fi
 
+    # To minimize the performance impact of calling -reload-tmux-env, only try
+    # to run -reload-tmux-env once per script i.e. only one time after the user
+    # presses enter instead of whenever any command in the script runs.
+    # TODO: track timestamp of when it was last run so the prompt command
+    # doesn't execute reload-tmux-env if a command finished quickly.
+    test "${debug_hook_ran:-}" || -reload-tmux-env
+
     debug_hook_ran="x"
 }
 
@@ -545,18 +585,20 @@ function -setup()
     shopt -s histappend
     shopt -u hostcomplete
 
+    trap -- -exit-trap EXIT
+
     # If the current directory is not readable, "cd" to the home directory.
     test -r . || cd
 
     eval -- "${DECLARE_BASH_ALIASES:--define-aliases}"
 
-    if [[ "${TMUX:-}" ]]; then
-        trap 'metamux shell-exit-hook "$PPID" 2>&-' EXIT
-    elif [[ "$TERM" = tmux* ]]; then
-        # If a terminfo definition for tmux is not available, use screen's.
-        tput -S 2>&- < /dev/null || export TERM="screen"
-    elif [[ "$TERM" ]] && ! [[ "$TERM" =~ $NO_AUTO_TMUX ]]; then
-        exec tmux new -A -s 0
+    if [[ -z "${TMUX:-}" ]]; then
+        if [[ "$TERM" = tmux* ]]; then
+            # If a terminfo definition for tmux is not available, use screen's.
+            tput -S 2>&- < /dev/null || export TERM="screen"
+        elif [[ "$TERM" ]] && ! [[ "$TERM" =~ $NO_AUTO_TMUX ]]; then
+            exec tmux new -A -s 0
+        fi
     fi
 
     if [[ -z "${SSH_TTY:-}" ]] && ! [[ "${LOGNAME:-$USER}" =~ $EPONYMS ]]; then

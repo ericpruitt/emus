@@ -433,7 +433,7 @@ function -reload-tmux-env()
     fi
 
     if [[ "$TMUX_ENV_TIMESTAMP_FILE" -ot "$TMUX_ENV_FILE" ]]; then
-        > "$TMUX_ENV_TIMESTAMP_FILE" && source ~/.tmux.env || return 0
+        > "$TMUX_ENV_TIMESTAMP_FILE" && source "$TMUX_ENV_FILE" || return 0
     fi
 }
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Usage: iterm [-i] [-n] [-W] [-w] [-x] [COMMAND [ARGUMENT]...]
 
@@ -19,8 +19,6 @@ Options:
   -x    Let iTerm2 exit immediately after executing a command. This is the
         default behavior.
 """
-from __future__ import print_function
-
 import errno
 import getopt
 import os

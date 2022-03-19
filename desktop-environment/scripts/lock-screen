@@ -79,7 +79,7 @@ function main()
     save-environment || echo "$0: could not save tmux environment" >&2
     "${LOCK_COMMAND[@]}"
     test -z "$tmux_args" || eval "tmux $tmux_args"
-    test ! "${TMUX_ENV_FILE:-}" || tmux showenv -s > "$TMUX_ENV_FILE"
+    sh -c "$(tmux display-message -p "#{env_dump_script}")"
 }
 
 main "$@"

@@ -257,7 +257,7 @@ function no_such_file_handle()
 #
 function -exit-trap()
 {
-    rm -f "$TMUX_ENV_TIMESTAMP_FILE"
+    rm -f "${TMUX_ENV_TIMESTAMP_FILE:-}"
     test -z "${TMUX:-}" || metamux shell-exit-hook "$PPID" 2>&-
 }
 

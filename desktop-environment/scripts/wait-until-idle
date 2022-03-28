@@ -7,7 +7,8 @@ declare -r USAGE="\
 $SELF [-e EXIT_CODE] [-t TIMEOUT_DUATION] IDLE_DURATION"'
 
 Wait until an X11 session has been idle for the specified duration before
-returning.
+returning. SIGALRM can be used to make the script exit successfully before the
+specified amount of time has passed.
 
 Duration arguments are specified as numbers optionally followed by a "d" for
 days, "h" for hours, "m" for minutes and "s" for seconds. If no suffix is
@@ -39,6 +40,15 @@ die()
 
     test "$#" -eq 0 || echo "$SELF:" "$@" >&2
     exit "$((exit_code ? exit_code : 2))"
+}
+
+# SIGALRM that reports when the signal was caught and makes the script exit
+# successfully.
+#
+handle_sigalrm()
+{
+    printf 'SIGALRM caught at %(%Y-%m-%dT%H:%M:%S%z)T; exiting\n' || :
+    exit
 }
 
 # Convert a human-readable duration to seconds. A duration is specified as a
@@ -141,6 +151,8 @@ main()
 
         printf -v start "%(%s)T"
     fi
+
+    trap handle_sigalrm SIGALRM
 
     while :; do
         if ! idle_time_ms="$(xidletime)"; then

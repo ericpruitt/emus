@@ -93,8 +93,8 @@ enum {
  * Return: Number of bytes written to "dest" excluding the null byte.
  */
 static size_t tzstrftime(char *dest, size_t sizeofdest, const char *format,
-  time_t when, const char *where) {
-
+  time_t when, const char *where)
+{
     char original_tz_value[1024];
     const struct tm *timespec;
     const char *tz;
@@ -109,6 +109,7 @@ static size_t tzstrftime(char *dest, size_t sizeofdest, const char *format,
 
     if ((tz = getenv("TZ"))) {
         strncpy(original_tz_value, tz, sizeof(original_tz_value));
+
         if (original_tz_value[sizeof(original_tz_value) - 1] != '\0') {
             errno = EOVERFLOW;
             return 0;
@@ -153,8 +154,8 @@ static size_t tzstrftime(char *dest, size_t sizeofdest, const char *format,
  * Return: Number of bytes written to "dest" not including the null byte.
  */
 static size_t dow_with_ordinal_dom(char *dest, size_t sizeofdest,
-  struct tm *tm) {
-
+  struct tm *tm)
+{
     size_t k;
     char *cursor = dest;
 
@@ -239,6 +240,7 @@ static char *battery_indicator(const char *path)
             match += sizeof("POWER_SUPPLY_CAPACITY=") - 1;
             errno = 0;
             long_int = strtol(match, &endptr, 10);
+
             if (!errno && endptr != match && long_int >= 0 && long_int < 101) {
                 capacity_percent = (int) long_int;
             }
@@ -308,8 +310,8 @@ static double mtime(const char *path)
  * Return: Number of characters written to "dest" not including the null.
  */
 static size_t load_indicators_from_file(char *dest, size_t sizeofdest,
-  const char *path, const char *sep) {
-
+  const char *path, const char *sep)
+{
     FILE *file;
     ssize_t line_length;
 
@@ -329,6 +331,7 @@ static size_t load_indicators_from_file(char *dest, size_t sizeofdest,
         if (line[line_length - 1] == '\n') {
             line[line_length - 1] = '\0';
         }
+
         // This is not an off-by-one-error: line_length was previously the
         // length of the line plus the newline, but now it represents the
         // length of the indicator plus the null byte.
@@ -337,6 +340,7 @@ static size_t load_indicators_from_file(char *dest, size_t sizeofdest,
             break;
         } else if (line[0] != '\0') {
             cursor = stpcpy(cursor, line);
+
             if (sep) {
                 cursor = stpcpy(cursor, sep);
             }
@@ -1050,6 +1054,7 @@ int main(int argc, char **argv)
                   ARRAY_LENGTH(altzones));
                 return 1;
             }
+
             altzones[altzones_count++] = optarg;
             break;
 
@@ -1065,10 +1070,12 @@ int main(int argc, char **argv)
 
     if (optind != argc) {
         fputs("Unexpected command line parameters:", stderr);
+
         while (optind < argc) {
             fputc(' ', stderr);
             fputs(argv[optind++], stderr);
         }
+
         fputc('\n', stderr);
         return 1;
     }
@@ -1088,6 +1095,7 @@ int main(int argc, char **argv)
             if ((status_file_mt_now = mtime(status_file)) != status_file_mt) {
                 status_file_mt = status_file_mt_now;
                 indicators_from_file[0] = '\0';
+
                 if (status_file_mt == -1) {
                     perror(status_file);
                 } else {
@@ -1098,6 +1106,7 @@ int main(int argc, char **argv)
                     );
                 }
             }
+
             eol = stpcpy(eol, indicators_from_file);
         }
 
@@ -1153,11 +1162,13 @@ int main(int argc, char **argv)
         }
 
         clocks = eol;
+
         for (multiple_clocks = 0, k = 0; k < altzones_count; k++) {
             if (altzones_count == 1 && !strcmp("XXX", altzones[k])) {
                 tzstrftime(altclock, sizeof(altclock), "", now, altzones[k]);
                 break;
             }
+
             if (tzstrftime(altclock, sizeof(altclock), "%T %Z", now, altzones[k]) &&
                 strcmp(altclock, localclock)) {
 

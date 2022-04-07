@@ -10,7 +10,7 @@
  * for the Sun" (AKA "moontool") and Kevin Turner's Python port of the same
  * tool.
  *
- * Make: c99 -D_POSIX_C_SOURCE=200809L -o $@ $? -lm
+ * Make: c99 -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE -o $@ $? -lm
  * Copyright: Eric Pruitt (https://www.codevat.com/)
  * License: BSD 2-Clause License (https://opensource.org/licenses/BSD-2-Clause)
  */
@@ -386,6 +386,19 @@ static inline double to_radians(double degrees)
 }
 
 /**
+ * Convert radians to degrees.
+ *
+ * Arguments:
+ * - degrees
+ *
+ * Return: Angle in radians.
+ */
+static inline double to_degrees(double radians)
+{
+    return radians * 180 / M_PI;
+}
+
+/**
  * Bound an angle in degrees to the interval [0, 360).
  *
  * Arguments:
@@ -548,6 +561,295 @@ const char *moon_icon(time_t when, int southern_hemisphere, int invert)
 }
 
 /**
+ * Round the time down to 00:00:00 local time if it does not already represent
+ * that time.
+ *
+ * Arguments:
+ * - when: UNIX timestamp.
+ *
+ * Return: UNIX timestamp representation of midnight.
+ */
+static time_t round_down_to_midnight(time_t when)
+{
+    char buf[20];
+    struct tm *in;
+    struct tm out;
+
+    when -= when % 60;
+    in = localtime(&when);
+
+    if (in->tm_hour == 0 && in->tm_min == 0) {
+        return when;
+    }
+
+    sprintf(buf, "%d-%02d-%02d 00:00:00", in->tm_year + 1900, in->tm_mon + 1,
+        in->tm_mday);
+    strptime(buf, "%Y-%m-%d %H:%M:%S", &out);
+    return mktime(&out);
+}
+
+/**
+ * Compute the time of sunrise and sunset for a particular location. The
+ * formulas come from [_General Solar Position Calculations_ by the NOAA Global
+ * Monitoring Division](https://gml.noaa.gov/grad/solcalc/solareqns.PDF).
+ *
+ * Arguments:
+ * - when: A UNIX timestamp representing the day for which to compute the
+ *   sunset and sunrise.
+ * - latitude: The latitude of the location in degrees.
+ * - longitude: The longitude of the location in degrees.
+ * - sunrise: Location at which the computed sunrise time is stored. This can
+ *   be NULL if the caller does not want the value.
+ * - sunset: Location at which the computed sunset time is stored. This can be
+ *   NULL if the caller does not want the value.
+ */
+static void sunrise_sunset_times(time_t when, double latitude,
+  double longitude, double *sunrise, double *sunset)
+{
+    // For the special case of sunrise or sunset, the zenith is set to 90.833°
+    // (the approximate correction for atmospheric refraction at sunrise and
+    // sunset, and the size of the solar disk).
+    const double zenith = cos(to_radians(90.833));
+
+    int days_in_year = 365;
+    double latrads = to_radians(latitude);
+    time_t midnight_utc = when - when % 86400;
+    struct tm *timespec = gmtime(&when);  // XXX: should this be localtime?
+
+    int year = timespec->tm_year + 1900;
+
+    int is_leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+
+    double fractional_year = 2 * M_PI / (days_in_year + is_leap_year) * (
+        timespec->tm_yday + (timespec->tm_hour - 12) / 24
+    );
+
+    double decl = 0.006918 - 0.399912 * cos(fractional_year) + 0.070257 *
+        sin(fractional_year) - 0.006758 * cos(2 * fractional_year) + 0.000907 *
+        sin(2 * fractional_year) - 0.002697 * cos(3 * fractional_year) +
+        0.00148 * sin(3 * fractional_year);
+    double eqtime = 229.18 * (0.000075 + 0.001868 * cos(fractional_year) -
+        0.032077 * sin(fractional_year) - 0.014615 * cos(2 * fractional_year) -
+        0.040849 * sin(2 * fractional_year));
+
+    double hour_angle = to_degrees(
+        acos(zenith / (cos(latrads) * cos(decl)) - tan(latrads) * tan(decl))
+    );
+
+    if (sunrise) {
+        *sunrise = (
+            midnight_utc + 60 * (720 - 4 * (longitude + hour_angle) - eqtime)
+        );
+    }
+
+    if (sunset) {
+        *sunset = (
+            midnight_utc + 60 * (720 - 4 * (longitude - hour_angle) - eqtime)
+        );
+    }
+}
+
+/**
+ * Return a string showing when the next sunrise or sunset takes place.
+ *
+ * Arguments:
+ * - when: A UNIX timestamp representing the day for which to compute the
+ *   sunset and sunrise.
+ * - latitude: The latitude of the location in degrees.
+ * - longitude: The longitude of the location in degrees.
+ * - sunrise: Location at which the computed sunrise time is stored. This can
+ *   be NULL if the caller does not want the value.
+ * - sunset: Location at which the computed sunset time is stored. This can be
+ *   NULL if the caller does not want the value.
+ */
+static const char *sunrise_sunset_info(time_t when, double latitude,
+  double longitude)
+{
+    const char *format;
+    time_t midnight;
+    double sunrise;
+    double sunset;
+    static char text[64];
+    time_t timestamp;
+
+    const char sunrise_format[] = "🌅 %R";
+    const char sunset_format[] = "🌙 %R";
+
+    midnight = round_down_to_midnight(when);
+    sunrise_sunset_times(midnight, latitude, longitude, &sunrise, &sunset);
+
+    if (sunset <= when) {
+        // It is already past sunset for the current day, so figure out when
+        // the next sunrise is. 36 hours in the future is guaranteed to be
+        // exactly one calendar ahead barring the introduction of some dramatic
+        // changes in time zones.
+        midnight = round_down_to_midnight(midnight + 36 * 3600);
+        sunrise_sunset_times(midnight, latitude, longitude, &sunrise, NULL);
+
+        timestamp = (time_t) sunrise;
+        format = sunrise_format;
+    } else if (sunrise > when) {
+        timestamp = (time_t) sunrise;
+        format = sunrise_format;
+    } else {
+        timestamp = (time_t) sunset;
+        format = sunset_format;
+    }
+
+    if (!strftime(text, sizeof(text), format, localtime(&timestamp))) {
+        strncpy(text, "⚠️", sizeof(text));
+    }
+
+    return text;
+}
+
+/**
+ * Parse the latitude and longitude from a string.
+ *
+ * Arguments:
+ * - text: String that should contain the latitude and longitude separated by a
+ *   comma.
+ * - latitude: Output pointer for the latitude.
+ * - longitude: Output pointer for the longitude.
+ *
+ * Return: 0 if the coordinates were valid and -1 otherwise.
+ */
+static int strtolatlong(const char *text, double *latitude, double *longitude)
+{
+    char coordinates[128];
+    char *cursor;
+    char *endptr;
+    char *latstr;
+    char *suffix;
+
+    int latsuffix = 0;
+    int longsuffix = 0;
+    char *longstr = NULL;
+
+    if (strlen(text) + 1 > sizeof(coordinates)) {
+        errno = EMSGSIZE;
+        return -1;
+    }
+
+    strcpy(coordinates, text);
+    latstr = coordinates;
+
+    for (cursor = coordinates; *cursor; cursor++) {
+        if (*cursor == ',') {
+            // Input contains more than one comma.
+            if (longstr) {
+                errno = EINVAL;
+                return -1;
+            }
+
+            *cursor = '\0';
+            longstr = cursor + 1;
+        }
+    }
+
+    // Input contains no commas.
+    if (!longstr) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    suffix = longstr - 2;
+
+    if ((*suffix > '9' || *suffix < '0') && *suffix != '.') {
+        switch (*suffix) {
+          case 'S':
+          case 's':
+            latsuffix = -1;
+
+          case 'N':
+          case 'n':
+            latsuffix = latsuffix ? latsuffix : 1;
+            *suffix = '\0';
+            break;
+
+          default:
+            errno = EINVAL;
+            return -1;
+        }
+    }
+
+    suffix = longstr + strlen(longstr) - 1;
+
+    if ((*suffix > '9' || *suffix < '0') && *suffix != '.') {
+        switch (*suffix) {
+          case 'W':
+          case 'w':
+            longsuffix = -1;
+
+          case 'E':
+          case 'e':
+            longsuffix = longsuffix ? longsuffix : 1;
+            *suffix = '\0';
+            break;
+
+          default:
+            errno = EINVAL;
+            return -1;
+        }
+    }
+
+    // Either both values must have a suffix, or both must lack a suffix.
+    if ((!latsuffix && longsuffix) || (latsuffix && !longsuffix)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    *latitude = strtod(latstr, &endptr);
+
+    if (errno || endptr == latstr) {
+        errno = EINVAL;
+        return -1;
+    } else if (*latitude < -90 || *latitude > 90) {
+        errno = EDOM;
+        return -1;
+    } else if (latsuffix) {
+        // When an "N" or "S" suffix is specified, negative numbers are not
+        // allowed.
+        if (signbit(*latitude)) {
+            errno = EINVAL;
+            return -1;
+        }
+
+        *latitude *= latsuffix;
+    }
+
+    *longitude = strtod(longstr, &endptr);
+
+    if (errno || endptr == longstr) {
+        errno = EINVAL;
+        return -1;
+    } else if (*longitude < -180 || *longitude > 180) {
+        errno = EDOM;
+        return -1;
+    } else if (longsuffix) {
+        // When a "W" or "E" suffix is specified, negative numbers are not
+        // allowed.
+        if (signbit(*longitude)) {
+            errno = EINVAL;
+            return -1;
+        }
+
+        *longitude *= longsuffix;
+    }
+
+    // The NOAA formulas seem to break down at the poles. The web application
+    // at https://gml.noaa.gov/grad/solcalc/ clamps latitude values to +/-89.9,
+    // but I ran into problems with that value, so I picked stricter limits.
+    if (*latitude < -89) {
+        *latitude = -89;
+    } else if (*latitude > 89) {
+        *latitude = 89;
+    }
+
+    return 0;
+}
+
+/**
  * Replace all occurrences of "GMT" with "UTC".
  *
  * Arguments:
@@ -567,7 +869,7 @@ static void gmt_to_utc(char *s)
 static void usage(const char *self)
 {
     printf(
-        "Usage: %s [-1] [-b PATH] [-Mmn] [-s PATH] [-f] [-z TIMEZONE]...\n"
+        "Usage: %s [-1] [-b PATH] [-c COORDINATES] [-Mmn] [-s PATH] [-f] [-z TIMEZONE]...\n"
         "\n"
         "Updates the X11 root window name once per second. It displays the "
         "battery\nstatus, day of the week, day of the month and can also "
@@ -584,6 +886,14 @@ static void usage(const char *self)
         "  -b PATH  Path to uevent battery data. When unset, this defaults\n"
         "           \"/sys/class/power_supply/BAT0/uevent\" if it that path\n"
         "           can be read during program initialization.\n"
+        "  -c COORDINATES\n"
+        "           Show sunrise and sunset times for the given longitude\n"
+        "           and latitude which are specified as two numbers\n"
+        "           separated by a comma. This option does NOT support\n"
+        "           extreme latitudes correctly and will likely fail in\n"
+        "           areas experiencing midnight sun or polar sun. To unset\n"
+        "           previously defined coordinates, specify \"-\" as the\n"
+        "           coordinates.\n"
         "  -f       Force setting the X11 root window name. Without this\n"
         "           flag, the status bar will only be printed on stdout when\n"
         "           stdout is a TTY.\n"
@@ -661,8 +971,11 @@ int main(int argc, char **argv)
     int first = 1;
     char indicators_from_file[1024] = "";
     int invert_moon = 0;
+    double latitude = 0;
+    double longitude = 0;
     int run_once = 0;
     int show_moon_phase = 0;
+    int show_sunrise_sunset = 0;
     int southern_hemisphere = 0;
     char *status_file = NULL;
     double status_file_mt = -1;
@@ -670,7 +983,7 @@ int main(int argc, char **argv)
     const char *eob = message + sizeof(message);
     char *eol = message;
 
-    while ((option = getopt(argc, argv, "+1b:hiMms:z:")) != -1) {
+    while ((option = getopt(argc, argv, "+1b:c:hiMms:z:")) != -1) {
         switch (option) {
           case '1':
             run_once = 1;
@@ -679,6 +992,34 @@ int main(int argc, char **argv)
           case 'b':
             battery_data_path_explicit = 1;
             battery_data_path = optarg;
+            break;
+
+          case 'c':
+            if (!strcmp(optarg, "-")) {
+                show_sunrise_sunset = 0;
+                break;
+            }
+
+            if (strtolatlong(optarg, &latitude, &longitude)) {
+                switch (errno) {
+                  case EMSGSIZE:
+                    fputs("Coordinates too long; lower precision.\n", stderr);
+                    break;
+
+                  case EDOM:
+                    fputs("Latitude and/or longitude out of range.\n", stderr);
+                    break;
+
+                  case EINVAL:
+                  default:
+                    fputs("Coordinates are malformed.\n", stderr);
+                    break;
+                }
+
+                return 1;
+            }
+
+            show_sunrise_sunset = 1;
             break;
 
           case 'h':
@@ -786,6 +1127,11 @@ int main(int argc, char **argv)
 
         now = tv.tv_sec;
         nowtm = *ptm;
+
+        if (show_sunrise_sunset) {
+            eol = stpcpy(eol, sunrise_sunset_info(now, latitude, longitude));
+            eol = stpcpy(eol, SEPARATOR);
+        }
 
         if (show_moon_phase) {
             eol = stpcpy(eol, moon_icon(now, southern_hemisphere, invert_moon));

@@ -685,8 +685,8 @@ static const char *sunrise_sunset_info(time_t when, double latitude,
     if (sunset <= when) {
         // It is already past sunset for the current day, so figure out when
         // the next sunrise is. 36 hours in the future is guaranteed to be
-        // exactly one calendar ahead barring the introduction of some dramatic
-        // changes in time zones.
+        // exactly one calendar day ahead barring the introduction of some
+        // dramatic changes in time zones.
         midnight = round_down_to_midnight(midnight + 36 * 3600);
         sunrise_sunset_times(midnight, latitude, longitude, &sunrise, NULL);
 

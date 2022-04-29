@@ -593,9 +593,10 @@ static time_t round_down_to_midnight(time_t when)
 }
 
 /**
- * Compute the time of sunrise and sunset for a particular location. The
- * formulas come from [_General Solar Position Calculations_ by the NOAA Global
- * Monitoring Division](https://gml.noaa.gov/grad/solcalc/solareqns.PDF).
+ * Compute the time of sunrise and sunset for a particular location rounded
+ * down to the nearest minute. The formulas come from [_General Solar Position
+ * Calculations_ by the NOAA Global Monitoring
+ * Division](https://gml.noaa.gov/grad/solcalc/solareqns.PDF).
  *
  * Arguments:
  * - when: A UNIX timestamp representing the day for which to compute the
@@ -608,8 +609,10 @@ static time_t round_down_to_midnight(time_t when)
  *   NULL if the caller does not want the value.
  */
 static void sunrise_sunset_times(time_t when, double latitude,
-  double longitude, double *sunrise, double *sunset)
+  double longitude, time_t *sunrise, time_t *sunset)
 {
+    double time;
+
     // For the special case of sunrise or sunset, the zenith is set to 90.833°
     // (the approximate correction for atmospheric refraction at sunrise and
     // sunset, and the size of the solar disk).
@@ -617,8 +620,8 @@ static void sunrise_sunset_times(time_t when, double latitude,
 
     int days_in_year = 365;
     double latrads = to_radians(latitude);
-    time_t midnight_utc = when - when % 86400;
-    struct tm *timespec = gmtime(&when);  // XXX: should this be localtime?
+    time_t midnight = when - when % 86400;
+    struct tm *timespec = gmtime(&when);
 
     int year = timespec->tm_year + 1900;
 
@@ -641,15 +644,13 @@ static void sunrise_sunset_times(time_t when, double latitude,
     );
 
     if (sunrise) {
-        *sunrise = (
-            midnight_utc + 60 * (720 - 4 * (longitude + hour_angle) - eqtime)
-        );
+        time = midnight + 60 * (720 - 4 * (longitude + hour_angle) - eqtime);
+        *sunrise = (time_t) (time - fmod(time, 60));
     }
 
     if (sunset) {
-        *sunset = (
-            midnight_utc + 60 * (720 - 4 * (longitude - hour_angle) - eqtime)
-        );
+        time = midnight + 60 * (720 - 4 * (longitude - hour_angle) - eqtime);
+        *sunset = (time_t) (time - fmod(time, 60));
     }
 }
 
@@ -671,8 +672,8 @@ static const char *sunrise_sunset_info(time_t when, double latitude,
 {
     const char *format;
     time_t midnight;
-    double sunrise;
-    double sunset;
+    time_t sunrise;
+    time_t sunset;
     static char text[64];
     time_t timestamp;
 
@@ -690,13 +691,13 @@ static const char *sunrise_sunset_info(time_t when, double latitude,
         midnight = round_down_to_midnight(midnight + 36 * 3600);
         sunrise_sunset_times(midnight, latitude, longitude, &sunrise, NULL);
 
-        timestamp = (time_t) sunrise;
+        timestamp = sunrise;
         format = sunrise_format;
     } else if (sunrise > when) {
-        timestamp = (time_t) sunrise;
+        timestamp = sunrise;
         format = sunrise_format;
     } else {
-        timestamp = (time_t) sunset;
+        timestamp = sunset;
         format = sunset_format;
     }
 

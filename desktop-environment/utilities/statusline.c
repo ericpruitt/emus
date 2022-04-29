@@ -65,7 +65,7 @@ static size_t tzstrftime(char *, size_t, const char *, time_t, const char *);
 /**
  * Identifiers for the named phases of the moon.
  */
-enum {
+typedef enum {
     MOON_PHASE_NEW_MOON,
     MOON_PHASE_WAXING_CRESCENT,
     MOON_PHASE_FIRST_QUARTER,

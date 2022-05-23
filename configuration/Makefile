@@ -29,6 +29,7 @@ DOTFILES = \
 
 MACOS_DOTFILES = \
 	$(HOME)/.aqua-session \
+	$(HOME)/.config/karabiner/karabiner.json \
 
 MACOS_USER_CONFIGS = \
 	$(HOME)/Library/KeyBindings/DefaultKeyBinding.dict \

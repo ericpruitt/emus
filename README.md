@@ -116,6 +116,7 @@ applications "agree" on the width of characters.
 - [musl libc][musl]
   - utf8proc-wcwidth.so, an "LD_PRELOAD" library for Linux that reimplements
     _wcwidth(3)_ using [utf8proc][utf8proc].
+- [oathtool][oathtool]
 - [rsync][rsync]
 - [tmux][tmux]
 - [Tree][tree]
@@ -136,6 +137,7 @@ applications "agree" on the width of characters.
   [sed]: https://www.gnu.org/software/sed/
   [jq]: https://stedolan.github.io/jq/
   [less]: http://www.greenwoodsoftware.com/less/
+  [oathtool]: https://www.nongnu.org/oath-toolkit/
   [rsync]: https://rsync.samba.org/
   [tmux]: https://tmux.github.io/
   [tree]: http://mama.indstate.edu/users/ice/tree/index.html
@@ -163,9 +165,9 @@ applications "agree" on the width of characters.
 
     (libpcre) ---> grep
 
-**Note:** Tree, cmark, flock, GNU Find Utilities, GNU sed, jq and rsync do not
-appear because they do not have dependencies on any libraries built from this
-repository.
+**Note:** Tree, cmark, flock, GNU Find Utilities, GNU sed, jq, rsync and
+oathtool do not appear because they do not have dependencies on any libraries
+built from this repository.
 
 ### Makefile ###
 

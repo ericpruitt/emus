@@ -51,5 +51,8 @@ replacement keys easier if they are moved.
 - ncurses-thomas-e-dickey.asc
   - <http://invisible-island.net/public/public.html>
   - <http://invisible-island.net/public/dickey-invisible-island.txt>
+- oath-toolkit-simon-josefsson.asc
+  - <https://blog.josefsson.org/2021/05/01/openpgp-smartcard-with-gnome-on-debian-11-bullseye/>
+  - <https://josefsson.org/key-20190320.txt>
 
   [gpg]: https://www.gnupg.org/ "GNU Privacy Guard"

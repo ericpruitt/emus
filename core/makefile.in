@@ -207,18 +207,18 @@ clean-common:
 	rm -f -r "$(COMMON)"
 
 $(GIT_CLEAN_TARGETS):
-	(target='$@' && \
-	path="$${target#clean-}-src" && \
-	test -e "$$path" || exit 0 && \
-	cd "$$path" && \
+	(target='$@'; \
+	path="$${target#clean-}-src"; \
+	test -e "$$path" || exit 0; \
+	cd "$$path"; \
 	if [ -n "$$(git status --porcelain --ignored)" ]; then \
-		echo "- $$path" && \
-		git stash save -u --quiet "make $@" && \
+		echo "- $$path"; \
+		git stash save -u --quiet "make $@"; \
 		git clean -d -f -q -x; \
 	fi)
 
 $(FOLDER_CLEAN_TARGETS):
-	target='$@' && \
+	target='$@'; \
 	for path in $$(echo "$(FOLDERS)" | grep "^$${target#clean-}"); do \
 		test -d "$$path" || break; \
 		echo "- $$path"; \
@@ -283,7 +283,7 @@ openbsd-deps:
 	| xargs pkg_add
 
 deps:
-	platform="$$($(QUIETMAKE) platform)" && \
+	platform="$$($(QUIETMAKE) platform)"; \
 	 case "$$platform" in \
 	  debian-*) \
 		$(MAKE) debian-deps; \
@@ -414,14 +414,18 @@ $(BASH)-patches/.FOLDER $(READLINE)-patches/.FOLDER: $(PUBRING)
 	touch $@
 
 $(SIGNED_ARCHIVE_FOLDERS): $(PUBRING)
-	prefix='$@' && prefix="$${prefix%/*}" && case '$@' in \
+	prefix='$@'; \
+	prefix="$${prefix%/*}"; \
+	case '$@' in \
 	  */.TAR_GZ_FOLDER) \
 		$(MAKE) $(@D).tar.gz $(@D).tar.gz.sig; \
-		$(GPG) $(@D).tar.gz.sig && tar -x -z -f $(@D).tar.gz; \
+		$(GPG) $(@D).tar.gz.sig; \
+		tar -x -z -f $(@D).tar.gz; \
 	  ;; \
 	  */.TAR_XZ_FOLDER) \
 		$(MAKE) $(@D).tar.xz $(@D).tar.xz.sig; \
-		$(GPG) $(@D).tar.xz.sig && xzcat $(@D).tar.xz | tar -x -f -; \
+		$(GPG) $(@D).tar.xz.sig; \
+		xzcat $(@D).tar.xz | tar -x -f -; \
 	  ;; \
 	esac
 	case '$@' in \
@@ -438,7 +442,7 @@ $(SIGNED_ARCHIVE_FOLDERS): $(PUBRING)
 		case "$$path" in *.sig|*[*]*) continue ;; esac; \
 		echo "- $$path"; \
 		(cd $(@D) && patch -p0) < "$$path"; \
-		find . -name "*.orig" -delete && \
+		find . -name "*.orig" -delete; \
 		if echo "$$path" | grep -qe "$${last_patch_regex:-^$$}"; then \
 			break; \
 		fi; \
@@ -455,7 +459,7 @@ $(MUSL)/.FOLDER: $(MUSL).tar.gz $(MUSL).tar.gz.asc $(PUBRING)
 	touch $@
 
 $(MUSL)/config.mak: $(MUSL)/.FOLDER
-	(cd $(@D) && \
+	(cd $(@D); \
 	if [ -z "$$(find . -name '*.orig')" ]; then \
 		cat $(PWD)/patches/$(MUSL)-* | patch -p0; \
 	fi; \
@@ -481,7 +485,7 @@ musl-cc:
 	echo $(MUSL_CC)
 
 $(GMP)/Makefile: $(GMP)/.FOLDER
-	(cd $(@D) && \
+	(cd $(@D); \
 	./configure -C \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
@@ -491,16 +495,17 @@ $(GMP)/Makefile: $(GMP)/.FOLDER
 	)
 
 $(COMMON)/$(GMP): $(GMP)/Makefile
-	(cd $(?D) && $(MAKE) -S install) && touch $@
+	(cd $(?D) && $(MAKE) -S install)
+	touch $@
 
 $(LIBEVENT).tar.gz $(LIBEVENT).tar.gz.asc:
-	release='$@' && \
-	release="$${release#libevent-}" && \
-	release="$${release%.tar.gz*}" && \
+	release='$@'; \
+	release="$${release#libevent-}"; \
+	release="$${release%.tar.gz*}"; \
 	$(WGET) -nc https://github.com/libevent/libevent/releases/download/release-$$release/$@
 
 $(LIBEVENT)/Makefile: $(LIBEVENT)/.FOLDER
-	(cd $(@D) && \
+	(cd $(@D); \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
@@ -513,13 +518,14 @@ $(LIBEVENT)/Makefile: $(LIBEVENT)/.FOLDER
 	)
 
 $(COMMON)/$(LIBEVENT): $(LIBEVENT)/Makefile
-	(cd $(?D) && $(MAKE) -S install) && touch $@
+	(cd $(?D) && $(MAKE) -S install)
+	touch $@
 
 $(PCRE).tar.gz $(PCRE).tar.gz.sig:
 	$(WGET) -O $@ -nc https://ftp.pcre.org/pub/pcre/$(@)
 
 $(PCRE)/Makefile: $(PCRE)/.FOLDER
-	(cd $(@D) && \
+	(cd $(@D); \
 	./configure -C \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
@@ -534,10 +540,11 @@ $(PCRE)/Makefile: $(PCRE)/.FOLDER
 	)
 
 $(COMMON)/$(PCRE): $(PCRE)/Makefile
-	(cd $(?D) && $(MAKE) -S install) && touch $@
+	(cd $(?D) && $(MAKE) -S install)
+	touch $@
 
 $(MPFR)/Makefile: $(MPFR)/.FOLDER $(COMMON)/$(GMP)
-	(cd $(@D) && \
+	(cd $(@D); \
 	./configure -C \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
@@ -548,10 +555,11 @@ $(MPFR)/Makefile: $(MPFR)/.FOLDER $(COMMON)/$(GMP)
 	)
 
 $(COMMON)/$(MPFR): $(MPFR)/Makefile
-	(cd $(?D) && $(MAKE) -S install) && touch $@
+	(cd $(?D) && $(MAKE) -S install)
+	touch $@
 
 $(NCURSES)/Makefile: $(NCURSES)/.FOLDER
-	(cd $(@D) && \
+	(cd $(@D); \
 	./configure -C \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
@@ -570,10 +578,11 @@ $(NCURSES)/Makefile: $(NCURSES)/.FOLDER
 	)
 
 $(COMMON)/$(NCURSES): $(NCURSES)/Makefile
-	(cd $(?D) && $(GMAKE) -S install) && touch $@
+	(cd $(?D) && $(GMAKE) -S install)
+	touch $@
 
 $(READLINE)/Makefile: $(READLINE)/.FOLDER $(COMMON)/$(NCURSES)
-	(cd $(@D) && \
+	(cd $(@D); \
 	./configure -C \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
@@ -583,7 +592,8 @@ $(READLINE)/Makefile: $(READLINE)/.FOLDER $(COMMON)/$(NCURSES)
 	)
 
 $(COMMON)/$(READLINE): $(READLINE)/Makefile
-	(cd $(?D) && $(MAKE) -S install) && touch $@
+	(cd $(?D) && $(MAKE) -S install)
+	touch $@
 
 $(APPLE_BASH).tar.gz:
 	$(WGET) -O $@ -nc https://opensource.apple.com/tarballs/bash/$(APPLE_BASH_RELEASE).tar.gz
@@ -601,8 +611,8 @@ $(APPLE_BASH)/.FOLDER: $(APPLE_BASH).tar.gz
 # is used regardless of what autconf believes. A similar issue occurs when
 # compiling GNU Awk on FreeBSD and is documented above $(GAWK)/Makefile.
 $(APPLE_BASH)/src/Makefile: $(APPLE_BASH)/.FOLDER $(COMMON)/$(READLINE)
-	(cd $(@D) && \
-	cp ../*.[ch] . && \
+	(cd $(@D); \
+	cp ../*.[ch] .; \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) $$( \
@@ -634,12 +644,12 @@ apple-bash: $(APPLE_BASH)/src/apple-bash
 
 $(BIN)/apple-bash: $(APPLE_BASH)/src/apple-bash
 	if [ -n "$(MAN)" ]; then ( \
-		release="$(APPLE_BASH_RELEASE)" && \
-		release="$${release#bash-}" && \
+		release="$(APPLE_BASH_RELEASE)"; \
+		release="$${release#bash-}"; \
 		sed -e 's/BASH 1/APPLE-\0/' \
 		    -e "s/GNU Bash[^\"]*/\0 (Apple Release $$release)/" \
 		    $(APPLE_BASH)/src/doc/bash.1 \
-		  > $(MAN)/man1/apple-bash.1 && \
+		  > $(MAN)/man1/apple-bash.1; \
 		sed -e 's/RBASH 1/APPLE-\0/' \
 		    -e "s/GNU Bash[^\"]*/\0 (Apple Release $$release)/" \
 		    $(APPLE_BASH)/src/doc/rbash.1 \
@@ -650,8 +660,8 @@ $(BIN)/apple-bash: $(APPLE_BASH)/src/apple-bash
 # Removing y.tab.* is required to ensure changes made to parse.y by my patches
 # are incorporated into the build.
 $(BASH)/Makefile: $(BASH)/.FOLDER $(COMMON)/$(READLINE)
-	(cd $(@D) && \
-	rm y.tab.* && \
+	(cd $(@D); \
+	rm y.tab.*; \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
@@ -683,7 +693,7 @@ $(CMARK)/.git:
 
 $(CMARK)/build/src/cmark: $(CMARK)/.git
 	mkdir -p $(CMARK)/build
-	(cd $(CMARK)/build && \
+	(cd $(CMARK)/build; \
 	CC="$(CC)" \
 	CFLAGS="$(CFLAGS)" \
 	LDFLAGS="$(LDFLAGS)" \
@@ -691,7 +701,8 @@ $(CMARK)/build/src/cmark: $(CMARK)/.git
 		-G "Unix Makefiles" \
 		-DCMARK_TESTS=OFF \
 		-DCMARK_SHARED=OFF \
-		.. && \
+		.. \
+	; \
 	$(MAKE))
 
 cmark: $(CMARK)/build/src/cmark
@@ -701,7 +712,7 @@ $(BIN)/cmark: $(CMARK)/build/src/cmark
 	cp -f $? $@
 
 $(COREUTILS)/Makefile: $(COREUTILS)/.FOLDER $(GMP_DEPS)
-	(cd $(@D) && \
+	(cd $(@D); \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -std=c99" \
@@ -734,7 +745,7 @@ $(FINDUTILS).tar.xz $(FINDUTILS).tar.xz.sig:
 	$(WGET) -O $@ http://ftpmirror.gnu.org/findutils/$@
 
 $(FINDUTILS)/Makefile: $(FINDUTILS)/.FOLDER
-	(cd $(@D) && \
+	(cd $(@D); \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
@@ -782,10 +793,10 @@ $(FLOCK)/configure: $(FLOCK)/.git
 	(cd $(@D) && ./autogen.sh)
 
 $(FLOCK)/Makefile: $(FLOCK)/configure
-	(cd $(@D) && \
+	(cd $(@D); \
 	(git diff --quiet src && cat $(PWD)/patches/$(FLOCK)-*) \
-	| patch -p0 && \
-	find . -name "*.orig" -delete && \
+	| patch -p0; \
+	find . -name "*.orig" -delete; \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
@@ -806,7 +817,7 @@ $(BIN)/flock: $(FLOCK)/flock
 # https://lists.gnu.org/archive/html/bug-gawk/2017-07/msg00024.html for more
 # information.
 $(GAWK)/Makefile: $(GAWK)/.FOLDER $(GMP_DEPS) $(MPFR_DEPS) $(COMMON)/$(READLINE)
-	(cd $(@D) && \
+	(cd $(@D); \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -DREALLYMEAN" \
@@ -833,7 +844,7 @@ $(BIN)/gawk: $(GAWK)/gawk
 	cp -f $? $@
 
 $(GREP)/Makefile: $(GREP)/.FOLDER $(COMMON)/$(PCRE)
-	(cd $(@D) && \
+	(cd $(@D); \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -std=c99" \
@@ -872,9 +883,9 @@ $(JQ)/configure: $(JQ)/.FOLDER
 	(cd $(@D) && autoreconf -i)
 
 $(JQ)/Makefile: $(JQ)/configure
-	(cd $(@D) && \
-	(git diff --quiet && cat $(PWD)/patches/$(JQ)-*) | patch -p0 && \
-	find . -name "*.orig" -delete && \
+	(cd $(@D); \
+	(git diff --quiet && cat $(PWD)/patches/$(JQ)-*) | patch -p0; \
+	find . -name "*.orig" -delete; \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
@@ -900,7 +911,7 @@ $(LESS).tar.gz.sig: $(LESS).sig
 	mv $? $@
 
 $(LESS)/Makefile: $(LESS)/.FOLDER $(COMMON)/$(NCURSES)
-	(cd $(@D) && \
+	(cd $(@D); \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
@@ -960,7 +971,7 @@ $(RSYNC).tar.gz $(RSYNC).tar.gz.asc:
 	$(WGET) -nc https://download.samba.org/pub/rsync/src/$@
 
 $(RSYNC)/Makefile: $(RSYNC)/.FOLDER
-	(cd $(@D) && \
+	(cd $(@D); \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -I$(PWD)/$(COMMON)/include/ncurses" \
@@ -985,7 +996,7 @@ $(TMUX)/configure: $(COMMON)/$(LIBEVENT) $(TMUX)/.git $(COMMON)/$(NCURSES)
 	(cd $(@D) && ./autogen.sh)
 
 $(TMUX)/Makefile: $(TMUX)/configure
-	(cd $(@D) && \
+	(cd $(@D); \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -I$(PWD)/$(COMMON)/include/ncurses" \
@@ -1013,9 +1024,9 @@ tmux: $(TMUX)/tmux
 
 $(BIN)/tmux: $(TMUX)/tmux
 	if [ -n "$(MAN)" ]; then \
-		cd $(?D) && \
-		$(MAKE) mkdir_p=true INSTALL_DATA=true install-exec-hook && \
-		cd .. && \
+		cd $(?D); \
+		$(MAKE) mkdir_p=true INSTALL_DATA=true install-exec-hook; \
+		cd ..; \
 		cp -f "$$OLDPWD"/tmux.1.* $(MAN)/man1/tmux.1; \
 	fi
 	if [ "$$(uname)" = "Darwin" ]; then \
@@ -1024,7 +1035,7 @@ $(BIN)/tmux: $(TMUX)/tmux
 	cp -f $? $@
 
 $(SED)/Makefile: $(SED)/.FOLDER
-	(cd $(@D) && \
+	(cd $(@D); \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
@@ -1091,9 +1102,9 @@ $(VIM)/.git:
 	git clone -b v$(VIM_VERSION) https://github.com/vim/vim.git $(VIM)
 
 $(VIM)/src/auto/config.h: $(VIM)/.git $(COMMON)/$(NCURSES)
-	(cd $(VIM) && \
-	(git diff --quiet && cat $(PWD)/patches/$(VIM)-*) | patch -p0 && \
-	find . -name "*.orig" -delete && \
+	(cd $(VIM); \
+	(git diff --quiet && cat $(PWD)/patches/$(VIM)-*) | patch -p0; \
+	find . -name "*.orig" -delete; \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -DFEAT_CONCEAL -DFEAT_TERMGUICOLORS" \
@@ -1122,15 +1133,15 @@ $(VIM)/src/vim $(VIM)/src/xxd/xxd: $(VIM)/src/auto/config.h
 vim: $(VIM)/src/vim $(VIM)/src/xxd/xxd
 
 $(VIM)/runtime-files: $(VIM)/.git
-	(cd $(@D) && \
-	printf '%s\n' $(VIM_RUNTIME_EXTRAS) > $(@F) && \
+	(cd $(@D); \
+	printf '%s\n' $(VIM_RUNTIME_EXTRAS) > $(@F); \
 	printf '/^%s =/,/^$$/p;' $(VIM_RUNTIME_TARGETS) \
 	  | sed -n -f /dev/fd/0 Filelist >> $(@F))
 
 $(BIN)/vimruntime: $(VIM)/runtime-files
 	test -e $(VIM)/vimruntime || ln -f -s runtime $(VIM)/vimruntime
 	tar --help 2>&1 | grep -q GNU && from_file="-T" || from_file="-I"; \
-	(cd $(VIM) && \
+	(cd $(VIM); \
 	ls -1 $$(cat $(PWD)/$?) 2>/dev/null \
 	| sed -n "s/^runtime/vimruntime/p" \
 	| tar -c $$from_file - -f -) | (cd $(BIN) && tar -x -m -f -)

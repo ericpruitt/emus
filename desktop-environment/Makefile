@@ -106,7 +106,8 @@ all:
 install: all
 	echo "PREFIX = $(PREFIX)"
 	echo "SUPERUSER_PREFIX = $(SUPERUSER_PREFIX)"
-	echo "- screen-locker" && $(MAKE) -s $(SUPERUSER_PREFIX)/bin/screen-locker
+	echo "- screen-locker"
+	$(MAKE) -s $(SUPERUSER_PREFIX)/bin/screen-locker
 	mkdir -p $(PREFIX)/bin
 	for binary in "$$PWD/bin/"*; do \
 		echo "- $${binary##*/}"; \
@@ -249,7 +250,7 @@ screen-locker/screen-locker: screen-locker/screen-locker.c
 	cc_shadow_h="$$($(QUIETMAKE) cc-test ARGS=shadow.h)"; \
 	LDFLAGS="$$($(QUIETMAKE) cc-test ARGS='-lcrypt -lpam')"; \
 	echo "$$LDFLAGS" | grep -q -e -lpam && pam_cflags="-DHAVE_PAM_AUTH"; \
-	(cd $(@D) && \
+	(cd $(@D); \
 	$(MAKE) $(@F) \
 		CC="$(CC)" \
 		LDFLAGS="$$LDFLAGS" \

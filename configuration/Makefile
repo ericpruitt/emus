@@ -170,8 +170,8 @@ $(HOME)/.terminfo: terminfo/st.info terminfo/tmux.info
 
 /etc/systemd/system/lock-on-suspend.service: linux/lock-on-suspend.service.sh
 	echo "- $@"
-	trap "rm -f $@.tmp" EXIT && \
-	SCREEN_LOCKER=$(SCREEN_LOCKER) SUDO_USER=$(SUDO_USER) $? > $@.tmp && \
+	trap "rm -f $@.tmp" EXIT; \
+	SCREEN_LOCKER=$(SCREEN_LOCKER) SUDO_USER=$(SUDO_USER) $? > $@.tmp; \
 	mv $@.tmp $@
 	case "$$(systemctl list-unit-files $(@F))" in \
 	  *$(@F)*enabled*) \

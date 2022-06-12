@@ -583,8 +583,6 @@ function -setup()
     complete -v export unset
     shopt -s autocd
     shopt -s cdspell
-    shopt -s checkwinsize
-    shopt -s cmdhist
     shopt -s dirspell
     shopt -s execfail
     shopt -s extglob

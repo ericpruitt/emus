@@ -21,7 +21,7 @@ index 07c784098..3dab7dc73 100644
  	    longVersion = VIM_VERSION_LONG;
  	else
  	    vim_snprintf(longVersion, len, msg,
--			  VIM_VERSION_LONG_ONLY, VIM_VERSION_DATE_ONLY, date_time);
+-		      VIM_VERSION_LONG_ONLY, VIM_VERSION_DATE_ONLY, date_time);
 +			  VIM_VERSION_LONG_ONLY);
      }
  }

@@ -37,7 +37,7 @@ MPFR = mpfr-4.1.0
 MUSL = musl-1.2.3
 NCURSES = ncurses-6.2
 OATH_TOOLKIT = oath-toolkit-2.6.7
-PCRE = pcre-8.44
+PCRE = pcre2-10.40
 READLINE = readline-8.1
 RSYNC = rsync-3.2.4
 SED = sed-4.8
@@ -522,7 +522,7 @@ $(COMMON)/$(LIBEVENT): $(LIBEVENT)/Makefile
 	touch $@
 
 $(PCRE).tar.gz $(PCRE).tar.gz.sig:
-	$(WGET) -O $@ -nc https://ftp.pcre.org/pub/pcre/$(@)
+	$(WGET) -O $@ -nc https://github.com/PCRE2Project/pcre2/releases/download/$(PCRE)/$(@)
 
 $(PCRE)/Makefile: $(PCRE)/.FOLDER
 	(cd $(@D); \

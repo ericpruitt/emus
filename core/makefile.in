@@ -914,7 +914,7 @@ $(LESS)/Makefile: $(LESS)/.FOLDER $(COMMON)/$(NCURSES)
 	(cd $(@D); \
 	./configure \
 		CC="$(CC)" \
-		CFLAGS="$(CFLAGS)" \
+		CFLAGS="$(CFLAGS) -I$(PWD)/$(COMMON)/include/ncurses" \
 		LDFLAGS="$(LDFLAGS)" \
 	)
 

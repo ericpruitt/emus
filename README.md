@@ -331,7 +331,7 @@ manual already needed to be updated, this change also fixes in omission in
 <https://github.com/stedolan/jq/commit/cf61515> in which "39" in "JQ_COLORS"
 should have been replaced with "37".
 
-#### less-530-intr-with-F-X-quits.patch ####
+#### less-590-intr-with-F-X-quits.patch ####
 
 Normally hitting Ctrl+C when less than one screen of text has been shown
 effectively results in "--quit-if-one-screen" being ignored. This patch
@@ -342,10 +342,6 @@ less than one screen of text has been shown, and both "--no-init" ("-X") and
 #### ncurses-6.0-compile-on-openbsd.patch ####
 
 Adjust some preprocessor guards to resolve build failures on OpenBSD.
-
-#### tree-1.8.0-fix-url-encoding.patch ####
-
-Apply URL encoding to anchors when using "-C".
 
 #### vim-src-disable-check_more.patch ####
 

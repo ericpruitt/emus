@@ -522,7 +522,7 @@ $(COMMON)/$(LIBEVENT): $(LIBEVENT)/Makefile
 	touch $@
 
 $(PCRE).tar.gz $(PCRE).tar.gz.sig:
-	$(WGET) -O $@ -nc https://ftp.pcre.org/pub/pcre/$(@)
+	$(WGET) -O $@ -nc https://ftp.exim.org/pub/pcre/$(@)
 
 $(PCRE)/Makefile: $(PCRE)/.FOLDER
 	(cd $(@D); \

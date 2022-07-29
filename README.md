@@ -209,6 +209,11 @@ make`. The following targets are supported:
 
 ### patches/ ###
 
+#### apple-bash-123.40.1-xlocale-fix.patch ####
+
+Make use of the deprecated xlocale.h header dependent on whether Bash is being
+compiled on an Apple OS.
+
 #### bash-5.1-automatic-susp-toggle.patch ####
 
 When running commands interactively, modify the terminal attributes so the

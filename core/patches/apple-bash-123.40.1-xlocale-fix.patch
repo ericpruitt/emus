@@ -1,0 +1,17 @@
+Make use of the deprecated xlocale.h header dependent on whether Bash is being
+compiled on an Apple OS.
+
+--- bash-3.2/lib/glob/smatch.c	2022-07-28 20:19:11.660189491 -0700
++++ bash-3.2/lib/glob/smatch.c	2022-07-28 20:18:49.500065778 -0700
+@@ -30,7 +30,11 @@
+ #include "shmbutil.h"
+ #include "xmalloc.h"
+ 
++#ifdef __APPLE__
+ #include <xlocale.h>
++#else
++#include <locale.h>
++#endif
+ /* First, compile `sm_loop.c' for single-byte characters. */
+ #define CHAR	unsigned char
+ #define U_CHAR	unsigned char

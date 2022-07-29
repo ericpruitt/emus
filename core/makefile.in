@@ -46,7 +46,7 @@ TREE = tree-2.0.2
 UTF8PROC = utf8proc-src
 VIM = vim-src
 
-APPLE_BASH_RELEASE = bash-118.40.2
+APPLE_BASH_RELEASE = bash-123.40.1
 APPLE_BASH = apple-$(APPLE_BASH_RELEASE)
 
 # Revision-controlled package versions:
@@ -601,6 +601,7 @@ $(APPLE_BASH).tar.gz:
 $(APPLE_BASH)/.FOLDER: $(APPLE_BASH).tar.gz
 	tar -x -z -f $?
 	mv $(APPLE_BASH_RELEASE) $(@D)
+	cat $(PWD)/patches/$(APPLE_BASH)-* | (cd $(APPLE_BASH) && patch -p0)
 	(cd $(@D) && ln -s bash-*/ src)
 	touch $@
 

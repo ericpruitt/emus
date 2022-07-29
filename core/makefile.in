@@ -39,7 +39,7 @@ NCURSES = ncurses-6.2
 OATH_TOOLKIT = oath-toolkit-2.6.7
 PCRE = pcre-8.44
 READLINE = readline-8.1
-RSYNC = rsync-3.2.4
+RSYNC = rsync-3.1.3
 SED = sed-4.8
 TMUX = tmux-src
 TREE = tree-2.0.2
@@ -977,10 +977,6 @@ $(RSYNC)/Makefile: $(RSYNC)/.FOLDER
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -I$(PWD)/$(COMMON)/include/ncurses" \
 		LDFLAGS="$(LDFLAGS)" \
-		--disable-lz4 \
-		--disable-openssl \
-		--disable-xxhash \
-		--disable-zstd \
 	)
 
 $(RSYNC)/rsync: $(RSYNC)/Makefile

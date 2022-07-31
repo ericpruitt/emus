@@ -1060,7 +1060,6 @@ $(TREE).tar.gz.unverified:
 
 $(TREE)/.FOLDER: $(TREE).tar.gz
 	tar -x -z -f $?
-	cat $(PWD)/patches/$(TREE)-* | (cd $(TREE) && patch -p0)
 	touch $@
 
 # "-DLINUX" ensures that MB_CUR_MAX is used. The macro is not used by any

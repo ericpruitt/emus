@@ -460,9 +460,6 @@ $(MUSL)/.FOLDER: $(MUSL).tar.gz $(MUSL).tar.gz.asc $(PUBRING)
 
 $(MUSL)/config.mak: $(MUSL)/.FOLDER
 	(cd $(@D); \
-	if [ -z "$$(find . -name '*.orig')" ]; then \
-		cat $(PWD)/patches/$(MUSL)-* | patch -p0; \
-	fi; \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -I$(PWD)/$(UTF8PROC)" \

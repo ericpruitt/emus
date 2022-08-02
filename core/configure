@@ -140,7 +140,7 @@ configure_cflags_ldflags()
     if [ -z "${CFLAGS:-}" ] || [ -z "${LDFLAGS:-}" ]; then
         case "$PLATFORM: $(exec 2>&1; $CC -dumpspecs || $CC -v)" in
           macos*)
-            _CFLAGS="-D_REENTRANT"
+            _CFLAGS="-D_REENTRANT -DHAVE_GETTIMEOFDAY_TZ"
             _LDFLAGS=""
           ;;
 

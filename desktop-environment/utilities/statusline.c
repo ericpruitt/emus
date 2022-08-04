@@ -667,7 +667,7 @@ static void sunrise_sunset_times(time_t when, double latitude,
  * - sunset: Location at which the computed sunset time is stored. This can be
  *   NULL if the caller does not want the value.
  */
-static const char *sunrise_sunset_info(time_t when, double latitude,
+static char *sunrise_sunset_info(time_t when, double latitude,
   double longitude)
 {
     const char *format;

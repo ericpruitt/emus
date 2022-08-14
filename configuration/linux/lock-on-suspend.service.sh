@@ -20,5 +20,5 @@ ExecStart=/bin/sh -c \\
     "$SCREEN_LOCKER & sleep 1 && pgrep -x $(basename $SCREEN_LOCKER)"
 KillMode=none
 [Install]
-WantedBy=sleep.target"
+WantedBy=sleep.target
 UNIT

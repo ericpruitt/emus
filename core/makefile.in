@@ -1053,7 +1053,7 @@ $(BIN)/sed: $(SED)/sed/sed
 
 $(TREE).tar.gz.unverified:
 	rm -f $(@:.unverified=)
-	$(WGET) -O $@ -nc ftp://mama.indstate.edu/linux/tree/$(TREE).tgz
+	$(WGET) -O $@ -nc http://mama.indstate.edu/users/ice/tree/src/$(TREE).tgz
 
 $(TREE)/.FOLDER: $(TREE).tar.gz
 	tar -x -z -f $?

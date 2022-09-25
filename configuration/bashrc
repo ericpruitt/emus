@@ -127,9 +127,10 @@ function -define-aliases()
     # it to the shell history by prefixing it with "silent".
     alias silent=''
 
-    # BASH_ALIASES is used because the "alias" command will not accept "=" as
-    # an identifier.
+    # BASH_ALIASES is used because the "alias" command will not accept "=" or
+    # "-" as an identifier.
     BASH_ALIASES[=]='-calculate #'
+    BASH_ALIASES[-]='cd -'
 
     # take advantage of GNU extensions when coreutils is installed.
     case "$(ls --help 2>/dev/null)" in

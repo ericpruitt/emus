@@ -14,4 +14,4 @@ IO_SYSCALLS="
     umount2 unlink unlinkat ustat vmsplice write writev
 "
 
-strace -s 100000 -e $(echo $IO_SYSCALLS | tr " " ",") "$@"
+strace -e $(echo $IO_SYSCALLS | tr " " ",") "$@"

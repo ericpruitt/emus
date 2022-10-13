@@ -93,9 +93,6 @@ macos-user: $(LOCAL_MACOS_DOTFILES) $(MACOS_DOTFILES) $(MACOS_USER_CONFIGS)
 
 host:
 	case "$$(uname)" in \
-	  Darwin) \
-		$(MAKE) $(MACOS_HOST_TARGETS); \
-	  ;; \
 	  Linux) \
 		$(MAKE) $(LINUX_HOST_TARGETS); \
 	  ;; \

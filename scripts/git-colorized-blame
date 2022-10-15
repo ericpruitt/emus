@@ -88,6 +88,18 @@
 #         regard to things that change the offset like daylight savings or
 #         changes by regulatory organizations.
 #
+# Examples:
+#   Without configuration:
+#     git colorized-blame kernel/cpu.c
+#     git colorized-blame who fs/char_dev.c
+#     git colorized-blame --heat-map crypto/aes_ti.c
+#
+#   With configuration:
+#     git colorized-blame configure  # Configures aliases and pagination.
+#     git what kernel/cpu.c
+#     git who fs/char_dev.c
+#     git heat crypto/aes_ti.c
+#
 # Bugs:
 #   Due to the way many AWK interpreters handle command line arguments, the
 #   annotation mode may need to be explicitly defined to pass options to this

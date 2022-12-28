@@ -623,6 +623,10 @@ function -setup()
 
     test "${HISTFILE:-}" = "/dev/null" || HISTFILE="$HOME/.xbash_history"
 
+    # Disable sending SIGQUIT with keyboard shortcuts since I only ever use
+    # this by accident.
+    stty quit undef
+
     # Disable flow control for terminals that appear to be virtual devices to
     # make ^Q and ^S usable.
     if ! [[ "$(tty)" = */ttyUSB* ]]; then

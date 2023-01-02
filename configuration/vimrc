@@ -113,7 +113,7 @@ unlet i
 autocmd CursorHold * if &scrolloff | set scrolloff=0 updatetime=0 | endif
 nnoremap / :set scrolloff=3 updatetime=1<CR>/
 nnoremap ? :set scrolloff=3 updatetime=1<CR>?
-for s:c in ["#", "g#", "*", "g#", "N", "n"]
+for s:c in ["#", "g#", "*", "g*", "N", "n"]
     exec "nnoremap " . s:c ." :set scrolloff=3<CR>"
 \                    . s:c . ":set scrolloff=0<CR>"
 \                          . ":echo (v:searchforward ? '/' : '?') . @/<CR>"

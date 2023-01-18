@@ -152,6 +152,11 @@ function -define-aliases()
         BASH_ALIASES[find]+=" -xdev"
     fi
 
+    # Similarly, default to using egrep as the regex dialect when possible.
+    if find -regextype egrep /dev/null &>/dev/null; then
+        BASH_ALIASES[find]+=" -regextype egrep"
+    fi
+
     # My modified version of ls supports "--almost-all-if-not-home", an
     # alternative to "-A".
     if ls --almost-all-if-not-home /dev/null &>/dev/null; then

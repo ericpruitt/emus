@@ -42,6 +42,12 @@ function main()
             shift
           ;;
 
+          -regextype)
+            test "$#" -ge 1 2>&- || die "$arg: missing regex type name"
+            global_options+=("$arg" "$1")
+            shift
+          ;;
+
           # Tests in GNU find (version 4.6.0 at the time of this writing)
           # always start with lowercase letters and are at least 2 characters
           # long.

@@ -328,6 +328,10 @@ function user-misc-gui-tweaks()
     mkdir -p ~/screenshots
     defaults write com.apple.screencapture location ~/screenshots/
 
+    # Only show the focus modes icon when a focus mode is being used.
+    defaults write \
+        com.apple.controlcenter "NSStatusItem Visible FocusModes" -integer 0
+
     kill-ui-processes
 }
 

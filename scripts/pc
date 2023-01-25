@@ -374,7 +374,7 @@ def main(expressions):
             if "." in result_str:
                 integral, fractional = result_str.split(".")
 
-                if int(fractional) == 0:
+                if fractional.isdigit() and int(fractional) == 0:
                     result_str = integral
 
             print(result_str)

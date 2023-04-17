@@ -426,10 +426,6 @@ Adds a new command line option ("-g") that turns dmenu into a password prompt.
 This patch adds a new command line option ("-a") that will make dmenu print the
 current selection and exit if the user input only matches one item.
 
-#### dmenu-00-set-ew-default-value.diff ####
-
-Silence a compiler warning by explicitly defining "ew" in "drw_text".
-
 #### dmenu-00-user-defined-prompt-colors.diff ####
 
 With this patch, the prompt foreground can be specified with the "-pf" command

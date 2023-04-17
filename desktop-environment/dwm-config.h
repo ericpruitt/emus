@@ -188,8 +188,8 @@ static Key keys[] = {
     { HyperKey,                     XK_minus,               spawn,           EXECL("media-control", "volume-down") },
     { HyperKey,                     XK_equal,               spawn,           EXECL("media-control", "volume-up") },
     { 0,                            XK_Print,               spawn,           EXECL("screenshot") },
-    { ControlMask|ShiftMask,        XK_l,                   spawn,           EXECL("lock-screen") },
-    { HyperKey|ShiftMask,           XK_l,                   spawn,           EXECL("lock-screen") },
+    { ControlMask|ShiftMask,        XK_l,                   spawn,           EXECL("lock-screen", "sudo", "-K") },
+    { HyperKey|ShiftMask,           XK_l,                   spawn,           EXECL("lock-screen", "sudo", "-K") },
     { AltKey,                       XK_Print,               spawn,           EXECL("screenshot", "window") },
     { HyperKey,                     XK_BackSpace,           spawn,           EXECL("xterm", "-e", "/bin/sh") },
 

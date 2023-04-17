@@ -27,7 +27,7 @@ internally; in the original version, "systraypinning" is indexed from 1 instead
 of 0.
 
 diff --git a/dwm.c b/dwm.c
-index 9fd0286..ed42af7 100644
+Index f1d86b2..b832856 100644
 --- a/dwm.c
 +++ b/dwm.c
 @@ -57,12 +57,30 @@
@@ -82,7 +82,7 @@ index 9fd0286..ed42af7 100644
  static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
  static void grabbuttons(Client *c, int focused);
  static void grabkeys(void);
-@@ -189,13 +214,16 @@ static void pop(Client *);
+@@ -189,13 +214,16 @@ static void pop(Client *c);
  static void propertynotify(XEvent *e);
  static void quit(const Arg *arg);
  static Monitor *recttomon(int x, int y, int w, int h);
@@ -100,15 +100,15 @@ index 9fd0286..ed42af7 100644
  static void sendmon(Client *c, Monitor *m);
  static void setclientstate(Client *c, long state);
  static void setfocus(Client *c);
-@@ -207,6 +235,7 @@ static void seturgent(Client *c, int urg);
+@@ -206,6 +234,7 @@ static void setup(void);
+ static void seturgent(Client *c, int urg);
  static void showhide(Client *c);
- static void sigchld(int unused);
  static void spawn(const Arg *arg);
 +static Monitor *systraytomon(Monitor *m);
  static void tag(const Arg *arg);
  static void tagmon(const Arg *arg);
- static void tile(Monitor *);
-@@ -224,18 +253,23 @@ static int updategeom(void);
+ static void tile(Monitor *m);
+@@ -223,18 +252,23 @@ static int updategeom(void);
  static void updatenumlockmask(void);
  static void updatesizehints(Client *c);
  static void updatestatus(void);
@@ -132,7 +132,7 @@ index 9fd0286..ed42af7 100644
  static const char broken[] = "broken";
  static char stext[256];
  static int screen;
-@@ -258,9 +292,10 @@ static void (*handler[LASTEvent]) (XEvent *) = {
+@@ -257,9 +291,10 @@ static void (*handler[LASTEvent]) (XEvent *) = {
  	[MapRequest] = maprequest,
  	[MotionNotify] = motionnotify,
  	[PropertyNotify] = propertynotify,
@@ -144,16 +144,16 @@ index 9fd0286..ed42af7 100644
  static int running = 1;
  static Cur *cursor[CurLast];
  static Clr **scheme;
-@@ -440,7 +475,7 @@ buttonpress(XEvent *e)
+@@ -441,7 +476,7 @@ buttonpress(XEvent *e)
  			arg.ui = 1 << i;
- 		} else if (ev->x < x + blw)
+ 		} else if (ev->x < x + TEXTW(selmon->ltsymbol))
  			click = ClkLtSymbol;
 -		else if (ev->x > selmon->ww - (int)TEXTW(stext))
 +		else if (ev->x > selmon->ww - (int)TEXTW(stext) - getsystraywidth())
  			click = ClkStatusText;
  		else
  			click = ClkWinTitle;
-@@ -483,6 +518,11 @@ cleanup(void)
+@@ -484,6 +519,11 @@ cleanup(void)
  	XUngrabKey(dpy, AnyKey, AnyModifier, root);
  	while (mons)
  		cleanupmon(mons);
@@ -165,7 +165,7 @@ index 9fd0286..ed42af7 100644
  	for (i = 0; i < CurLast; i++)
  		drw_cur_free(drw, cursor[i]);
  	for (i = 0; i < LENGTH(colors); i++)
-@@ -513,9 +553,57 @@ cleanupmon(Monitor *mon)
+@@ -515,9 +555,57 @@ cleanupmon(Monitor *mon)
  void
  clientmessage(XEvent *e)
  {
@@ -223,7 +223,7 @@ index 9fd0286..ed42af7 100644
  	if (!c)
  		return;
  	if (cme->message_type == netatom[NetWMState]) {
-@@ -568,7 +656,7 @@ configurenotify(XEvent *e)
+@@ -570,7 +658,7 @@ configurenotify(XEvent *e)
  				for (c = m->clients; c; c = c->next)
  					if (c->isfullscreen)
  						resizeclient(c, m->mx, m->my, m->mw, m->mh);
@@ -232,7 +232,7 @@ index 9fd0286..ed42af7 100644
  			}
  			focus(NULL);
  			arrange(NULL);
-@@ -653,6 +741,11 @@ destroynotify(XEvent *e)
+@@ -655,6 +743,11 @@ destroynotify(XEvent *e)
  
  	if ((c = wintoclient(ev->window)))
  		unmanage(c, 1);
@@ -244,7 +244,7 @@ index 9fd0286..ed42af7 100644
  }
  
  void
-@@ -696,19 +789,23 @@ dirtomon(int dir)
+@@ -698,7 +791,7 @@ dirtomon(int dir)
  void
  drawbar(Monitor *m)
  {
@@ -253,7 +253,9 @@ index 9fd0286..ed42af7 100644
  	int boxs = drw->fonts->h / 9;
  	int boxw = drw->fonts->h / 6 + 2;
  	unsigned int i, occ = 0, urg = 0;
- 	Client *c;
+@@ -707,13 +800,17 @@ drawbar(Monitor *m)
+ 	if (!m->showbar)
+ 		return;
  
 +	if(showsystray && m == systraytomon(m))
 +		stw = getsystraywidth();
@@ -271,7 +273,7 @@ index 9fd0286..ed42af7 100644
  	for (c = m->clients; c; c = c->next) {
  		occ |= c->tags;
  		if (c->isurgent)
-@@ -729,7 +826,7 @@ drawbar(Monitor *m)
+@@ -734,7 +831,7 @@ drawbar(Monitor *m)
  	drw_setscheme(drw, scheme[SchemeNorm]);
  	x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
  
@@ -280,7 +282,7 @@ index 9fd0286..ed42af7 100644
  		if (m->sel) {
  			drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]);
  			drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
-@@ -740,7 +837,7 @@ drawbar(Monitor *m)
+@@ -745,7 +842,7 @@ drawbar(Monitor *m)
  			drw_rect(drw, x, 0, w, bh, 1, 1);
  		}
  	}
@@ -289,7 +291,7 @@ index 9fd0286..ed42af7 100644
  }
  
  void
-@@ -777,8 +874,11 @@ expose(XEvent *e)
+@@ -782,8 +879,11 @@ expose(XEvent *e)
  	Monitor *m;
  	XExposeEvent *ev = &e->xexpose;
  
@@ -302,7 +304,7 @@ index 9fd0286..ed42af7 100644
  }
  
  void
-@@ -863,10 +963,17 @@ getatomprop(Client *c, Atom prop)
+@@ -868,10 +968,17 @@ getatomprop(Client *c, Atom prop)
  	unsigned long dl;
  	unsigned char *p = NULL;
  	Atom da, atom = None;
@@ -321,7 +323,7 @@ index 9fd0286..ed42af7 100644
  		XFree(p);
  	}
  	return atom;
-@@ -900,6 +1007,16 @@ getstate(Window w)
+@@ -905,6 +1012,16 @@ getstate(Window w)
  	return result;
  }
  
@@ -338,7 +340,7 @@ index 9fd0286..ed42af7 100644
  int
  gettextprop(Window w, Atom atom, char *text, unsigned int size)
  {
-@@ -1004,7 +1121,7 @@ killclient(const Arg *arg)
+@@ -1017,7 +1134,7 @@ killclient(const Arg *arg)
  {
  	if (!selmon->sel)
  		return;
@@ -347,7 +349,7 @@ index 9fd0286..ed42af7 100644
  		XGrabServer(dpy);
  		XSetErrorHandler(xerrordummy);
  		XSetCloseDownMode(dpy, DestroyAll);
-@@ -1092,6 +1209,12 @@ maprequest(XEvent *e)
+@@ -1103,6 +1220,12 @@ maprequest(XEvent *e)
  {
  	static XWindowAttributes wa;
  	XMapRequestEvent *ev = &e->xmaprequest;
@@ -358,9 +360,9 @@ index 9fd0286..ed42af7 100644
 +		updatesystray();
 +	}
  
- 	if (!XGetWindowAttributes(dpy, ev->window, &wa))
+ 	if (!XGetWindowAttributes(dpy, ev->window, &wa) || wa.override_redirect)
  		return;
-@@ -1216,6 +1339,16 @@ propertynotify(XEvent *e)
+@@ -1225,6 +1348,16 @@ propertynotify(XEvent *e)
  	Window trans;
  	XPropertyEvent *ev = &e->xproperty;
  
@@ -377,7 +379,7 @@ index 9fd0286..ed42af7 100644
  	if ((ev->window == root) && (ev->atom == XA_WM_NAME))
  		updatestatus();
  	else if (ev->state == PropertyDelete)
-@@ -1266,6 +1399,20 @@ recttomon(int x, int y, int w, int h)
+@@ -1275,6 +1408,20 @@ recttomon(int x, int y, int w, int h)
  	return r;
  }
  
@@ -398,7 +400,7 @@ index 9fd0286..ed42af7 100644
  void
  resize(Client *c, int x, int y, int w, int h, int interact)
  {
-@@ -1273,6 +1420,14 @@ resize(Client *c, int x, int y, int w, int h, int interact)
+@@ -1282,6 +1429,14 @@ resize(Client *c, int x, int y, int w, int h, int interact)
  		resizeclient(c, x, y, w, h);
  }
  
@@ -413,7 +415,7 @@ index 9fd0286..ed42af7 100644
  void
  resizeclient(Client *c, int x, int y, int w, int h)
  {
-@@ -1345,6 +1500,19 @@ resizemouse(const Arg *arg)
+@@ -1354,6 +1509,19 @@ resizemouse(const Arg *arg)
  	}
  }
  
@@ -433,7 +435,7 @@ index 9fd0286..ed42af7 100644
  void
  restack(Monitor *m)
  {
-@@ -1434,26 +1602,36 @@ setclientstate(Client *c, long state)
+@@ -1443,26 +1611,36 @@ setclientstate(Client *c, long state)
  }
  
  int
@@ -481,7 +483,7 @@ index 9fd0286..ed42af7 100644
  	}
  	return exists;
  }
-@@ -1467,7 +1645,7 @@ setfocus(Client *c)
+@@ -1476,7 +1654,7 @@ setfocus(Client *c)
  			XA_WINDOW, 32, PropModeReplace,
  			(unsigned char *) &(c->win), 1);
  	}
@@ -490,7 +492,7 @@ index 9fd0286..ed42af7 100644
  }
  
  void
-@@ -1556,6 +1734,10 @@ setup(void)
+@@ -1572,6 +1750,10 @@ setup(void)
  	wmatom[WMTakeFocus] = XInternAtom(dpy, "WM_TAKE_FOCUS", False);
  	netatom[NetActiveWindow] = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
  	netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
@@ -501,7 +503,7 @@ index 9fd0286..ed42af7 100644
  	netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
  	netatom[NetWMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
  	netatom[NetWMCheck] = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
-@@ -1563,6 +1745,9 @@ setup(void)
+@@ -1579,6 +1761,9 @@ setup(void)
  	netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
  	netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
  	netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
@@ -511,7 +513,7 @@ index 9fd0286..ed42af7 100644
  	/* init cursors */
  	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
  	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
-@@ -1571,6 +1756,8 @@ setup(void)
+@@ -1587,6 +1772,8 @@ setup(void)
  	scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
  	for (i = 0; i < LENGTH(colors); i++)
  		scheme[i] = drw_scm_create(drw, colors[i], 3);
@@ -520,7 +522,7 @@ index 9fd0286..ed42af7 100644
  	/* init bars */
  	updatebars();
  	updatestatus();
-@@ -1704,7 +1891,18 @@ togglebar(const Arg *arg)
+@@ -1717,7 +1904,18 @@ togglebar(const Arg *arg)
  {
  	selmon->showbar = !selmon->showbar;
  	updatebarpos(selmon);
@@ -540,7 +542,7 @@ index 9fd0286..ed42af7 100644
  	arrange(selmon);
  }
  
-@@ -1799,11 +1997,18 @@ unmapnotify(XEvent *e)
+@@ -1813,11 +2011,18 @@ unmapnotify(XEvent *e)
  		else
  			unmanage(c, 0);
  	}
@@ -559,7 +561,7 @@ index 9fd0286..ed42af7 100644
  	Monitor *m;
  	XSetWindowAttributes wa = {
  		.override_redirect = True,
-@@ -1814,10 +2019,15 @@ updatebars(void)
+@@ -1828,10 +2033,15 @@ updatebars(void)
  	for (m = mons; m; m = m->next) {
  		if (m->barwin)
  			continue;
@@ -576,7 +578,7 @@ index 9fd0286..ed42af7 100644
  		XMapRaised(dpy, m->barwin);
  		XSetClassHint(dpy, m->barwin, &ch);
  	}
-@@ -1993,6 +2203,121 @@ updatestatus(void)
+@@ -2008,6 +2218,121 @@ updatestatus(void)
  	if (!gettextprop(root, XA_WM_NAME, stext, sizeof(stext)))
  		strcpy(stext, "dwm-"VERSION);
  	drawbar(selmon);
@@ -698,7 +700,7 @@ index 9fd0286..ed42af7 100644
  }
  
  void
-@@ -2060,6 +2385,16 @@ wintoclient(Window w)
+@@ -2075,6 +2400,16 @@ wintoclient(Window w)
  	return NULL;
  }
  
@@ -715,7 +717,7 @@ index 9fd0286..ed42af7 100644
  Monitor *
  wintomon(Window w)
  {
-@@ -2113,6 +2448,22 @@ xerrorstart(Display *dpy, XErrorEvent *ee)
+@@ -2128,6 +2463,22 @@ xerrorstart(Display *dpy, XErrorEvent *ee)
  	return -1;
  }
  

@@ -15,7 +15,7 @@ DMENU_URL = http://git.suckless.org/dmenu
 DMENU_COMMIT = 1a13d0465d1a6f4f74bc5b07b04c9bd542f20ba6
 
 DWM_URL = http://git.suckless.org/dwm
-DWM_COMMIT = 61bb8b2241d4db08bea4261c82e27cd9797099e7
+DWM_COMMIT = e81f17d4c196aaed6893fd4beed49991caa3e2a4
 
 ST_URL = https://git.suckless.org/st
 ST_COMMIT = fa253f077f19b3220c7655b81bd91e52f4367803

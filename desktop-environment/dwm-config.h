@@ -14,6 +14,7 @@ static const unsigned int systraypinning = 0;
 static const unsigned int systrayspacing = 4;
 static const int showsystray             = 1;
 static const int systraypinningfailfirst = 1;
+static const int lockfullscreen          = 0;
 
 static const char orange_red[]  = "#ff4500";
 static const char blue[]        = "#224488";

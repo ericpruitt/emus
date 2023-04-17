@@ -569,10 +569,6 @@ window that is currently visible. To compile dwm with this patch, the command
 line option "-lrt" must be set and `_POSIX_C_SOURCE` must be greater than or
 equal to 199309 (`cc ... -D_POSIX_C_SOURCE=199309L ...`).
 
-#### dwm-00-set-ew-default-value.diff ####
-
-Silence a compiler warning by explicitly defining "ew" in "drw_text".
-
 #### dwm-00-smaller-clickable-tag-bar-area.diff ####
 
 Makes clicks on the window title area register only if they happen in the top

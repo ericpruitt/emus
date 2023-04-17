@@ -164,9 +164,9 @@ index d27cb67..e7adde8 100644
 +			die("Could not determine home directory; HOME is unset.");
 +		}
 +		if (*(stpncpy(realfifopath, getenv("HOME"), sizeof(realfifopath)) - 1) != '/') {
-+			strncat(realfifopath, "/", sizeof(realfifopath));
++			strncat(realfifopath, "/", sizeof(realfifopath) - 1);
 +		}
-+		strncat(realfifopath, fifopath + 2, sizeof(realfifopath));
++		strncat(realfifopath, fifopath + 2, sizeof(realfifopath) - 1);
 +	} else {
 +		strncpy(realfifopath, fifopath, sizeof(realfifopath));
 +	}

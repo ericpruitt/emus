@@ -1,1 +1,17 @@
-dwm-00-set-ew-default-value.diff
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+Silence a compiler warning by explicitly defining "ew" in "drw_text".
+
+diff --git drw.c drw.c
+index c1582e7..8876b2c 100644
+--- drw.c
++++ drw.c
+@@ -239,7 +239,7 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
+ {
+	char buf[1024];
+	int ty;
+-	unsigned int ew;
++	unsigned int ew = 0;
+	XftDraw *d = NULL;
+	Fnt *usedfont, *curfont, *nextfont;
+	size_t i, len;

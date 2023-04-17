@@ -123,12 +123,12 @@ index d27cb67..3a30a38 100644
  run(void)
  {
  	XEvent ev;
-@@ -1890,6 +1945,8 @@ updategeom(void)
- 					m->my = m->wy = unique[i].y_org;
- 					m->mw = m->ww = unique[i].width;
- 					m->mh = m->wh = unique[i].height;
-+					m->lx = m->mw / 2;
-+					m->ly = m->mh / 2;
- 					updatebarpos(m);
- 				}
- 		} else {
+@@ -1905,6 +2469,8 @@ updategeom(void)
+ 				m->my = m->wy = unique[i].y_org;
+ 				m->mw = m->ww = unique[i].width;
+ 				m->mh = m->wh = unique[i].height;
++				m->lx = m->mw / 2;
++				m->ly = m->mh / 2;
+ 				updatebarpos(m);
+ 			}
+ 		/* removed monitors if n > nn */

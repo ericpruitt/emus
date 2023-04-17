@@ -12,7 +12,7 @@ index 169adcb..8518f8c 100644
  			click = ClkLtSymbol;
  		else if(ev->x > selmon->ww - TEXTW(stext))
  			click = ClkStatusText;
-+		else if (ev->y > bh / 2)
++		else if (ev->y > bh / 3)
 +			return;
  		else
  			click = ClkWinTitle;

@@ -4,12 +4,17 @@ This patch sets the environment variable "DWM_SELECTED_WINDOW_TITLE" to the
 title of the currently selected window when spawning a subprocess.
 
 diff --git a/dwm.c b/dwm.c
-index 421bf27..810e4dc 100644
+index f1d86b2..4bf73ab 100644
 --- a/dwm.c
 +++ b/dwm.c
-@@ -1639,2 +1639,5 @@ spawn(const Arg *arg)
- 		setsid();
+@@ -1661,6 +1661,10 @@ spawn(const Arg *arg)
+ 		sa.sa_handler = SIG_DFL;
+ 		sigaction(SIGCHLD, &sa, NULL);
+ 
 +		if (selmon->sel) {
 +			setenv("DWM_SELECTED_WINDOW_TITLE", selmon->sel->name, 1);
 +		}
++
  		execvp(((char **)arg->v)[0], (char **)arg->v);
+ 		die("dwm: execvp '%s' failed:", ((char **)arg->v)[0]);
+ 	}

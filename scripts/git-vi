@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Usage: git vi [-c COMMAND] [-i] [-u] [COMMIT]... [COMMIT_RANGE]... [PATH]...
+Usage: git vi [-c COMMAND] [-p] [-u] [COMMIT]... [COMMIT_RANGE]... [PATH]...
        git vi -h
        git-vi --help
 
@@ -21,9 +21,9 @@ Options:
         is unset and ultimately using "vi" if neither is set.
   -h, --help
         Show this documentation and exit.
-  -i    Ignore untracked files when reopening files with pending changes.
   -p    Edit files with pending changes. This is the default behavior when no
         commits or commit ranges are specified as command line arguments.
+  -u    Include untracked files when reopening files with pending changes.
 
 Known Issues:
   If a filename happens to be a valid commit, it must be differentiated from a
@@ -133,10 +133,10 @@ def sanitize_encoded_path(path):
 def main(argv):
     root = repository_root()
     cwd = fsencode(os.getcwd())
-    options, parameters = getopt.gnu_getopt(argv, "c:hip", ["help"])
+    options, parameters = getopt.gnu_getopt(argv, "c:hpu", ["help"])
 
     edit_pending_files = None
-    ignore_untracked_files = False
+    ignore_untracked_files = True
     editor = os.environ.get("VISUAL", os.environ.get("EDITOR", "vi"))
 
     for option, value in options:
@@ -145,10 +145,10 @@ def main(argv):
         elif option in ("-h", "--help"):
             print(__doc__.strip())
             return
-        elif option == "-i":
-            ignore_untracked_files = True
         elif option == "-p":
             edit_pending_files = True
+        elif option == "-u":
+            ignore_untracked_files = False
         else:
             assert False, "%s: option not handled" % option  # Unreachable
 

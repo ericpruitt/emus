@@ -43,6 +43,7 @@ RSYNC = rsync-3.1.3
 SED = sed-4.8
 TMUX = tmux-src
 TREE = tree-2.0.2
+UCONV = uconv-src
 UTF8PROC = utf8proc-src
 VIM = vim-src
 
@@ -57,6 +58,7 @@ VIM_VERSION = 9.0.0106
 CMARK_COMMIT = ead4c0b5c275fdd2230a0b167b3ef4c6f07102e4
 FLOCK_COMMIT = b9f6170fff275e569ef6681ce05077ebef29cc2d
 JQ_COMMIT = cff5336ec71b6fee396a95bb0e4bea365e0cd1e8
+UCONV_COMMIT = 88a2914c2eb3d54b05f318cfbc39717b92fca083
 
 # Patch level for Chet Ramey's packages:
 BASH_PATCH_LEVEL = 16
@@ -1073,6 +1075,31 @@ $(BIN)/tree: $(TREE)/tree
 		  > $(MAN)/man1/tree.1; \
 	fi
 	cp -f $? $@
+
+$(UCONV)/.git:
+	git clone https://github.com/kevinboone/uconv.git $(UCONV)
+	(cd $(UCONV) && git reset --hard $(UCONV_COMMIT))
+
+$(UCONV)/uconv: $(UCONV)/.git
+	(cd $(UCONV); \
+	(git diff --quiet && cat $(PWD)/patches/$(UCONV)-*) | patch -p0; \
+	find . -name "*.orig" -delete; \
+	make \
+		CC="$(CC)" \
+		MYCFLAGS=" \
+			$(CFLAGS) \
+			-DVERSION=\\\"$$( \
+				grep ^VERSION= Makefile | cut -d= -f2 \
+			)\\\" \
+			-DNAME=\\\"$(@F)\\\"" \
+		MYLDFLAGS="$(LDFLAGS)" \
+	)
+
+uconv: $(UCONV)/uconv
+
+$(BIN)/uconv: $(UCONV)/uconv
+	test -z "$(MAN)" || cp $(UCONV)/man1/uconv.1 $(MAN)/man1/
+	cp -f $(UCONV)/uconv $@
 
 $(UTF8PROC)/.git:
 	if [ -e $@ ]; then \

@@ -120,6 +120,7 @@ applications "agree" on the width of characters.
 - [rsync][rsync]
 - [tmux][tmux]
 - [Tree][tree]
+- [uconv][uconv]
 - [Vim][vim]
 
   [bash]: https://www.gnu.org/software/bash/
@@ -141,6 +142,7 @@ applications "agree" on the width of characters.
   [rsync]: https://rsync.samba.org/
   [tmux]: https://tmux.github.io/
   [tree]: http://mama.indstate.edu/users/ice/tree/index.html
+  [uconv]: https://github.com/kevinboone/uconv
   [vim]: http://www.vim.org/
 
 **Dependency Graph:**
@@ -350,6 +352,10 @@ less than one screen of text has been shown, and both "--no-init" ("-X") and
 #### ncurses-6.0-compile-on-openbsd.patch ####
 
 Adjust some preprocessor guards to resolve build failures on OpenBSD.
+
+#### uconv-src-us-defaults.patch ####
+
+Use US standards by default where imperial or metric alternatives exist.
 
 #### vim-src-disable-check_more.patch ####
 

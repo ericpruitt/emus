@@ -1,7 +1,9 @@
-Use US standards by default where imperial or metric alternatives exist.
+Use US standards by default where imperial or metric alternatives exist, add
+some units commonly used for cooking in the USA, and do not subdivide miles
+into yards since that is rarely done in the USA.
 
 diff --git units.c units.c
-index 3d09ba0..5253ef4 100644
+index cd17bf4..bb63c0b 100644
 --- units.c
 +++ units.c
 @@ -36,7 +36,7 @@ typedef struct _UnitTable
@@ -12,8 +14,23 @@ index 3d09ba0..5253ef4 100644
 +  { acre, "siacre", "siacres", "acre (international)", "siacres" }, 
    { angstrom, "angstrom", "angstroms,ang,angs", "angstrom", "angstroms" }, 
    { ampere, "ampere", "amperes,amp,amps,A", "ampere", "amperes" }, 
-   { au, "AU", "au", "astronomical unit", "AUs" }, 
-@@ -73,7 +73,7 @@ UnitTable unit_table [] =
+   { arc_minute, "arc-minute", "arcmin,arcmins,arcminute,arcminutes,arc-minutes,moa",
+@@ -59,6 +59,7 @@ UnitTable unit_table [] =
+   { cord, "cord", "cords", "cord (area)" , "cords" }, 
+   { coulomb, "coulomb", "coulombs,coul,couls", "coulomb", "coulombs" }, 
+   { curie, "curie", "curies,ci", "curie", "curies" }, 
++  { cup, "cup", "cups", "US customary cup", "cups" },
+   { degree, "degree", "degrees,deg,degs", "angular degree" , "degrees" }, 
+   { dms, "dms", "", "degrees with minutes and seconds" , "degrees" },
+   { day, "day", "days", "day" , "days" }, 
+@@ -73,12 +74,12 @@ UnitTable unit_table [] =
+   { fahrenheit, "fahrenheit", "fahr,F", "degrees fahrenheit" , "fahrenheit" }, 
+   { faraday, "faraday", "faradays", "farady" , "faradays" }, 
+   { fathom, "fathom", "fathoms,fm,fms", "fathom" , "fathoms" }, 
+-  { fluid_ounce, "fluid-ounce", "fluid-ounces,floz", "fluid ounce"  ,
+-     "fluid-ounces" }, 
++  { fluid_ounce, "ukfluid-ounce", "ukfluid-ounces,ukfloz", "UK fluid ounce"  ,
++     "ukfluid-ounces" }, 
    { foot, "foot", "feet,ft", "imperial foot" , "feet" }, 
    { footcandle, "footcandle", "footcandles,fc", "footcandle" , "footcandles" }, 
    { footlambert, "footlambert", "footlamberts,fL", "footlambert" , "footlamberts" }, 
@@ -22,7 +39,7 @@ index 3d09ba0..5253ef4 100644
    { gibibit, "gibibit", "gibibits,gibit,gibits", "gibibits", "gibibits" },
    { gibibyte, "gibibyte", "gibibytes,gib", "gibibytes", "gibibytes" },
    { gigabit, "gigabit", "gigabits,gbit,gbits", "gigabits", "gigabits" },
-@@ -88,8 +88,8 @@ UnitTable unit_table [] =
+@@ -93,8 +94,8 @@ UnitTable unit_table [] =
    { hectare, "hectare", "ha,hectares", "hectare" , "hectares" }, 
    { hour, "hour", "hours,h,hr,hrs", "hour" , "hours" }, 
    { horsepower, "horsepower", "hp", "horsepower (metric)" , "horsepower" }, 
@@ -33,7 +50,7 @@ index 3d09ba0..5253ef4 100644
    { inch, "inch", "inches,in", "imperial inch" , "inches" }, 
    { joule, "joule", "joules,j,J", "joule" , "joules" }, 
    { kelvin, "kelvin", "kelvins,k,K", "kelvin" , "kelvin" }, 
-@@ -120,7 +120,7 @@ UnitTable unit_table [] =
+@@ -125,7 +126,7 @@ UnitTable unit_table [] =
    { nauticalmile, "nautical-mile", "nautical mile,nmi,NM", 
      "nautical mile" , "nautical-miles" }, 
    { mmHg, "mmHg", "mmhg", "mm of mercury" , "mmHg" }, 
@@ -42,7 +59,7 @@ index 3d09ba0..5253ef4 100644
    { mph, "mph", "mph", "miles per hour" , "mph" }, 
    { newton, "newton", "newtons,N", "newton" , "newtons" }, 
    { ounce, "ounce", "ounces,oz", "avoirdupois ounce" , "ounces" }, 
-@@ -130,13 +130,13 @@ UnitTable unit_table [] =
+@@ -135,13 +136,13 @@ UnitTable unit_table [] =
    { petabit, "petabit", "petabits,pbit,pbits", "petabits", "petabits" },
    { petabyte, "petabyte", "petabytes,pb", "petabytes", "petabytes" },
    { phot, "phot", "phots,ph", "phot" , "phots" }, 
@@ -58,25 +75,37 @@ index 3d09ba0..5253ef4 100644
    { rad, "rad", "rads", "rad" , "rads" }, 
    { radian, "radian", "radians", "angular radian" , "radians" }, 
    { REM, "REM", "REMS,rem,rems", "Roentgen equiv. man"  , "REM" }, 
-@@ -153,7 +153,7 @@ UnitTable unit_table [] =
+@@ -153,29 +154,31 @@ UnitTable unit_table [] =
+   { sievert, "sievert", "sieverts,Sv,Svs", "sievert" , "sieverts" }, 
+   { steradian, "steradian", "steradians,sterads", "solid angle" , "steradians" }, 
+   { stone, "stone", "stones,st", "imperial stone" , "stones" }, 
++  { tablespoon, "tablespoon", "tablespoons,tbsp", "US customary tablespoon", "tablespoons" },
++  { teaspoon, "teaspoon", "teaspoons,tsp", "US customary teaspoon", "teaspoons" },
+   { tebibit, "tebibit", "tebibits,tibit,tibits", "tebibits", "tebibits" },
+   { tebibyte, "tebibyte", "tebibytes,tib", "tebibytes", "tebibytes" },
    { terabit, "terabit", "terabits,tbit,tbits", "terabits", "terabits" },
    { terabyte, "terabyte", "terabytes,tb", "terabytes", "terabytes" },
    { therm, "therm", "therms", "therm" , "therms" }, 
 -  { ton, "ton", "tons", "imperial (long) ton" , "tons" }, 
 +  { ton, "ukton", "uktons", "imperial (long) ton" , "uktons" }, 
    { ton_tnt, "ton-tnt", "tons-tnt,ttnt", "ton of TNT (energy)" , "tons-tnt" }, 
-   { tonne, "tonne", "tonnes", "metric tonne" , "tonnes" }, 
+-  { tonne, "tonne", "tonnes", "metric tonne" , "tonnes" }, 
++  { tonne, "metric-ton", "metric-tons", "metric ton" , "metric tons" }, 
    { torr, "torr", "torrs", "torr" , "torrs" }, 
-@@ -161,14 +161,14 @@ UnitTable unit_table [] =
+   { troy_ounce, "troy-ounce", "troy-ounces,troy ounce,troy ounces,ozt", "troy ounce" , 
      "troy-ounces" }, 
    { troy_pound, "troy-pound", "troy-pounds,troy pound,troy pounds,lbt", "troy pound" , 
      "troy-pounds" }, 
 -  { usacre, "usacre", "usacres", "US acre" , "usacres" }, 
+-  { usfluid_ounce, "usfluid-ounce", "usfluid-ounces,usfloz", "US fluid ounce"  ,
+-     "US fluid-ounces" },
 -  { usgallon, "usgallon", "usgallons,usgal,usgals", "US gallon" , "usgallons" }, 
 -  { ushundredweight, "ushundredweight", "uscwt", "US hundredweight" , 
 +  { usacre, "acre", "acres", "US acre" , "acres" }, 
++  { usfluid_ounce, "fluid-ounce", "fluid-ounces,floz", "US fluid ounce"  ,
++     "fluid-ounces" },
 +  { usgallon, "gallon", "gallons,gal,gals", "US gallon" , "gallons" }, 
-+  { ushundredweight, "hundredweight", "cwt", "US hundredweight" , 
++  { ushundredweight, "hundredweight", "cwt", "hundredweight" , 
       "US hundredweight" }, 
 -  { usmpg, "usmpg", "usmpg", "miles per gallon (US)" , "usmpg" },
 -  { uspint, "uspint", "uspints,uspt,uspts", "US pint" , "uspints" }, 
@@ -89,3 +118,45 @@ index 3d09ba0..5253ef4 100644
    { watt, "watt", "watts,w", "watt" , "watts" }, 
    { wood_cord, "wood-cord", "woodcord,woodcords,wood-cords", "wood cord (volume)"  ,
      "wood-cords" }, 
+@@ -251,6 +254,9 @@ ConvTable conv_table [] =
+   {  usquart, 1, {1, {{ meter, 3, 0}}}, 2 * 473.176473 / 1e6 },
+   {  wood_cord, 1, {1, {{ meter, 3, 0}}}, 3.62456 },
+   {  yard, 3, {1, {{ meter, 3, 0}}}, CUBE(INCH_TO_METRE * 36) },
++  {  tablespoon, 1, {1, {{ meter, 3, 0}}}, 2.957353E-05 / 2.0 },
++  {  teaspoon, 1, {1, {{ meter, 3, 0}}}, 2.957353E-05 / 6.0 },
++  {  cup, 1, {1, {{ meter, 3, 0}}}, 2.957353E-05 * 8.0 },
+ 
+   // Area
+   {  acre, 1, {1, {{ meter, 2, 0}}}, 4046.8564224 },
+@@ -589,7 +595,7 @@ void unit_parse_single_unit (const char *s, Unit *unit, int *power,
+     skip = 3;
+     ab_power = 3;
+     }
+-  else if (strstr(ss, "cu") == ss && strcasecmp(ss, "curie"))
++  else if (strstr(ss, "cu") == ss && strcasecmp(ss, "curie") && strcasecmp(ss, "cup") && strcasecmp(ss, "cups"))
+     {
+     skip = 2;
+     ab_power = 3;
+@@ -1332,9 +1338,6 @@ char *units_format_string_and_value (const Units *self, double n,
+     {
+     switch (self->units[0].unit)
+       {
+-      case mile:
+-        return SUBDIVIDE(n, mile, yard, foot, inch);
+-
+       case yard:
+         return SUBDIVIDE(n, yard, foot, inch);
+ 
+diff --git units.h units.h
+index 4f6e3ec..c5222db 100644
+--- units.h
++++ units.h
+@@ -37,7 +37,7 @@ typedef enum { meter = 1, second, hectare, foot, acre, usacre, hour, minute, day
+    kilobyte, megabyte, gigabyte, terabyte, petabyte, exabyte, kibibyte, mebibyte,
+    gibibyte, tebibyte, pebibyte, exbibyte, bit, kilobit, megabit, gigabit, terabit,
+    petabit, exabit, kibibit, mebibit, gibibit, tebibit, pebibit, exbibit, rankine,
+-   usmpg, usfluid_ounce, arc_minute, arc_second, dms}
++   usmpg, usfluid_ounce, arc_minute, arc_second, dms, cup, teaspoon, tablespoon}
+   Unit;
+ 
+ typedef struct _UnitAndPower

@@ -355,7 +355,9 @@ Adjust some preprocessor guards to resolve build failures on OpenBSD.
 
 #### uconv-src-us-defaults.patch ####
 
-Use US standards by default where imperial or metric alternatives exist.
+Use US standards by default where imperial or metric alternatives exist, add
+some units commonly used for cooking in the USA, and do not subdivide miles
+into yards since that is rarely done in the USA.
 
 #### vim-src-disable-check_more.patch ####
 

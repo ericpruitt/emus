@@ -103,6 +103,7 @@ BINARIES = \
 	$(SED)/sed/sed \
 	$(TMUX)/tmux \
 	$(TREE)/tree \
+	$(UCONV)/uconv \
 	$(VIM)/src/vim \
 	$(VIM)/src/xxd/xxd \
 

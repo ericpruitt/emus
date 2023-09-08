@@ -616,6 +616,10 @@ function -setup()
         SSH_TTY="/dev/null"
     fi
 
+    if [[ "$TERM" =~ $XTERM_TITLE_SUPPORT ]]; then
+        export REPORT_REMAINING_SLEEP_TIME=x
+    fi
+
     # macOS tends to use filesystems configured to be case insensitive.
     test "$UNAME" = "Darwin" && bind "set completion-ignore-case on"
 

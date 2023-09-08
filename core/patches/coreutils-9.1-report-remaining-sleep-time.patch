@@ -1,0 +1,101 @@
+Adds support for having _sleep(1)_ report the amount of time remaining via the
+terminal title. This feature is activated by setting the environment variable
+"REPORT_REMAINING_SLEEP_TIME_VARIABLE" to a non-empty string.
+
+--- src/sleep.c	2023-09-08 01:40:27.900162545 -0700
++++ src/sleep.c	2023-09-08 01:40:18.680103818 -0700
+@@ -17,6 +17,9 @@
+ #include <config.h>
+ #include <stdio.h>
+ #include <sys/types.h>
++#include <stdlib.h>
++#include <unistd.h>
++#include <math.h>
+ 
+ #include "system.h"
+ #include "cl-strtod.h"
+@@ -34,6 +37,9 @@
+   proper_name ("Jim Meyering"), \
+   proper_name ("Paul Eggert")
+ 
++#define REPORT_REMAINING_SLEEP_TIME_VARIABLE "REPORT_REMAINING_SLEEP_TIME"
++#define REPORT_MESSAGE_FORMAT "\033]2;sleep: %s\033\\"
++
+ void
+ usage (int status)
+ {
+@@ -93,6 +99,38 @@
+   return true;
+ }
+ 
++static char *
++format_seconds (double x)
++{
++  static char buf[256];
++
++  int seconds = (int) x;
++
++  if (seconds >= 3600) {
++    int hours = seconds / 3600;
++    int minutes = (seconds % 3600) / 60;
++
++    if (minutes) {
++      sprintf(buf, "%dh%dm", hours, minutes);
++    } else {
++      sprintf(buf, "%dh", hours);
++    }
++  } else if (seconds >= 60) {
++    int minutes = seconds / 60;
++    int remainder = seconds % 60;
++
++    if (remainder) {
++      sprintf(buf, "%dm%ds", minutes, remainder);
++    } else {
++      sprintf(buf, "%dm", minutes);
++    }
++  } else {
++    sprintf(buf, "%ds", seconds);
++  }
++
++  return buf;
++}
++
+ int
+ main (int argc, char **argv)
+ {
+@@ -139,8 +177,34 @@
+   if (!ok)
+     usage (EXIT_FAILURE);
+ 
+-  if (xnanosleep (seconds))
++  bool report_remaining_sleep_time = false;
++
++  if (seconds >= 1 && isatty(STDERR_FILENO)) {
++    char *value = getenv(REPORT_REMAINING_SLEEP_TIME_VARIABLE);
++
++    if (value && value[0] != '\0')
++      report_remaining_sleep_time = true;
++  }
++
++  if (report_remaining_sleep_time) {
++    double fraction = modf(seconds, &seconds);
++
++    while (seconds > 0 || fraction > 0) {
++      fprintf(stderr, REPORT_MESSAGE_FORMAT, format_seconds(seconds));
++
++      if (fraction) {
++        xnanosleep(fraction);
++        fraction = 0.0;
++      }
++
++      xnanosleep(1.0);
++      seconds -= 1;
++    }
++
++    fprintf(stderr, REPORT_MESSAGE_FORMAT, "done");
++  } else if (xnanosleep (seconds)) {
+     die (EXIT_FAILURE, errno, _("cannot read realtime clock"));
++  }
+ 
+   return EXIT_SUCCESS;
+ }

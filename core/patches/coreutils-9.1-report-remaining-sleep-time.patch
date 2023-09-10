@@ -63,7 +63,7 @@ terminal title. This feature is activated by setting the environment variable
  int
  main (int argc, char **argv)
  {
-@@ -139,8 +177,34 @@
+@@ -139,8 +177,37 @@
    if (!ok)
      usage (EXIT_FAILURE);
  
@@ -80,6 +80,8 @@ terminal title. This feature is activated by setting the environment variable
 +  if (report_remaining_sleep_time) {
 +    double fraction = modf(seconds, &seconds);
 +
++    fprintf(stderr, "\033[22;0t"); // Save current title.
++
 +    while (seconds > 0 || fraction > 0) {
 +      fprintf(stderr, REPORT_MESSAGE_FORMAT, format_seconds(seconds));
 +
@@ -93,6 +95,7 @@ terminal title. This feature is activated by setting the environment variable
 +    }
 +
 +    fprintf(stderr, REPORT_MESSAGE_FORMAT, "done");
++    fprintf(stderr, "\033[23;0t"); // Restore original title.
 +  } else if (xnanosleep (seconds)) {
      die (EXIT_FAILURE, errno, _("cannot read realtime clock"));
 +  }

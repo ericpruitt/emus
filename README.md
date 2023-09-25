@@ -347,7 +347,7 @@ manual already needed to be updated, this change also fixes in omission in
 <https://github.com/stedolan/jq/commit/cf61515> in which "39" in "JQ_COLORS"
 should have been replaced with "37".
 
-#### less-590-intr-with-F-X-quits.patch ####
+#### less-643-intr-with-F-X-quits.patch ####
 
 Normally hitting Ctrl+C when less than one screen of text has been shown
 effectively results in "--quit-if-one-screen" being ignored. This patch

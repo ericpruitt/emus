@@ -340,6 +340,7 @@ def main(expressions):
     if not isinstance(result, complex):
         integral_result = int(result)
     elif result.imag == 0:
+        result = result.real
         integral_result = int(result.real)
     else:
         integral_result = None

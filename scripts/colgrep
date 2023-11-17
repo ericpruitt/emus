@@ -1,0 +1,188 @@
+#!/usr/bin/env bash
+set -e -f -u -o pipefail
+
+SELF="${0##*/}"
+
+USAGE="$SELF [-aFgxy] [-d RANGE] [-D RANGE] [GREP_OPTION]... PATTERN [FILE]..."
+
+HELP="\
+Search for columns of text matching the specified PCRE patterns. By default, a
+column is any text flanked by whitespace i.e. AWK's definition of a column, but
+this can be changed with the \"-d\" and \"-D\" options.
+
+This script is a wrapper that ultimately invokes GNU grep in PCRE mode via
+\"grep -P\". There are a number of options documented below under \"Proxy
+Options\" that are passed directly to GNU grep. See grep(1) or \"grep --help\" for
+details about their usage and behavior.
+
+Although GNU grep does not support specifying multiple, newline-separated
+patterns in PCRE mode, this wrapper does NOT share that limitation, but the
+user may run into command line argument size limitations imposed by the
+operating system when using large numbers of patterns.
+
+Options:
+  -a    Anchored patterns; select only those matches that exactly match the
+        whole column. This is analogous to POSIX grep's \"-x\" option and GNU
+        grep's \"--line-regexp\".
+  -d RANGE, -D RANGE
+        These options control how text is split into columns. The arguments are
+        regular expression character ranges. The \"-d\" option defines the split
+        in terms of characters that delimit columns whereas \"-D\" defines the
+        split in terms of characters that cannot appear in columns. The default
+        behavior is equivalent to \"-d '\\s'\" or \"-D '\\S'\". The last specified
+        option takes precedence.
+  -e PATTERN
+        Search for the specified pattern. This option can be repeated to
+        specify multiple patterns.
+  -F    Interpret all patterns as fixed strings, not regular expressions.
+  -f FILE
+        Obtain patterns from the file, one per line.
+  -g    Print the underlying grep(1) command to standard error before it is
+        executed.
+  --help
+        Show this text and exit.
+  -x    When a line contains multiple matches, only match the left-most text.
+  -y    When a line contains multiple matches, only match the right-most text.
+"
+
+# These options are passed to grep(1) verbatim.
+PROXY_FLAGS="cHhiLlnovqRr"
+PROXY_OPTIONS="A:B:C:m:"
+
+die()
+{
+    echo "$SELF: $*" >&2
+    return 2
+}
+
+help()
+{
+    local stub
+
+    echo  Usage: $USAGE
+    echo "       $SELF [OPTION]... -e PATTERN ... [FILE]..."
+    echo "       $SELF [OPTION]... -f FILE ... [FILE]..."
+    echo "       $SELF --help"
+    echo
+    echo "$HELP"
+
+    echo "Proxy Options:"
+
+    stub="${PROXY_OPTIONS%:}"
+    echo "  $SELF [-$PROXY_FLAGS] [-${stub//:/ ...] [-} ...] [--color[=...]]"
+}
+
+badargs()
+{
+    {
+        test "$#" -eq 0 || echo "$SELF: $*"
+        echo "Usage:" $USAGE
+        echo "Try '$SELF --help' for more information."
+        return 2
+    } >&2
+}
+
+main()
+{
+    local -a argv
+    local contents
+    local kernel
+    local metachar
+    local OPTIND
+    local option
+    local pattern
+
+    local col='\S'
+    local sep='\s'
+
+    local anchored=""
+    local -a arguments=()
+    local fixed_strings=""
+    local -a grep_options=()
+    local match_mode="all"
+    local -a patterns=()
+    local show_grep_invocation=""
+
+    # Wrap getopts to support mixing options and non-option arguments.
+    while [[ "$#" -gt 0 ]]; do
+        while [[ "${1:--}" != -* ]]; do
+            arguments+=("$1")
+            shift
+        done
+
+        test "${1:-}" = "--" && arguments+=("${@:2}") && break
+
+        # By replacing "?" with "$OPTARG" and putting the error handling at the
+        # bottom, we can avoid having to enumerate the argument-less flags in
+        # the getopts call.
+        while getopts :D:d:e:f:-:$PROXY_OPTIONS option "$@"; do
+            if [[ "$option" = [dD] ]] && [[ -z "$OPTARG" ]]; then
+                die "delimiter range cannot be empty"
+            elif [[ "$option" = "?" ]]; then
+                option="$OPTARG"
+            fi
+
+            case "$option" in
+              a)    anchored="x" ;;
+              d)    sep="[$OPTARG]"; col="[^$OPTARG]" ;;
+              D)    sep="[^$OPTARG]"; col="[$OPTARG]" ;;
+              e)    IFS=$'\n' patterns+=($OPTARG) ;;
+              F)    fixed_strings="x" ;;
+              f)    contents="$(<"$OPTARG")"
+                    IFS=$'\n' patterns+=($contents) ;;
+              g)    show_grep_invocation="x" ;;
+              x)    match_mode="first" ;;
+              y)    match_mode="last" ;;
+
+              # ":" needs to come first since PROXY_OPTIONS has colons in it.
+              :)                    badargs "-$OPTARG: missing argument" ;;
+              [$PROXY_FLAGS])       grep_options+=("-$option") ;;
+              [$PROXY_OPTIONS])     grep_options+=("-$option" "$OPTARG") ;;
+
+              -)
+                case "$OPTARG" in
+                  color|color=*)    grep_options+=("--$OPTARG") ;;
+                  help|help=*)      help; return ;;
+                  *)                badargs "-${OPTARG%%=*}: illegal option" ;;
+                esac
+              ;;
+
+              *)                    badargs "-$OPTARG: illegal option" ;;
+            esac
+        done
+
+        shift "$((OPTIND - 1))"
+        OPTIND=1
+    done
+
+    if [[ "${#patterns[@]}" -eq 0 ]]; then
+        test "${#arguments[@]}" -gt 0 || badargs
+        patterns+=("${arguments[0]}")
+        arguments=("${arguments[@]:1}")
+    fi
+
+    if [[ "$fixed_strings" && "${patterns[*]}" = *[\\.^+?()\{\|*$]* ]]; then
+        for metachar in \\ . ^ $ * + ? \( \) \[ \{ \|; do
+            patterns=("${patterns[@]//"$metachar"/"\\$metachar"}")
+        done
+    fi
+
+    kernel="$(IFS='|'; echo "(${patterns[*]})")"
+
+    case "$match_mode/$anchored" in
+      # Column-anchored patterns
+      all/?*)     pattern="(^|$sep)\\K$kernel(?=$sep|$)" ;;
+      first/?*)   pattern="^.*?\\K$kernel((?=$sep)|$)" ;;
+      last/?*)    pattern="(.*$sep|^)\\K$kernel(?=($sep.*)?$)" ;;
+      # Unanchored patterns
+      all/*)      pattern="(^|$sep)$col*?\\K$kernel(?=$col*($sep|$))" ;;
+      first/*)    pattern="^.*?$col*?\\K$kernel((?=$col*$sep)|$)" ;;
+      last/*)     pattern="(.*$sep|^)$col*?\\K$kernel(?=$col*($sep.*)?$)" ;;
+    esac
+
+    argv=(grep -P -e "$pattern" "${grep_options[@]}" -- "${arguments[@]}")
+    test "$show_grep_invocation" && echo "$SELF:" "${argv[@]@Q}" >&2
+    exec "${argv[@]}"
+}
+
+test "${BASH_SOURCE:-}" != "$0" || main "$@"

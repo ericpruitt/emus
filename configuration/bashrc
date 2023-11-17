@@ -60,6 +60,7 @@ function -define-aliases()
     alias back='cd -'
     alias cat='-paginate cat --'
     alias cmark='-paginate cmark --'
+    alias colgrep='-paginate colgrep --color=always'
     alias cp='cp -p -R'
     alias demo='env PS1=$"$\040" playground'
     alias detach='bg && disown'

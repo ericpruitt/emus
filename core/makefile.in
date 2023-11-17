@@ -37,7 +37,7 @@ MPFR = mpfr-4.1.0
 MUSL = musl-1.2.3
 NCURSES = ncurses-6.3
 OATH_TOOLKIT = oath-toolkit-2.6.7
-PCRE = pcre-8.45
+PCRE2 = pcre2-10.42
 READLINE = readline-8.1
 RSYNC = rsync-3.1.3
 SED = sed-4.8
@@ -81,7 +81,7 @@ LIBRARIES = \
 	$(LIBEVENT) \
 	$(MPFR) \
 	$(NCURSES) \
-	$(PCRE) \
+	$(PCRE2) \
 	$(READLINE) \
 	$(UTF8PROC) \
 
@@ -148,7 +148,7 @@ TAR_GZ_SIGNATURES = \
 	$(MUSL).tar.gz.sig \
 	$(NCURSES).tar.gz.sig \
 	$(OATH_TOOLKIT).tar.gz.sig \
-	$(PCRE).tar.gz.sig \
+	$(PCRE2).tar.gz.sig \
 	$(READLINE).tar.gz.sig \
 	$(RSYNC).tar.gz.sig \
 
@@ -521,10 +521,10 @@ $(COMMON)/$(LIBEVENT): $(LIBEVENT)/Makefile
 	(cd $(?D) && $(MAKE) -S install)
 	touch $@
 
-$(PCRE).tar.gz $(PCRE).tar.gz.sig:
-	$(WGET) -O $@ -nc https://ftp.exim.org/pub/pcre/$(@)
+$(PCRE2).tar.gz $(PCRE2).tar.gz.sig:
+	$(WGET) -O $@ -nc https://github.com/PCRE2Project/pcre2/releases/download/$(PCRE2)/$@
 
-$(PCRE)/Makefile: $(PCRE)/.FOLDER
+$(PCRE2)/Makefile: $(PCRE2)/.FOLDER
 	(cd $(@D); \
 	./configure -C \
 		CC="$(CC)" \
@@ -539,7 +539,7 @@ $(PCRE)/Makefile: $(PCRE)/.FOLDER
 		--prefix="$(PWD)/$(COMMON)" \
 	)
 
-$(COMMON)/$(PCRE): $(PCRE)/Makefile
+$(COMMON)/$(PCRE2): $(PCRE2)/Makefile
 	(cd $(?D) && $(MAKE) -S install)
 	touch $@
 
@@ -844,7 +844,7 @@ $(BIN)/gawk: $(GAWK)/gawk
 	ln -f -s gawk $(BIN)/awk
 	cp -f $? $@
 
-$(GREP)/Makefile: $(GREP)/.FOLDER $(COMMON)/$(PCRE)
+$(GREP)/Makefile: $(GREP)/.FOLDER $(COMMON)/$(PCRE2)
 	(cd $(@D); \
 	./configure \
 		CC="$(CC)" \

@@ -90,6 +90,8 @@ function -define-aliases()
     alias open='xdg-open'
     alias otr='env HISTFILE=/dev/null bash'
     alias paragrep='-paginate paragrep -T -n'
+    alias pcre2grep='-paginate pcre2grep --color=always \
+        --exclude-dir="(^__pycache__|lost\\+found|\\.(git|py[co]))$"'
     alias pgrep='-paginate epgrep --enhance'
     alias ps='-paginate ps --'
     alias pstree='-paginate pstree -- -a -p -s -U'

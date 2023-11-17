@@ -117,6 +117,7 @@ applications "agree" on the width of characters.
   - utf8proc-wcwidth.so, an "LD_PRELOAD" library for Linux that reimplements
     _wcwidth(3)_ using [utf8proc][utf8proc].
 - [oathtool][oathtool]
+- pcre2grep (from [PCRE][pcre])
 - [rsync][rsync]
 - [tmux][tmux]
 - [Tree][tree]
@@ -165,7 +166,9 @@ applications "agree" on the width of characters.
                       ,
     (libevent) -------
 
-    (libpcre) ---> grep
+                  ,-> grep
+    (libpcre) ---|
+                  `-> pcre2grep
 
 **Note:** Tree, cmark, flock, GNU Find Utilities, GNU sed, jq, rsync and
 oathtool do not appear because they do not have dependencies on any libraries
@@ -362,6 +365,11 @@ less than one screen of text has been shown, and both "--no-init" ("-X") and
 #### ncurses-6.0-compile-on-openbsd.patch ####
 
 Adjust some preprocessor guards to resolve build failures on OpenBSD.
+
+#### pcre2-10.42-preserve-static-flag.diff ####
+
+Preserve "-static" flag in libtool to ensure generated binaries are statically
+linked. See also: <https://github.com/PCRE2Project/pcre2/issues/341>.
 
 #### uconv-src-us-defaults.patch ####
 

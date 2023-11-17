@@ -99,6 +99,7 @@ BINARIES = \
 	$(LESS)/lessecho \
 	$(LESS)/lesskey \
 	$(OATH_TOOLKIT)/oathtool/oathtool \
+	$(PCRE2)/pcre2grep \
 	$(RSYNC)/rsync \
 	$(SED)/sed/sed \
 	$(TMUX)/tmux \
@@ -530,18 +531,26 @@ $(PCRE2)/Makefile: $(PCRE2)/.FOLDER
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
 		LDFLAGS="$(LDFLAGS)" \
-		--disable-cpp \
 		--disable-shared \
 		--enable-jit \
 		--enable-static \
-		--enable-unicode-properties \
-		--enable-utf \
 		--prefix="$(PWD)/$(COMMON)" \
 	)
 
-$(COMMON)/$(PCRE2): $(PCRE2)/Makefile
+$(PCRE2)/pcre2grep: $(PCRE2)/Makefile
 	(cd $(?D) && $(MAKE) -S install)
 	touch $@
+
+# PCRE2's "install" target builds builds the library and the pcre2grep binary.
+$(COMMON)/$(PCRE2): $(PCRE2)/pcre2grep
+
+pcre2grep: $(PCRE2)/pcre2grep
+
+$(BIN)/pcre2grep: $(PCRE2)/pcre2grep
+	if [ -n "$(MAN)" ]; then \
+		cp -f $(PCRE2)/doc/pcre2grep.1 $(MAN)/man1/; \
+	fi
+	cp -f $? $@
 
 $(MPFR)/Makefile: $(MPFR)/.FOLDER $(COMMON)/$(GMP)
 	(cd $(@D); \

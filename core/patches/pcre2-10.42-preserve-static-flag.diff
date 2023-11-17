@@ -1,0 +1,21 @@
+Preserve "-static" flag in libtool to ensure generated binaries are statically
+linked. See also: <https://github.com/PCRE2Project/pcre2/issues/341>.
+
+--- ltmain.sh
++++ ltmain.sh
+@@ -7450,15 +7450,6 @@
+ 	continue
+ 	;;
+ 
+-      -static | -static-libtool-libs)
+-	# The effects of -static are defined in a previous loop.
+-	# We used to do the same as -all-static on platforms that
+-	# didn't have a PIC flag, but the assumption that the effects
+-	# would be equivalent was wrong.  It would break on at least
+-	# Digital Unix and AIX.
+-	continue
+-	;;
+-
+       -thread-safe)
+ 	thread_safe=yes
+ 	continue

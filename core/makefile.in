@@ -47,7 +47,7 @@ UCONV = uconv-src
 UTF8PROC = utf8proc-src
 VIM = vim-src
 
-APPLE_BASH_RELEASE = bash-123.40.1
+APPLE_BASH_RELEASE = bash-135
 APPLE_BASH = apple-$(APPLE_BASH_RELEASE)
 
 # Revision-controlled package versions:
@@ -596,11 +596,11 @@ $(COMMON)/$(READLINE): $(READLINE)/Makefile
 	touch $@
 
 $(APPLE_BASH).tar.gz:
-	$(WGET) -O $@ -nc https://opensource.apple.com/tarballs/bash/$(APPLE_BASH_RELEASE).tar.gz
+	$(WGET) -O $@ -nc https://github.com/apple-oss-distributions/bash/archive/$(APPLE_BASH_RELEASE).tar.gz
 
 $(APPLE_BASH)/.FOLDER: $(APPLE_BASH).tar.gz
 	tar -x -z -f $?
-	mv $(APPLE_BASH_RELEASE) $(@D)
+	mv bash-$(APPLE_BASH_RELEASE) $(@D)
 	cat $(PWD)/patches/$(APPLE_BASH)-* | (cd $(APPLE_BASH) && patch -p0)
 	(cd $(@D) && ln -s bash-*/ src)
 	touch $@

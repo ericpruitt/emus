@@ -1,0 +1,28 @@
+Define a stub to replace _fmtcheck(3)_ on non-Apple systems.
+
+--- bash-3.2/builtins/printf.def	2023-11-16 21:15:08.812914403 -0800
++++ bash-3.2/builtins/printf.def	2023-11-16 21:15:06.936898662 -0800
+@@ -97,6 +97,10 @@
+       putchar (c); \
+   } while (0)
+ 
++#ifndef __APPLE__
++#define fmtcheck(a, b) (a)
++#endif
++
+ #define PF(f, func, id) \
+   do { \
+     char *b = 0; \
+--- bash-3.2/test.c	2023-09-22 13:00:20.000000000 -0700
++++ bash-3.2/test.c	2023-11-16 21:18:20.646522988 -0800
+@@ -127,6 +127,10 @@
+ static int arithcomp __P((char *, char *, int, int));
+ static int patcomp __P((char *, char *, int));
+ 
++#ifndef __APPLE__
++#define fmtcheck(a, b) (a)
++#endif
++
+ static void
+ test_syntax_error (format, arg)
+      char *format, *arg;

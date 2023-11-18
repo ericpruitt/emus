@@ -22,7 +22,7 @@
 # MPFR_DEPS =
 
 # Packages:
-BASH = bash-5.1
+BASH = bash-5.2
 CMARK = cmark-src
 COREUTILS = coreutils-9.1
 FINDUTILS = findutils-4.9.0
@@ -38,7 +38,7 @@ MUSL = musl-1.2.3
 NCURSES = ncurses-6.3
 OATH_TOOLKIT = oath-toolkit-2.6.7
 PCRE2 = pcre2-10.42
-READLINE = readline-8.1
+READLINE = readline-8.2
 RSYNC = rsync-3.1.3
 SED = sed-4.8
 TMUX = tmux-src
@@ -61,8 +61,8 @@ JQ_COMMIT = cff5336ec71b6fee396a95bb0e4bea365e0cd1e8
 UCONV_COMMIT = 9a4e6e7e2cccaa79acce47e5a3d5288f70cf263b
 
 # Patch level for Chet Ramey's packages:
-BASH_PATCH_LEVEL = 16
-READLINE_PATCH_LEVEL = 2
+BASH_PATCH_LEVEL = 21
+READLINE_PATCH_LEVEL = 7
 
 # Hashes of unsigned files:
 SHA_HASHES = \

@@ -1,0 +1,21 @@
+Disable _strtoimax(3)_ compatibility implementation when using C99 and up since
+it is part of the C99 standard.
+
+--- lib/sh/strtoimax.c	2021-09-10 07:32:35.000000000 -0700
++++ lib/sh/strtoimax.c	2023-11-17 19:54:12.429966353 -0800
+@@ -55,6 +55,7 @@
+ extern long long strtoll PARAMS((const char *, char **, int));
+ #endif
+ 
++#if __STDC_VERSION__ < 199901L
+ #ifdef strtoimax
+ #undef strtoimax
+ #endif
+@@ -78,6 +79,7 @@
+ 
+   return (strtol (ptr, endptr, base));
+ }
++#endif
+ 
+ #ifdef TESTING
+ # include <stdio.h>

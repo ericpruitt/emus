@@ -161,10 +161,9 @@ main()
         arguments=("${arguments[@]:1}")
     fi
 
-    if [[ "$fixed_strings" && "${patterns[*]}" = *[\\.^+?()\{\|*$]* ]]; then
-        for metachar in \\ . ^ $ * + ? \( \) \[ \{ \|; do
-            patterns=("${patterns[@]//"$metachar"/"\\$metachar"}")
-        done
+    if [[ "$fixed_strings" ]]; then
+        shopt -s patsub_replacement
+        patterns=("${patterns[@]//['\.^+?(){|*$']/\\&}")
     fi
 
     kernel="$(IFS='|'; echo "(${patterns[*]})")"

@@ -42,7 +42,7 @@ READLINE = readline-8.2
 RSYNC = rsync-3.1.3
 SED = sed-4.8
 TMUX = tmux-src
-TREE = tree-2.0.2
+TREE = tree-2.1.1
 UCONV = uconv-src
 UTF8PROC = utf8proc-src
 VIM = vim-src
@@ -63,11 +63,6 @@ UCONV_COMMIT = 9a4e6e7e2cccaa79acce47e5a3d5288f70cf263b
 # Patch level for Chet Ramey's packages:
 BASH_PATCH_LEVEL = 21
 READLINE_PATCH_LEVEL = 7
-
-# Hashes of unsigned files:
-SHA_HASHES = \
-	"tree-2.0.2" \
-	7d693a1d88d3c4e70a73e03b8dbbdc12c2945d482647494f2f5bd83a479eeeaf \
 
 # Build dependencies:
 DEBIAN_BUILD_DEPS = automake bison build-essential cmake pkg-config libtool
@@ -379,13 +374,6 @@ $(DEFAULT):
 		exit 1; \
 	  ;; \
 	esac
-
-.unverified:
-	if ! $(SHA256) < $< | grep -q "$$(printf '%s\n' $(SHA_HASHES))"; then \
-		echo "make: $?: hash not recognized" >&2; \
-		exit 1; \
-	fi
-	ln -f -s $< $@
 
 .asc.sig:
 	mv $< $@
@@ -1064,8 +1052,7 @@ $(BIN)/sed: $(SED)/sed/sed
 	test -z "$(MAN)" || cp -f "$(SED)/doc/sed.1" $(MAN)/man1/
 	cp -f $? $@
 
-$(TREE).tar.gz.unverified:
-	rm -f $(@:.unverified=)
+$(TREE).tar.gz:
 	$(WGET) -O $@ -nc http://mama.indstate.edu/users/ice/tree/src/$(TREE).tgz
 
 $(TREE)/.FOLDER: $(TREE).tar.gz

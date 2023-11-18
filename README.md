@@ -331,15 +331,6 @@ Refine the heuristics for "substr: start index ... is past end of string" so
 the warning is only shown if the third argument is set or if the start index is
 more than 1 character beyond the end of a string.
 
-#### jq-src-JQ_COLORS-field-color.patch ####
-
-Allow object key colors to be configured with the "JQ_COLORS" environment
-variable. This is a updated version of a [GitHub pull request created by David
-Haguenauer](https://github.com/stedolan/jq/pull/1791). Since the prebuilt
-manual already needed to be updated, this change also fixes in omission in
-<https://github.com/stedolan/jq/commit/cf61515> in which "39" in "JQ_COLORS"
-should have been replaced with "37".
-
 #### less-643-intr-with-F-X-quits.patch ####
 
 Normally hitting Ctrl+C when less than one screen of text has been shown

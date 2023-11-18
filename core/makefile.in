@@ -313,11 +313,12 @@ sanity:
 		case "$$binary" in \
 		  */tmux)               args="-V" ;; \
 		  */xxd)                args="" ;; \
-		  *.so)                 args="env" ;; \
+		  *.so)                 args="--help" ;; \
 		  *)                    args="--version" ;; \
 		esac; \
 		printf "\055 %s" "$$binary: "; \
-		echo | "$$binary" $$args >/dev/null && echo "OK" && continue; \
+		echo \
+		| env -i "$$binary" $$args >/dev/null && echo "OK" && continue; \
 		trap 'exit 1' EXIT; \
 	done
 

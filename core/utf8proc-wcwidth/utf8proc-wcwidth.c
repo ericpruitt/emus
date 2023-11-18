@@ -154,6 +154,9 @@ int main(int argc, char **argv)
 
     if (argc < 2) {
         fprintf(stderr, "Usage: %s PROGRAM [ARGUMENT]...\n", argv[0]);
+    } else if (!strcmp(argv[1], "--help")) {
+        printf("Usage: %s PROGRAM [ARGUMENT]...\n", argv[0]);
+        return 0;
     } else if (!realpath("/proc/self/exe", exe)) {
         perror("realpath: /proc/self/exe");
     } else {

@@ -1,10 +1,10 @@
 Disable Vim's default/built-in digraphs.
 
 diff --git a/src/digraph.c b/src/digraph.c
-index dd5920a24..7bef9f9d2 100644
+index 0a4a4a3b4..64b1d9d4d 100644
 --- src/digraph.c
 +++ src/digraph.c
-@@ -1865,41 +1865,11 @@ get_digraph_for_char(int val_arg)
+@@ -1469,41 +1469,11 @@ get_digraph_for_char(int val_arg)
  {
      int		val = val_arg;
      int		i;
@@ -47,7 +47,7 @@ index dd5920a24..7bef9f9d2 100644
  	{
  	    if (dp->result == val)
  	    {
-@@ -1910,7 +1880,6 @@ get_digraph_for_char(int val_arg)
+@@ -1514,7 +1484,6 @@ get_digraph_for_char(int val_arg)
  	    }
  	    ++dp;
  	}
@@ -55,7 +55,7 @@ index dd5920a24..7bef9f9d2 100644
      return NULL;
  }
  
-@@ -1987,22 +1956,6 @@ getexactdigraph(int char1, int char2, int meta_char)
+@@ -1590,22 +1559,6 @@ getexactdigraph(int char1, int char2, int meta_char)
  	++dp;
      }
  
@@ -65,7 +65,7 @@ index dd5920a24..7bef9f9d2 100644
 -    if (retval == 0)
 -    {
 -	dp = digraphdefault;
--	for (i = 0; dp->char1 != 0; ++i)
+-	while (dp->char1 != 0)
 -	{
 -	    if ((int)dp->char1 == char1 && (int)dp->char2 == char2)
 -	    {

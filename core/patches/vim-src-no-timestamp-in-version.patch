@@ -1,28 +1,28 @@
 Do not include the build time in the binary to improve reproducibility.
 
 diff --git a/src/version.c b/src/version.c
-index 07c784098..3dab7dc73 100644
+index 249cd11d2..6d58e3de7 100644
 --- src/version.c
 +++ src/version.c
-@@ -61,18 +61,16 @@ init_longVersion(void)
+@@ -65,18 +65,16 @@ init_longVersion(void)
  #else
- 	char *date_time = __DATE__ " " __TIME__;
+     char *date_time = __DATE__ " " __TIME__;
  #endif
--	char *msg = _("%s (%s, compiled %s)");
-+	char *msg = _("%s");
- 	size_t len = strlen(msg)
--		    + strlen(VIM_VERSION_LONG_ONLY)
--		    + strlen(VIM_VERSION_DATE_ONLY)
--		    + strlen(date_time);
-+		    + strlen(VIM_VERSION_LONG_ONLY);
+-    char *msg = _("%s (%s, compiled %s)");
++    char *msg = _("%s");
+     size_t len = strlen(msg)
+-	+ strlen(VIM_VERSION_LONG_ONLY)
+-	+ strlen(VIM_VERSION_DATE_ONLY)
+-	+ strlen(date_time);
++	+ strlen(VIM_VERSION_LONG_ONLY);
  
- 	longVersion = alloc(len);
- 	if (longVersion == NULL)
- 	    longVersion = VIM_VERSION_LONG;
- 	else
- 	    vim_snprintf(longVersion, len, msg,
--		      VIM_VERSION_LONG_ONLY, VIM_VERSION_DATE_ONLY, date_time);
-+			  VIM_VERSION_LONG_ONLY);
-     }
+     longVersion = alloc(len);
+     if (longVersion == NULL)
+ 	longVersion = VIM_VERSION_LONG;
+     else
+ 	vim_snprintf(longVersion, len, msg,
+-		VIM_VERSION_LONG_ONLY, VIM_VERSION_DATE_ONLY, date_time);
++		VIM_VERSION_LONG_ONLY);
  }
  # endif
+ #else

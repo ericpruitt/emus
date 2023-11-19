@@ -14,7 +14,6 @@
 # GMAKE =
 # MAKE =
 # Miscellaneous programs:
-# SHA256 =
 # Platform-specific build targets:
 # COMPAT =
 # Optional GMP and MPFR dependency targets:

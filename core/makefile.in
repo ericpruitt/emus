@@ -528,10 +528,10 @@ $(PCRE2)/Makefile: $(PCRE2)/.FOLDER
 
 $(PCRE2)/pcre2grep: $(PCRE2)/Makefile
 	(cd $(?D) && $(MAKE) -S install)
-	touch $@
 
 # PCRE2's "install" target builds builds the library and the pcre2grep binary.
 $(COMMON)/$(PCRE2): $(PCRE2)/pcre2grep
+	touch $@
 
 pcre2grep: $(PCRE2)/pcre2grep
 

@@ -1,18 +1,18 @@
 Add support for a new option, "--almost-all-if-not-home", that implicitly shows
 dotfiles for every directory except `$HOME`.
 
---- src/ls.c	2022-04-08 04:22:18.000000000 -0700
-+++ src/ls.c	2022-07-30 20:06:09.437567163 -0700
-@@ -264,7 +264,7 @@
+--- src/ls.c	2023-08-29 04:39:27.000000000 -0700
++++ src/ls.c	2023-11-18 19:33:32.904591051 -0800
+@@ -261,7 +261,7 @@
+                               int needs_general_quoting, size_t *width,
                                bool *pad);
- static char *make_link_name (char const *name, char const *linkname);
  static int decode_switches (int argc, char **argv);
 -static bool file_ignored (char const *name);
 +static bool file_ignored (bool is_home, char const *name);
  static uintmax_t gobble_file (char const *name, enum filetype type,
                                ino_t inode, bool command_line_arg,
                                char const *dirname);
-@@ -385,6 +385,10 @@
+@@ -382,6 +382,10 @@
  
  static struct pending *pending_dirs;
  
@@ -23,7 +23,7 @@ dotfiles for every directory except `$HOME`.
  /* Current time in seconds and nanoseconds since 1970, updated as
     needed when deciding whether a file is recent.  */
  
-@@ -845,6 +849,7 @@
+@@ -843,6 +847,7 @@
    TIME_OPTION,
    TIME_STYLE_OPTION,
    ZERO_OPTION,
@@ -31,24 +31,24 @@ dotfiles for every directory except `$HOME`.
  };
  
  static struct option const long_options[] =
-@@ -893,6 +898,7 @@
-   {"block-size", required_argument, NULL, BLOCK_SIZE_OPTION},
+@@ -891,6 +896,7 @@
+   {"block-size", required_argument, nullptr, BLOCK_SIZE_OPTION},
    {"context", no_argument, 0, 'Z'},
-   {"author", no_argument, NULL, AUTHOR_OPTION},
+   {"author", no_argument, nullptr, AUTHOR_OPTION},
 +  {"almost-all-if-not-home", no_argument, NULL, ALMOST_ALL_IF_NOT_HOME},
    {GETOPT_HELP_OPTION_DECL},
    {GETOPT_VERSION_OPTION_DECL},
-   {NULL, 0, NULL, 0}
+   {nullptr, 0, nullptr, 0}
 @@ -958,6 +964,8 @@
    size_t *col_arr;
  };
  
 +static bool almost_all_if_not_home;
 +
- /* Array with information about column filledness.  */
+ /* Array with information about column fullness.  */
  static struct column_info *column_info;
  
-@@ -1667,6 +1675,8 @@
+@@ -1666,6 +1674,8 @@
    current_time.tv_sec = TYPE_MINIMUM (time_t);
    current_time.tv_nsec = -1;
  
@@ -57,7 +57,7 @@ dotfiles for every directory except `$HOME`.
    i = decode_switches (argc, argv);
  
    if (print_with_color)
-@@ -1785,6 +1795,9 @@
+@@ -1784,6 +1794,9 @@
    else if (n_files <= 1 && pending_dirs && pending_dirs->next == 0)
      print_dir_name = false;
  
@@ -67,7 +67,7 @@ dotfiles for every directory except `$HOME`.
    while (pending_dirs)
      {
        thispend = pending_dirs;
-@@ -2234,6 +2247,10 @@
+@@ -2233,6 +2246,10 @@
            quoting_style_opt = literal_quoting_style;
            break;
  
@@ -78,7 +78,7 @@ dotfiles for every directory except `$HOME`.
          case_GETOPT_HELP_CHAR;
  
          case_GETOPT_VERSION_CHAR (PROGRAM_NAME, AUTHORS);
-@@ -2950,22 +2967,25 @@
+@@ -2993,22 +3010,25 @@
        return;
      }
  
@@ -118,7 +118,7 @@ dotfiles for every directory except `$HOME`.
        /* If we've already visited this dev/inode pair, warn that
           we've found a loop, and do not process this directory.  */
        if (visit_dir (dir_stat.st_dev, dir_stat.st_ino))
-@@ -3016,7 +3036,7 @@
+@@ -3059,7 +3079,7 @@
        next = readdir (dirp);
        if (next)
          {
@@ -127,7 +127,7 @@ dotfiles for every directory except `$HOME`.
              {
                enum filetype type = unknown;
  
-@@ -3132,11 +3152,11 @@
+@@ -3175,11 +3195,11 @@
  /* Return true if FILE should be ignored.  */
  
  static bool

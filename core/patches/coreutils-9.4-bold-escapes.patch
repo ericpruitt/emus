@@ -4,9 +4,9 @@ which strings are literal sequences in the input and which strings represent
 escaped characters. The "--bold-escapes" option is ignored if "-v" is not
 specified since it may conflict with escape sequences present in the input.
 
---- src/cat.c	2022-04-08 04:22:17.000000000 -0700
-+++ src/cat.c	2022-07-30 22:25:12.506885948 -0700
-@@ -42,6 +42,7 @@
+--- src/cat.c	2023-08-29 04:39:27.000000000 -0700
++++ src/cat.c	2023-11-18 19:38:57.310975077 -0800
+@@ -40,6 +40,7 @@
  #include "full-write.h"
  #include "safe-read.h"
  #include "xbinary-io.h"
@@ -14,8 +14,8 @@ specified since it may conflict with escape sequences present in the input.
  
  /* The official name of this program (e.g., no 'g' prefix).  */
  #define PROGRAM_NAME "cat"
-@@ -50,6 +51,9 @@
-   proper_name ("Torbjorn Granlund"), \
+@@ -48,6 +49,9 @@
+   proper_name_lite ("Torbjorn Granlund", "Torbj\303\266rn Granlund"), \
    proper_name ("Richard M. Stallman")
  
 +#define TTY_BOLD "\033[1m"
@@ -24,7 +24,7 @@ specified since it may conflict with escape sequences present in the input.
  /* Name of input file.  May be "-".  */
  static char const *infile;
  
-@@ -83,6 +87,29 @@
+@@ -81,6 +85,29 @@
  /* Whether there is a pending CR to process.  */
  static bool pending_cr = false;
  
@@ -54,7 +54,7 @@ specified since it may conflict with escape sequences present in the input.
  void
  usage (int status)
  {
-@@ -104,6 +131,11 @@
+@@ -102,6 +129,11 @@
  \n\
    -A, --show-all           equivalent to -vET\n\
    -b, --number-nonblank    number nonempty output lines, overrides -n\n\
@@ -66,7 +66,7 @@ specified since it may conflict with escape sequences present in the input.
    -e                       equivalent to -vE\n\
    -E, --show-ends          display $ at end of each line\n\
    -n, --number             number all output lines\n\
-@@ -214,7 +246,7 @@
+@@ -212,7 +244,7 @@
  static bool
  cat (char *inbuf, idx_t insize, char *outbuf, idx_t outsize,
       bool show_nonprinting, bool show_tabs, bool number, bool number_nonblank,
@@ -75,7 +75,7 @@ specified since it may conflict with escape sequences present in the input.
  {
    /* Last character read from the input buffer.  */
    unsigned char ch;
-@@ -373,6 +405,9 @@
+@@ -371,6 +403,9 @@
                /* Output a currency symbol if requested (-e).  */
                if (show_ends)
                  {
@@ -85,7 +85,7 @@ specified since it may conflict with escape sequences present in the input.
                    if (pending_cr)
                      {
                        *bpout++ = '^';
-@@ -380,6 +415,9 @@
+@@ -378,6 +413,9 @@
                        pending_cr = false;
                      }
                    *bpout++ = '$';
@@ -95,7 +95,7 @@ specified since it may conflict with escape sequences present in the input.
                  }
  
                /* Output the newline.  */
-@@ -414,13 +452,19 @@
+@@ -412,13 +450,19 @@
           scan for chars that need conversion.  */
        if (show_nonprinting)
          {
@@ -118,7 +118,7 @@ specified since it may conflict with escape sequences present in the input.
                      {
                        *bpout++ = '^';
                        *bpout++ = '?';
-@@ -445,6 +489,9 @@
+@@ -443,6 +487,9 @@
                            *bpout++ = ch - 128 + 64;
                          }
                      }
@@ -128,7 +128,7 @@ specified since it may conflict with escape sequences present in the input.
                  }
                else if (ch == '\t' && !show_tabs)
                  *bpout++ = '\t';
-@@ -455,11 +502,15 @@
+@@ -453,11 +500,15 @@
                  }
                else
                  {
@@ -146,7 +146,7 @@ specified since it may conflict with escape sequences present in the input.
              }
          }
        else
-@@ -469,8 +520,14 @@
+@@ -467,8 +518,14 @@
              {
                if (ch == '\t' && show_tabs)
                  {
@@ -161,7 +161,7 @@ specified since it may conflict with escape sequences present in the input.
                  }
                else if (ch != '\n')
                  {
-@@ -544,6 +601,7 @@
+@@ -542,6 +599,7 @@
    struct stat stat_buf;
  
    /* Variables that are set according to the specified options.  */
@@ -169,23 +169,23 @@ specified since it may conflict with escape sequences present in the input.
    bool number = false;
    bool number_nonblank = false;
    bool squeeze_blank = false;
-@@ -561,6 +619,7 @@
-     {"show-ends", no_argument, NULL, 'E'},
-     {"show-tabs", no_argument, NULL, 'T'},
-     {"show-all", no_argument, NULL, 'A'},
+@@ -559,6 +617,7 @@
+     {"show-ends", no_argument, nullptr, 'E'},
+     {"show-tabs", no_argument, nullptr, 'T'},
+     {"show-all", no_argument, nullptr, 'A'},
 +    {"bold-escapes", optional_argument, NULL, BOLD_ESCAPES_OPTION},
      {GETOPT_HELP_OPTION_DECL},
      {GETOPT_VERSION_OPTION_DECL},
-     {NULL, 0, NULL, 0}
-@@ -581,6 +640,7 @@
+     {nullptr, 0, nullptr, 0}
+@@ -579,6 +638,7 @@
    /* Parse command line options.  */
  
    int c;
 +  int bold_arg;
-   while ((c = getopt_long (argc, argv, "benstuvAET", long_options, NULL))
+   while ((c = getopt_long (argc, argv, "benstuvAET", long_options, nullptr))
           != -1)
      {
-@@ -631,6 +691,19 @@
+@@ -629,6 +689,19 @@
            show_tabs = true;
            break;
  
@@ -205,7 +205,7 @@ specified since it may conflict with escape sequences present in the input.
          case_GETOPT_HELP_CHAR;
  
          case_GETOPT_VERSION_CHAR (PROGRAM_NAME, AUTHORS);
-@@ -640,6 +713,9 @@
+@@ -638,6 +711,9 @@
          }
      }
  
@@ -215,23 +215,22 @@ specified since it may conflict with escape sequences present in the input.
    /* Get device, i-node number, and optimal blocksize of output.  */
  
    if (fstat (STDOUT_FILENO, &stat_buf) < 0)
-@@ -767,8 +843,14 @@
+@@ -765,8 +841,13 @@
               Align the output buffer to a page size boundary, for efficiency
               on some paging implementations.  */
  
 +          int inflation_factor = 4;
 +
-           idx_t bufsize;
--          if (INT_MULTIPLY_WRAPV (insize, 4, &bufsize)
-+
 +          if (bold_escapes)
 +            inflation_factor += strlen(TTY_BOLD) + strlen(TTY_SGR0);
 +
-+          if (INT_MULTIPLY_WRAPV (insize, inflation_factor, &bufsize)
-               || INT_ADD_WRAPV (bufsize, outsize, &bufsize)
-               || INT_ADD_WRAPV (bufsize, LINE_COUNTER_BUF_LEN - 1, &bufsize))
+           idx_t bufsize;
+-          if (ckd_mul (&bufsize, insize, 4)
++          if (ckd_mul (&bufsize, insize, inflation_factor)
+               || ckd_add (&bufsize, bufsize, outsize)
+               || ckd_add (&bufsize, bufsize, LINE_COUNTER_BUF_LEN - 1))
              xalloc_die ();
-@@ -776,7 +858,7 @@
+@@ -774,7 +855,7 @@
  
            ok &= cat (inbuf, insize, outbuf, outsize, show_nonprinting,
                       show_tabs, number, number_nonblank, show_ends,

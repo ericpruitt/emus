@@ -97,7 +97,7 @@ terminal title. This feature is activated by setting the environment variable
 +    fprintf(stderr, REPORT_MESSAGE_FORMAT, "done");
 +    fprintf(stderr, "\033[23;0t"); // Restore original title.
 +  } else if (xnanosleep (seconds)) {
-     die (EXIT_FAILURE, errno, _("cannot read realtime clock"));
+     error (EXIT_FAILURE, errno, _("cannot read realtime clock"));
 +  }
  
    return EXIT_SUCCESS;

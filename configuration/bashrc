@@ -597,6 +597,7 @@ function -setup()
     shopt -s extglob
     shopt -s globstar
     shopt -s histappend
+    shopt -s patsub_replacement
     shopt -u hostcomplete
 
     trap -- -exit-trap EXIT

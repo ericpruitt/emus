@@ -58,30 +58,34 @@ function -define-aliases()
     alias awk='-paginate awk --'
     alias aws='-paginate aws --'
     alias back='cd -'
-    alias cat='-paginate cat --'
+    alias cat='-paginate cat --bold-escapes'
     alias cmark='-paginate cmark --'
     alias colgrep='-paginate colgrep --color=always'
-    alias cp='cp -p -R'
+    alias cp='cp -a -v'
     alias demo='env PS1=$"$\040" playground'
     alias detach='bg && disown'
     alias df='-paginate df -- -h'
-    alias diff='-paginate diff -- -u'
+    alias diff='-paginate diff --color=always -u'
+    alias dmesg='sudo dmesg'
     alias dpkg-query='-paginate dpkg-query --'
     alias du='-paginate du -- -h'
     alias egrep='grep -E'
     alias esed='sed -E'
     alias fgrep='grep -F'
-    alias find='-paginate find --'
+    alias find='-paginate find -- -xdev -regextype egrep'
     alias gawk='-paginate gawk --'
     alias gpg='gpg --pinentry-mode=loopback'
-    alias grep='-paginate grep --'
+    alias grep='-paginate grep --color=always --exclude-dir=.git \
+        --exclude-dir=__pycache__ --exclude="*.py[co]" \
+        --exclude-dir=lost+found'
     alias head='head -n "$(((LINES - 5) / 2 + (LINES < 6)))"'
     alias help='-paginate help --'
     alias history='-paginate history --'
     alias info='info --vi-keys'
     alias jq='-paginate jq -C --indent 4'
     alias ldd='-paginate ldd --'
-    alias ls='-paginate ls -C -A -F -h'
+    alias ls='-paginate ls "-C -w $COLUMNS --color=always" -b -h \
+        -I lost+found -I __pycache__ --almost-all-if-not-home'
     alias lsblk='-paginate lsblk --'
     alias make='gmake'
     alias meme='sed -r "s/([a-z])([^a-z]*)([a-z])/\\l\\1\\2\\u\\3/gI" --'
@@ -93,10 +97,13 @@ function -define-aliases()
     alias pcre2grep='-paginate pcre2grep --color=always \
         --exclude-dir="(^__pycache__|^lost\\+found|\\.(git|py[co]))$"'
     alias pgrep='-paginate epgrep --enhance'
+    alias plgrep='grep -P'
     alias ps='-paginate ps --'
     alias pstree='-paginate pstree -- -a -p -s -U'
     alias readelf='-paginate readelf --'
     alias reset='tput reset'
+    alias rm='rm -v'
+    alias rmdir='rmdir -v'
     alias rot13='tr "A-Za-z" "N-ZA-Mn-za-m"'
     alias scp='scp -p -r'
     alias screen='env SHLVL_OFFSET= screen'
@@ -135,51 +142,8 @@ function -define-aliases()
     BASH_ALIASES[=]='-calculate #'
     BASH_ALIASES[-]='cd -'
 
-    # take advantage of GNU extensions when coreutils is installed.
-    case "$(ls --help 2>/dev/null)" in
-      *GNU\ coreutils*)
-        alias cp='cp -a -v'
-        alias grep='-paginate grep --color=always --exclude-dir=.git \
-            --exclude-dir=__pycache__ --exclude="*.py[co]" \
-            --exclude-dir=lost+found'
-        alias plgrep='grep -P'
-        alias ls='-paginate ls "-C -w $COLUMNS --color=always" -b -h \
-                      -I lost+found -I __pycache__ -A'
-        alias rm='rm -v'
-        alias rmdir='rmdir -v'
-      ;;
-    esac
-
-    # Make "-xdev" the default behavior of find when possible.
-    if find -xdev /dev/null &>/dev/null; then
-        BASH_ALIASES[find]+=" -xdev"
-    fi
-
-    # Similarly, default to using egrep as the regex dialect when possible.
-    if find -regextype egrep /dev/null &>/dev/null; then
-        BASH_ALIASES[find]+=" -regextype egrep"
-    fi
-
-    # My modified version of ls supports "--almost-all-if-not-home", an
-    # alternative to "-A".
-    if ls --almost-all-if-not-home /dev/null &>/dev/null; then
-        BASH_ALIASES[ls]="${BASH_ALIASES[ls]/% -A/ --almost-all-if-not-home}"
-    fi
-
-    # My modified version of cat supports "--bold-escapes" to distinguish
-    # escape sequences.
-    if echo | cat --bold-escapes &>/dev/null; then
-        BASH_ALIASES[cat]="${BASH_ALIASES[cat]/% ??/ --bold-escapes}"
-    fi
-
     # Disable hyphenated word-breaks when showing manuals.
     man --no-hyphenation --help &>/dev/null && alias man='man --no-hyphenation'
-
-    case "$(diff --help 2>/dev/null)" in
-      *GNU\ diffutils*)
-        alias diff='-paginate diff --color=always -u'
-      ;;
-    esac
 
     case "$(uname; ps -V 2>/dev/null)" in
       Darwin*|FreeBSD*|OpenBSD*)

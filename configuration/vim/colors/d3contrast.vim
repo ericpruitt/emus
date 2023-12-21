@@ -70,7 +70,7 @@ if &t_Co > 255
     highlight SpecialKey                                    ctermfg=245
 
     if has("spell")
-        highlight SpellBad    cterm=underline               ctermbg=240
+        highlight SpellBad    cterm=underline               ctermbg=none
         highlight SpellCap    cterm=underline
         highlight SpellLocal  cterm=underline
         highlight SpellRare   cterm=underline

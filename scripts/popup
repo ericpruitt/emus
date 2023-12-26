@@ -1,0 +1,77 @@
+#!/bin/sh
+set -e -u
+
+usage()
+{
+    echo "Usage: ${0##*/} [-Eow] [-p PADDING] COMMAND [ARGUMENT]..."
+}
+
+main()
+{
+    mode="popup"
+    target="pane"
+    popup_options=""
+    padding=4
+
+    cwd="$(tmux display -p '#{pane_current_path}')"
+    eval "$(tmux display -p '
+        pane_width=#{pane_width}
+        pane_height=#{pane_height}
+        client_width=#{client_width}
+        client_height=#{client_height}
+        pane_left=#{pane_left}
+        pane_right=#{pane_right}
+        pane_top=#{pane_top}
+        pane_bottom=#{pane_bottom}'
+    )"
+
+    while getopts Eop:w option "$@"; do
+        case "$option" in
+          E)    popup_options="$popup_options -E" ;;
+          h)    horizontal_padding="$OPTARG" ;;
+          o)    mode="overlay"; popup_options="$popup_options -B ";;
+          p)    padding="$OPTARG" ;;
+          w)    target="window" ;;
+          \?)   usage >&2; return 1 ;;
+        esac
+    done
+
+    test "$mode" = "popup" || padding=0
+
+    shift "$((OPTIND - 1))"
+
+    if [ "$#" -eq 0 ]; then
+        usage >&2
+        return 1
+    fi
+
+    if [ "${UNAME:-}" = "Darwin" ]; then
+        # Monaco size 12 using iTerm2
+        font_height_width_ratio="17/7"
+    else
+        # DejaVu Sans Mono size 14 using st on Linux
+        font_height_width_ratio="2"
+    fi
+
+    if [ "$target" = "window" ]; then
+        x="C"
+        y="C"
+        height="$((client_height - padding))"
+        width="$((client_width - padding * font_height_width_ratio))"
+    elif [ "$mode" = "overlay" ]; then
+        height="$pane_height"
+        width="$pane_width"
+        x="$pane_left"
+        y="$((pane_bottom + 1))"
+    else
+        height="$((pane_height - padding))"
+        width="$((pane_width - padding * font_height_width_ratio))"
+        x="$((((pane_left + pane_right) / 2 - width / 2)))"
+        y="$((((pane_top + pane_bottom) / 2 + height / 2 + 1)))"
+    fi
+
+    tmux display-popup $popup_options \
+        -d "$cwd" -w "$width" -h "$height" -x "$x" -y "$y" "$@"
+}
+
+main "$@"

@@ -50,13 +50,13 @@ APPLE_BASH_RELEASE = bash-135
 APPLE_BASH = apple-$(APPLE_BASH_RELEASE)
 
 # Revision-controlled package versions:
-TMUX_VERSION = 3.2a
 UTF8PROC_VERSION = 2.7.0
 VIM_VERSION = 9.0.2112
 
 CMARK_COMMIT = 8bafc33610510834abb368b81e4841231c1bad85
 FLOCK_COMMIT = b9f6170fff275e569ef6681ce05077ebef29cc2d
 JQ_COMMIT = 71c2ab509a8628dbbad4bc7b3f98a64aa90d3297
+TMUX_COMMIT = bdf8e614af34ba1eaa8243d3a818c8546cb21812
 UCONV_COMMIT = 9a4e6e7e2cccaa79acce47e5a3d5288f70cf263b
 
 # Patch level for Chet Ramey's packages:
@@ -986,7 +986,8 @@ $(BIN)/rsync: $(RSYNC)/rsync
 	cp -f $? $@
 
 $(TMUX)/.git:
-	git clone -b $(TMUX_VERSION) https://github.com/tmux/tmux.git $(TMUX)
+	git clone https://github.com/tmux/tmux.git $(TMUX)
+	(cd $(TMUX) && git reset --hard $(TMUX_COMMIT))
 
 $(TMUX)/configure: $(COMMON)/$(LIBEVENT) $(TMUX)/.git $(COMMON)/$(NCURSES)
 	(cd $(@D) && ./autogen.sh)

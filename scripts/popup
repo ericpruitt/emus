@@ -3,13 +3,14 @@ set -e -u
 
 usage()
 {
-    echo "Usage: ${0##*/} [-Eow] [-p PADDING] COMMAND [ARGUMENT]..."
+    echo "Usage: ${0##*/} [-Eow] [-p PADDING] [-T TITLE] COMMAND [ARGUMENT]..."
 }
 
 main()
 {
     mode="popup"
     target="pane"
+    title=""
     popup_options=""
     padding=4
 
@@ -25,12 +26,13 @@ main()
         pane_bottom=#{pane_bottom}'
     )"
 
-    while getopts Eop:w option "$@"; do
+    while getopts ET:op:w option "$@"; do
         case "$option" in
           E)    popup_options="$popup_options -E" ;;
           h)    horizontal_padding="$OPTARG" ;;
           o)    mode="overlay"; popup_options="$popup_options -B ";;
           p)    padding="$OPTARG" ;;
+          T)    title="$OPTARG" ;;
           w)    target="window" ;;
           \?)   usage >&2; return 1 ;;
         esac
@@ -70,7 +72,7 @@ main()
         y="$((((pane_top + pane_bottom) / 2 + height / 2 + 1)))"
     fi
 
-    tmux display-popup $popup_options \
+    tmux display-popup $popup_options -T "$title" \
         -d "$cwd" -w "$width" -h "$height" -x "$x" -y "$y" "$@"
 }
 

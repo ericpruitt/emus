@@ -551,7 +551,7 @@ function -setup()
     set -u
     complete -r
     complete -a unalias
-    complete -c which
+    complete -c which vw
     complete -d cd rmdir
     complete -v export unset
     shopt -s autocd

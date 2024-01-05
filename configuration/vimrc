@@ -41,6 +41,7 @@ set viminfo=
 set virtualedit=block
 set visualbell
 set wildmenu
+set showcmd
 
 silent! let &t_8b="\e[48;2;%lu;%lu;%lum"
 silent! let &t_8f="\e[38;2;%lu;%lu;%lum"

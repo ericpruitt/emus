@@ -232,6 +232,12 @@ readline. For example, adding `"\C-z": "\C-afg \C-m"` to "~/.inputrc" would
 make it possible to suspend a program using ^Z then pressing ^Z again to bring
 the program back to the foreground.
 
+#### bash-5.2-fix-memory-leak.patch ####
+
+This patch fixes a memory leak associated with using `$(< ...)` constructs for
+reading files. Taken from
+<https://lists.gnu.org/archive/html/bug-bash/2024-01/msg00018.html>.
+
 #### bash-5.2-nosuchfile-hook.patch ####
 
 Allow the user to define a "no_such_file_handle" function which is analogous to

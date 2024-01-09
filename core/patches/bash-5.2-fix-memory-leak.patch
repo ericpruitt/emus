@@ -1,0 +1,16 @@
+This patch fixes a memory leak associated with using `$(< ...)` constructs for
+reading files. Taken from
+<https://lists.gnu.org/archive/html/bug-bash/2024-01/msg00018.html>.
+
+--- builtins/evalstring.c	2023-12-25 17:42:33.901344365 -0800
++++ builtins/evalstring.c	2024-01-08 18:38:24.368440964 -0800
+@@ -757,6 +757,9 @@
+       free (fn);
+       if (fnp)
+ 	*fnp = 0;
++      else
++	free(fn);
++
+       return -1;
+     }
+ 

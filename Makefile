@@ -13,6 +13,7 @@ GIT_EXCLUDE_PATTERNS = \
 	core/GNUmakefile \
 	core/gnupghome \
 	core/libevent* \
+	core/utilities/bin \
 	desktop-environment/*-src \
 	desktop-environment/bin \
 	desktop-environment/screen-locker/screen-locker \

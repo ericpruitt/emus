@@ -79,7 +79,11 @@ LIBRARIES = \
 	$(READLINE) \
 	$(UTF8PROC) \
 
+UTILITIES = \
+	utilities/bin/redundansi \
+
 BINARIES = \
+	$(UTILITIES) \
 	$(BASH)/bash \
 	$(CMARK)/build/src/cmark \
 	$(COREUTILS)/src/coreutils \
@@ -308,6 +312,7 @@ sanity:
 		  */tmux)               args="-V" ;; \
 		  */xxd)                args="" ;; \
 		  *.so)                 args="--help" ;; \
+		  utilities/bin/*)      args="--help" ;; \
 		  *)                    args="--version" ;; \
 		esac; \
 		printf "\055 %s" "$$binary: "; \
@@ -360,6 +365,19 @@ dist.tar.xz: $(BINARIES) $(COMPAT) dist.mk
 dist: dist.tar.xz
 	echo "Distributable archive:"
 	ls -h -l $?
+
+$(UTILITIES):
+	(cd utilities; \
+	target=$@; \
+	$(MAKE) \
+		CC="$(CC)" \
+		CFLAGS="$(CFLAGS)" \
+		LDFLAGS="$(LDFLAGS)" \
+		"$${target#*/}" \
+	)
+
+$(BIN)/redundansi: utilities/bin/redundansi
+	cp -f $? $@
 
 $(DEFAULT):
 	case '$@' in \

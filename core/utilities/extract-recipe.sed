@@ -1,0 +1,1 @@
+../../desktop-environment/extract-recipe.sed

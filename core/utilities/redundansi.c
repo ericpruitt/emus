@@ -265,7 +265,12 @@ int main(int argc, char **argv)
 
           // Parent
           default:
-            close(pipefds[0]);
+            if (close(pipefds[0])) {
+                perror("close");
+                signal(SIGCHLD, NULL);
+                kill(child, SIGHUP);
+                return EXIT_FAILURE;
+            }
 
             if (!(destfile = fdopen(pipefds[1], "w"))) {
                 perror("fdopen");

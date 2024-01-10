@@ -9,7 +9,7 @@
  * the data its processing to ensure Less renders the output the way a terminal
  * would.
  *
- * Make: $(CC) $(CFLAGS) -O1 -D_POSIX_C_SOURCE=200809L -o $@ $?
+ * Make: $(CC) -O1 -D_POSIX_C_SOURCE=200809L $(CFLAGS) -o $@ $?
  * Copyright: Eric Pruitt (https://www.codevat.com/)
  * License: BSD 2-Clause License (https://opensource.org/licenses/BSD-2-Clause)
  */

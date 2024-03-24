@@ -3,7 +3,7 @@ some units commonly used for cooking in the USA, and do not subdivide miles
 into yards since that is rarely done in the USA.
 
 diff --git units.c units.c
-index cd17bf4..bb63c0b 100644
+index cd17bf4..2f68748 100644
 --- units.c
 +++ units.c
 @@ -36,7 +36,7 @@ typedef struct _UnitTable
@@ -23,7 +23,7 @@ index cd17bf4..bb63c0b 100644
    { degree, "degree", "degrees,deg,degs", "angular degree" , "degrees" }, 
    { dms, "dms", "", "degrees with minutes and seconds" , "degrees" },
    { day, "day", "days", "day" , "days" }, 
-@@ -73,12 +74,12 @@ UnitTable unit_table [] =
+@@ -73,35 +74,35 @@ UnitTable unit_table [] =
    { fahrenheit, "fahrenheit", "fahr,F", "degrees fahrenheit" , "fahrenheit" }, 
    { faraday, "faraday", "faradays", "farady" , "faradays" }, 
    { fathom, "fathom", "fathoms,fm,fms", "fathom" , "fathoms" }, 
@@ -39,7 +39,17 @@ index cd17bf4..bb63c0b 100644
    { gibibit, "gibibit", "gibibits,gibit,gibits", "gibibits", "gibibits" },
    { gibibyte, "gibibyte", "gibibytes,gib", "gibibytes", "gibibytes" },
    { gigabit, "gigabit", "gigabits,gbit,gbits", "gigabits", "gigabits" },
-@@ -93,8 +94,8 @@ UnitTable unit_table [] =
+   { gigabyte, "gigabyte", "gigabytes,gb", "gigabytes", "gigabytes" },
+   { gradian, "gradian", "gradians,grad,grads", "angular gradian" , "gradians" }, 
+   { grain, "grain", "grains,gr", "grain" , "grains" }, 
+-  { gramme, "gramme", "grammes,gram,grams, g, gms", "gramme" , "grammes" }, 
+-  { grammeforce, "gramme-force", "gforce,gf,gramforce", "gramme-force"  ,
+-    "grammes-force" }, 
++  { gramme, "gram", "grams,gram,grams, g, gms", "gram" , "grams" }, 
++  { grammeforce, "gram-force", "gforce,gf,gramforce", "gram-force"  ,
++    "grams-force" }, 
+   { gray, "gray", "grays,gy,gys", "gray" , "gray" }, 
+   { hand, "hand", "hands", "hand (equestrian)" , "hands" }, 
    { hectare, "hectare", "ha,hectares", "hectare" , "hectares" }, 
    { hour, "hour", "hours,h,hr,hrs", "hour" , "hours" }, 
    { horsepower, "horsepower", "hp", "horsepower (metric)" , "horsepower" }, 
@@ -50,6 +60,14 @@ index cd17bf4..bb63c0b 100644
    { inch, "inch", "inches,in", "imperial inch" , "inches" }, 
    { joule, "joule", "joules,j,J", "joule" , "joules" }, 
    { kelvin, "kelvin", "kelvins,k,K", "kelvin" , "kelvin" }, 
+   { rankine, "rankine", "rankines,ra,Ra", "rankine" , "rankine" }, 
+   { kibibit, "kibibit", "kibibits,kibit,kibits", "kibibits", "kibibits" },
+   { kibibyte, "kibibyte", "kibibytes,kib", "kibibytes", "kibibytes" },
+-  { kilo, "kilo", "kilos", "kilogramme" , "kilos" }, 
++  { kilo, "kilo", "kilos", "kilogram" , "kilos" }, 
+   { kilobit, "kilobit", "kilobits,kbit,kbits", "kilobits", "kilobits" },
+   { kilobyte, "kilobyte", "kilobytes,kb", "kilobytes", "kilobytes" },
+   { kmh, "kmh", "kmh", "kilometres per hour" , "kmh" }, 
 @@ -125,7 +126,7 @@ UnitTable unit_table [] =
    { nauticalmile, "nautical-mile", "nautical mile,nmi,NM", 
      "nautical mile" , "nautical-miles" }, 

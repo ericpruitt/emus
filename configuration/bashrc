@@ -566,6 +566,8 @@ function -setup()
 
     trap -- -exit-trap EXIT
 
+    local orphaned_session
+
     # If the current directory is not readable, "cd" to the home directory.
     test -r . || cd
 
@@ -576,7 +578,26 @@ function -setup()
             # If a terminfo definition for tmux is not available, use screen's.
             tput -S 2>&- < /dev/null || export TERM="screen"
         elif [[ "$TERM" ]] && ! [[ "$TERM" =~ $NO_AUTO_TMUX ]]; then
-            exec tmux new -A -s 0
+            orphaned_session="$(
+                tmux list-sessions -F \
+                  '#{session_id} #{window_activity} #{window_active_clients}' \
+                | awk '
+                    $3 == 0 && $2 > latest_activity {
+                        session_id = $1
+                        latest_activity = $2
+                    }
+
+                    END {
+                        print session_id
+                    }
+                '
+            )"
+
+            if [[ "$orphaned_session" ]]; then
+                exec tmux attach-session -t "$orphaned_session"
+            else
+                exec tmux new
+            fi
         fi
     fi
 

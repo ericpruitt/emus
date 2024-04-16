@@ -308,17 +308,30 @@ function -paginate()
 #
 function from()
 {
+    local _from_oldpwd="$PWD"
+    local _from_oldpwd_was_set="${OLDPWD+x}"
+    local _from_original_oldpwd="${OLDPWD:-}"
+    local -i _from_return_code=0
+
     if [[ -z "${1:-}" ]] || [[ "$#" -lt 2 ]]; then
         echo "Usage: ${0##*/} FOLDER COMMAND [ARGUMENT...]"
         return 1
     fi
 
-    (
-        CDPATH="${FROM_CDPATH:-}:${CDPATH:-}" cd -- "$1" > /dev/null
-        shift
-        # The eval command is used here because "$@" will not expand aliases.
-        eval "$(printf " %q" "$@")"
-    )
+    CDPATH="${FROM_CDPATH:-}:${CDPATH:-}" cd -- "$1" > /dev/null || return
+    shift
+
+    # The eval command is used here because "$@" will not expand aliases.
+    eval "$(printf " %q" "$@")" || _from_return_code="$?"
+    cd "$_from_oldpwd" > /dev/null || :
+
+    if [[ "$_from_oldpwd_was_set" ]]; then
+        OLDPWD="$_from_original_oldpwd"
+    else
+        unset OLDPWD
+    fi
+
+    return "$_from_return_code"
 }
 
 # Launch a background command detached from the current terminal session.

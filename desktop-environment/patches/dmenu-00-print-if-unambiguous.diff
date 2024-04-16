@@ -38,7 +38,7 @@ index df51e76..326617b 100644
  			puts("dmenu-"VERSION);
  			exit(0);
 -		} else if (!strcmp(argv[i], "-b")) /* appears at the bottom of the screen */
-+		} else if (!strcmp(argv[i], "-a")) /* appears at the bottom of the screen */
++		} else if (!strcmp(argv[i], "-a"))
 +			printifunambiguous = 1;
 +		else if (!strcmp(argv[i], "-b")) /* appears at the bottom of the screen */
  			topbar = 0;

@@ -12,7 +12,7 @@ RUN_COMMAND_AS_ROOT = $$( \
 ) -c
 
 DMENU_URL = http://git.suckless.org/dmenu
-DMENU_COMMIT = 0fe460dbd469a1d5b6a7140d0e1801935e4a923b
+DMENU_COMMIT = 7be720cc88ed2294338f7182600df10f21c575ce
 
 DWM_URL = http://git.suckless.org/dwm
 DWM_COMMIT = e81f17d4c196aaed6893fd4beed49991caa3e2a4
@@ -219,7 +219,7 @@ dmenu-src/config.mk dwm-src/config.mk:
 	lxinerama="$$(pkg-config --silence-errors --libs xinerama)"; \
 	$(QUIETMAKE) -s config.mk \
 		CFLAGS="$${lxinerama:+-DXINERAMA}" \
-		LDFLAGS="$$lxinerama $$($(QUIETMAKE) cc-test ARGS=-lrt)" \
+		LDFLAGS="$$lxinerama -lm $$($(QUIETMAKE) cc-test ARGS=-lrt)" \
 		LIBRARIES="fontconfig x11 xft" \
 	  > $@.tmp
 	mv $@.tmp $@

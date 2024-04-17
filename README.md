@@ -426,6 +426,11 @@ Print the amount of time in milliseconds the display has been idle.
 
 ### patches/ ###
 
+#### dmenu-00-fuzzymatch.diff ####
+
+This patch implements fuzzy matching that, unlike the original implementation,
+is disabled by default.
+
 #### dmenu-00-password-prompt-option.diff ####
 
 Adds a new command line option ("-g") that turns dmenu into a password prompt.

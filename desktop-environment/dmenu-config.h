@@ -2,6 +2,7 @@ static int topbar = 1;
 static unsigned int lines = 0;
 static const char worddelimiters[] = " ";
 static const char *prompt = NULL;
+static int fuzzy = 0;
 
 static const char *fonts[] = {
     "Sans:pixelsize=14",

@@ -26,6 +26,7 @@ import getopt
 import getpass
 import os
 import platform
+import re
 import shlex
 import signal
 import subprocess
@@ -70,12 +71,11 @@ def regex_escape(text):
 
     Returns (str): Text with metacharacters escaped.
     """
-    text = text.replace("[", "[[]")
-
-    for character in "$()*+.?\\]^{|}":
-        text.replace(character, f"[{character}]")
-
-    return text
+    return re.sub(
+        r"[$()*+.?^{|}]|\[|\]",
+        lambda c: f"[{c.group(0)}]",
+        text.replace("\\", "\\\\")
+    )
 
 
 def pgrep(*arguments):

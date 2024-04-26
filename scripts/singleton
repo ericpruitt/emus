@@ -214,7 +214,7 @@ def main(argv):
     if only_match_command or not command_matches or len(command) == 1:
         common_matches = command_matches
     else:
-        argument_regex = regex_escape(" %s$" % " ".join(command[1:]))
+        argument_regex = " %s$" % regex_escape(" ".join(command[1:]))
         argument_matches = pgrep("-f", "--", argument_regex)
         common_matches = command_matches.intersection(argument_matches)
 

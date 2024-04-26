@@ -25,8 +25,8 @@ Bugs:
 import getopt
 import getpass
 import os
-import pipes
 import platform
+import shlex
 import signal
 import subprocess
 import sys
@@ -50,7 +50,7 @@ def command_path(command):
 
     try:
         output = subprocess.check_output(
-            ["sh", "-c", f"command -v -- {pipes.quote(command)}"],
+            ["sh", "-c", f"command -v -- {shlex.quote(command)}"],
             universal_newlines=True,
         )
         path = output[:-1]

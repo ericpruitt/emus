@@ -150,6 +150,7 @@ main()
         fi
 
         printf -v start "%(%s)T"
+        printf "Timeout on %(%b %d at %r)T\n" "$((start + timeout))"
     fi
 
     trap handle_sigalrm SIGALRM

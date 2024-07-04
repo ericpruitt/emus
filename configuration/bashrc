@@ -80,6 +80,7 @@ function -define-aliases()
         --exclude-dir=lost+found'
     alias head='head -n "$(((LINES - 5) / 2 + (LINES < 6)))"'
     alias help='-paginate help --'
+    alias highlight='egrep --color=always -C 999999999'
     alias history='-paginate history --'
     alias info='info --vi-keys'
     alias jq='-paginate jq -C --indent 4'

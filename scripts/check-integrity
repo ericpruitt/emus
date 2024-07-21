@@ -1,0 +1,179 @@
+#!/usr/bin/env bash
+set -e -f -u -o pipefail
+
+declare -r -i EXIT_SUCCESS=0
+declare -r -i EXIT_INTEGRITY_CHECK_FAILED=1
+declare -r -i EXIT_BAD_USAGE=2
+
+declare -r -i LOG_SILENT=0
+declare -r -i LOG_ERROR=1
+declare -r -i LOG_INFO=2
+declare -r -i LOG_DEBUG=3
+declare    -i LOG_LEVEL=LOG_ERROR
+
+declare -r SELF="${0##*/}"
+declare -r USAGE="\
+Usage: $SELF [--help] [-qv]... FILE...
+
+Check the integrity of various types of files. The type of file is detected
+automatically using file(1). At the default verbosity level, a message is
+printed only if a file fails its integrity check. At the next level, a message
+is printed for each file regardless of whether the integrity check succeeded.
+At maximum verbosity, the command used to check a file's integrity and its
+output are shown.
+
+Errors caused by incorrect usage or unsupported MIME types write messages to
+standard error while all other messages, including messages for failed
+integrity checks, are written to standard output. At maximum verbosity when the
+output of the validation commands is no longer suppressed, child processes may
+write to standard output, standard error or both.
+
+Options:
+  -h, --help, -V
+        Show this documentation and exit.
+  -q    Decrease logging verbosity. Can be used repeatedly. At the default
+        verbosity, specifying this option once silences all output from the
+        integrity check process.
+  -v    Increase logging verbosity. Can be used repeatedly.
+
+Supported MIME Types:
+$(printf '\055 %s\n' $(sed -n '/^[^(]*\/[^)]*)$/ s/[|)]/ /gp' "$0"))
+
+Exit Codes:
+- $EXIT_SUCCESS: All integrity checks succeeded.
+- $EXIT_INTEGRITY_CHECK_FAILED: One or more integrity checks failed.
+- $EXIT_BAD_USAGE: Incorrect usage or unsupported MIME type(s).
+"
+
+info()
+{
+    test "$LOG_LEVEL" -lt "$LOG_INFO" || echo "$@"
+}
+
+error()
+{
+    test "$LOG_LEVEL" -lt "$LOG_ERROR" || echo "$@"
+}
+
+run()
+{
+    if [[ "$LOG_LEVEL" -lt "$LOG_DEBUG" ]]; then
+        "$@" >/dev/null 2>&1
+    else
+        echo "Command:" "$@"
+        "$@"
+    fi
+}
+
+usage()
+{
+    if [[ "${1:-}" = "--full" ]]; then
+        echo -n "$USAGE"
+    else
+        echo "${USAGE%%$'\n\n'*}"
+    fi
+}
+
+main()
+{
+    local -a argv
+    local char
+    local description
+    local file_output
+    local option
+    local path
+    local return_code
+
+    while getopts :hqVv-: char; do
+        option="-$char${OPTARG:-}"
+
+        case "$option" in
+          -q)           LOG_LEVEL=$((LOG_LEVEL - (LOG_LEVEL > LOG_SILENT))) ;;
+          -v)           LOG_LEVEL=$((LOG_LEVEL + (LOG_LEVEL < LOG_DEBUG)))  ;;
+          -h|--help|-V) usage --full; return                                ;;
+
+          *)
+            echo "$SELF: unrecognized option \"$option\"" >&2
+            return "$EXIT_BAD_USAGE"
+          ;;
+        esac
+    done
+
+    shift "$((OPTIND - 1))"
+
+    if [[ "$#" -eq 0 ]]; then
+        usage >&2
+        return "$EXIT_BAD_USAGE"
+    fi
+
+    for path in "$@"; do
+        if ! file_output="$(file -E --brief --mime-type -- "$path")"; then
+            error "$file_output" >&2
+            return_code="$EXIT_BAD_USAGE"
+            continue
+        fi
+
+        case "$file_output" in
+          application/gzip)
+            argv=(gzip --test -- "$path")
+          ;;
+
+          application/x-7z-compressed)
+            argv=(7z t -- "$path")
+          ;;
+
+          application/x-bzip2)
+            argv=(bzip2 --test -- "$path")
+          ;;
+
+          application/x-rar)
+            argv=(unrar t -- "$path")
+          ;;
+
+          application/x-xz)
+            argv=(xz --test -- "$path")
+          ;;
+
+          application/zip)
+            # Rewrite "-..." as "./-..." to ensure the path is not parsed as an
+            # option since zip(1) requires the archive name to come before
+            # "--" for some reason.
+            argv=(zip -T "${path/#-/./-}")
+          ;;
+
+          audio/*|video/*)
+            argv=(
+              ffmpeg -v error -xerror -err_detect explode -i "$path" -f null -
+            )
+          ;;
+
+          image/*)
+            argv=(identify -regard-warnings -- "$path")
+          ;;
+
+          *)
+            error "$path: MIME type \"$file_output\" is unsupported" >&2
+            return_code="$EXIT_BAD_USAGE"
+            continue
+          ;;
+        esac
+
+        if run "${argv[@]}"; then
+            info "$path: OK"
+            continue
+        fi
+
+        case "$file_output" in
+          application/x-*)  description="${file_output#*/x-}" ;;
+          application/*)    description="${file_output#*/}"   ;;
+          *)                description="${file_output%/*}"   ;;
+        esac
+
+        error "$path: errors found in $description file"
+        return_code="${return_code:-$EXIT_INTEGRITY_CHECK_FAILED}"
+    done
+
+    return "${return_code:-$EXIT_SUCCESS}"
+}
+
+main "$@"

@@ -134,6 +134,7 @@ deps:
 			libxinerama-dev \
 			libxrandr-dev \
 			libxss-dev \
+			mesa-utils \
 			moc \
 			moc-ffmpeg-plugin \
 			pkg-config \

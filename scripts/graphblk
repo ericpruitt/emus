@@ -5,7 +5,8 @@ Usage: graphblk [-adfhlmrSs] [--help] [DEVICE]...
 Generate a DOT graph of all available or the specified block devices and
 associated filesystems. Disks with spinning platters are represented by
 cylinders, sold state devices are represented with 3D boxes, and disc drives
-are represented by a two concentric circles.
+are represented by a two concentric circles. MD RAID journal device are denoted
+with a "(J)" label suffix.
 
 Options:
   -a    Show all topological details. This is essentially an alias for "-l -f"
@@ -32,6 +33,7 @@ Examples:
   graphblk -a -r | xdot -
 """
 import getopt
+import glob
 import json
 import os
 import re
@@ -169,6 +171,24 @@ def is_rotational(name):
     return bool(int(content))
 
 
+def md_member_state(path):
+    """
+    Determine the state of an MD RAID member device.
+
+    Arguments:
+    - path (str): The path to the device immediately under "/dev/".
+
+    Returns: The state of the device or None if it cannot be determined or if
+    the specified device is not a RAID member.
+    """
+    assert os.path.dirname(path) == "/dev"
+    basename = os.path.basename(path)
+    state_file, = glob.glob(f"/sys/block/md*/md/dev-{basename}/state")
+
+    with open(state_file) as fd:
+        return fd.read().strip()
+
+
 def build_graph(devices, *, show_sizes, si_units, show_device_types,
   show_fs_types, show_removable, distinguish_media, follow_loopback_devices):
     """
@@ -198,7 +218,7 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
     first member, and a set a with the paths of any devices that could not be
     found as the second member.
     """
-    fields = "TYPE,MAJ:MIN,MOUNTPOINT,NAME,RM"
+    fields = "TYPE,MAJ:MIN,MOUNTPOINT,NAME,RM,PATH"
 
     if show_fs_types:
         fields += ",FSTYPE"
@@ -240,6 +260,16 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
         if not show_removable and device["rm"] in ("1", True):
             continue
 
+        # Add any children of this device to the processing stack, and
+        # determine what type of RAID component, if any, the device is.
+        md_state = None
+
+        for child in device.get("children", ()):
+            if not md_state and child["type"] in ("raid4", "raid5", "raid6"):
+                md_state = md_member_state(device["path"])
+
+            stack.append((child, device_node))
+
         if not show_device_types:
             show_its_type = False
         elif device["type"] == "rom":
@@ -261,6 +291,9 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
             saw_loopback_device = (device["type"] == "loop")
 
         label = device["name"]
+
+        if md_state == "journal":
+            label += " (J)"
 
         if show_sizes:
             size = int(device["size"])  # Required for older lsblk releases.
@@ -294,10 +327,6 @@ def build_graph(devices, *, show_sizes, si_units, show_device_types,
 
         graph.node(device_node, label=label, shape=shape)
         node_names[device["name"]] = device_node
-
-        # Add any children of this device to the processing stack.
-        for child in device.get("children", ()):
-            stack.append((child, device_node))
 
     if follow_loopback_devices and saw_loopback_device:
         # Attempt to determine which mountpoint houses the backing files for

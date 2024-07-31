@@ -3,19 +3,63 @@ exec > /dev/null 2>&1
 
 . ~/.profile
 
+eval "$(
+    xrandr --verbose \
+    | awk '/\+preferred/ {
+        x_pos = index($1, "x")
+        print "export NATIVE_DISPLAY_WIDTH=" substr($1, x_pos + 1)
+        print "export NATIVE_DISPLAY_HEIGHT=" substr($1, 1, x_pos - 1)
+        exit
+    }'
+)"
+
+if [ "${NATIVE_DISPLAY_HEIGHT:-0}" -eq 3840 ]; then
+    # For 14-inch laptops and 24-inch monitors.
+    if [ -z "$DISPLAY_DPI" ]; then
+        if [ "$IS_LAPTOP" ]; then
+            # The actual DPI is 314, but that results in the text and UI
+            # elements being too big on a 14-inch display. The scale with 157
+            # DPI should be ~1.6, but that ends up being too small for my
+            # tastes, and fractional scaling support is spotty anyway.
+            export DISPLAY_DPI=157
+        else
+            export DISPLAY_DPI=185  # Untested
+        fi
+    fi
+
+    export UHD_DISPLAY="x"
+    export UI_SCALE="${UI_SCALE:-2}"
+else
+    export DISPLAY_DPI="${DISPLAY_DPI:-96}"
+    export UI_SCALE="${UI_SCALE:-1}"
+fi
+
+export DPI_SCALE="$(echo "1 / $UI_SCALE" | bc)"
+export XCURSOR_SIZE="$(echo "scale=0; 24 * $UI_SCALE / 1" | bc)"
+
+export GDK_DPI_SCALE="$DPI_SCALE"
+export GDK_SCALE="$UI_SCALE"
+export QT_SCALE_FACTOR="$UI_SCALE"
+
+xrdb -override "$EMUS/configuration/xrdb.ad"
+echo "Xft.dpi: $DISPLAY_DPI" | xrdb -override -
+xrandr --dpi "$DISPLAY_DPI"
+
 xmodmap -e "remove mod4 = Hyper_L" \
         -e "remove Lock = Caps_Lock" \
         -e "keysym Caps_Lock = Hyper_L" \
         -e "add mod3 = Hyper_L"
-xrdb -load "$EMUS/configuration/xrdb.ad"
 xset s off -dpms
 blackwalls
 
 test -e "$HOME/.local.xsession" && . "$HOME/.local.xsession"
 
-compton --daemon -C $(
+# Using "--daemon" does not work on my T14 AMD laptop and results in no windows
+# or UI elements being displayed although I can still interact with them; see
+# <https://github.com/chjj/compton/issues/339>.
+compton -C $(
     glxinfo | fgrep -q "direct rendering: Yes" && echo " --backend=glx"
-)
+) &
 
 st &
 statusline -i -m -z US/Pacific | singleton fifo2rootname &

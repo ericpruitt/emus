@@ -1,5 +1,6 @@
 #define MODKEY HyperKey
 #include "dwm-hooks.c"
+#include "xft.h"
 
 static const unsigned int borderpx = 1;
 static const float mfact           = 0.5;
@@ -52,9 +53,9 @@ static const char *colors[][3] = {
  * as fallbacks when preceding fonts are missing a specific glyph.
  */
 static const char *fonts[] = {
-    "Sans:pixelsize=14",
-    "VL Gothic:pixelsize=14",
-    "WenQuanYi Micro Hei:pixelsize=14",
+    XFT_FONT("Sans"),
+    XFT_FONT("VL Gothic"),
+    XFT_FONT("WenQuanYi Micro Hei"),
 };
 
 /**

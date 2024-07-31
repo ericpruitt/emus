@@ -121,6 +121,7 @@ deps:
 	if [ -e /etc/debian_version ]; then \
 		apt-get install -y \
 			acpid \
+			bc \
 			compton \
 			fonts-dejavu \
 			fonts-symbola \
@@ -192,6 +193,7 @@ cc-test:
 config.mk:
 	echo CFLAGS = -std=c99 -pedantic -Wall -O3 -I.. \
 		-D_DEFAULT_SOURCE '-DVERSION=\"edge\"' $(CFLAGS) \
+		$$(test -z "$$UHD_DISPLAY" || echo "-DUHD_DISPLAY=1") \
 		$$(test -z "$(LIBRARIES)" || pkg-config --cflags $(LIBRARIES))
 	echo LDFLAGS = $(LDFLAGS) \
 		$$(test -z "$(LIBRARIES)" || pkg-config --libs $(LIBRARIES))

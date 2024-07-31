@@ -150,7 +150,7 @@ index aa09997..b8cddac 100644
 +		xloadfonts(opt_font, 0);
 +	}
 +
-+	for (i = 0; fonts[i]; i++) {
++	for (i = 0; i < LEN(fonts); i++) {
 +		xloadfonts(fonts[i], 0);
 +	}
  

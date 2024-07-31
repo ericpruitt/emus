@@ -84,6 +84,17 @@ export PS_FORMAT="$(
     }'
 )"
 
+# These are the same values that Debian's laptop-detect script uses to
+# determine if a system is likely a laptop.
+case "$(cat /sys/devices/virtual/dmi/id/chassis_type 2>/dev/null)" in
+  8|9|10|11)
+    export IS_LAPTOP="x"
+  ;;
+  *)
+    export IS_LAPTOP=""
+  ;;
+esac
+
 eval "$(dircolors -b "$HOME/.dircolors" 2>/dev/null)"
 eval "$(jqcolors "$HOME/.jqcolors" 2>/dev/null)"
 eval "$(lesspipe 2>/dev/null)"

@@ -61,6 +61,13 @@ compton -C $(
     glxinfo | fgrep -q "direct rendering: Yes" && echo " --backend=glx"
 ) &
 
+# Configure NVIDIA driver to make full use of the compositor to reduce tearing.
+if command -v nvidia-settings; then
+    nvidia-settings --assign CurrentMetaMode="nvidia-auto-select +0+0 {
+        ForceFullCompositionPipeline = On
+    }"
+fi
+
 st &
 statusline -i -m -z US/Pacific | singleton fifo2rootname &
 thunar --daemon &

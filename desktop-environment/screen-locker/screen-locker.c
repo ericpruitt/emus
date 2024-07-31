@@ -555,7 +555,9 @@ int main(int argc, char **argv)
     XSync(display, 0);
 
     // Run post-lock command.
-    if (argc > 0) {
+    argv += optind;
+
+    if (argv[0]) {
         switch (fork()) {
           case -1:
             perror("unable to run post-lock command; fork failed");

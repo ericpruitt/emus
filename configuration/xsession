@@ -84,7 +84,6 @@ statusline -i -m -z US/Pacific | singleton fifo2rootname &
 thunar --daemon &
 
 PATH="$EMUS/desktop-environment/scripts:$PATH"
-singleton hid-monitor &
 singleton media-control monitor &
 
 until dwm; do sleep 1; done

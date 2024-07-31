@@ -52,8 +52,6 @@ xmodmap -e "remove mod4 = Hyper_L" \
 xset s off -dpms
 blackwalls
 
-test -e "$HOME/.local.xsession" && . "$HOME/.local.xsession"
-
 # Using "--daemon" does not work on my T14 AMD laptop and results in no windows
 # or UI elements being displayed although I can still interact with them; see
 # <https://github.com/chjj/compton/issues/339>.
@@ -67,6 +65,19 @@ if command -v nvidia-settings; then
         ForceFullCompositionPipeline = On
     }"
 fi
+
+pipe="$HOME/.screen-locker-pipe"
+rm -f -- "$pipe"
+mkfifo -- "$pipe" || exit
+
+font_size="$(echo "scale=0; 60 / $DPI_SCALE / 1" | bc)"
+PIPE="$pipe" screen-locker \
+    -m "${HOSTNAME:-Ready.}" \
+    -n "-misc-fixed-bold-r-normal--$font_size-*-*-*-*-*-*-*" \
+    sh -c 'echo OK > "$PIPE"' &
+timeout 5 grep -q OK -- "$pipe" || exit
+
+test -e "$HOME/.local.xsession" && . "$HOME/.local.xsession"
 
 st &
 statusline -i -m -z US/Pacific | singleton fifo2rootname &

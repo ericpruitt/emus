@@ -33,6 +33,7 @@ enum {
     COLOR_ENTRY_STARTED,
     COLOR_ENTRY_REJECTED,
     COLOR_PAM_AUTHENTICATION,
+    COLOR_TEXT,
     COLOR_LAST,
 };
 
@@ -54,6 +55,7 @@ static char *colornames[COLOR_LAST] = {
     [COLOR_ENTRY_STARTED] = "#0044aa",
     [COLOR_PAM_AUTHENTICATION] = "#ffff00",
     [COLOR_ENTRY_REJECTED] = "#aa0000",
+    [COLOR_TEXT] = "#ffffff",
 };
 
 // Treat a cleared input like a wrong password
@@ -62,6 +64,8 @@ static Display *display = NULL;
 static struct lock **locks = NULL;
 static size_t screens = 0;
 static char userinput[256];
+static const char *message = NULL;
+static const char *font = "6x10";
 
 static void setcolor(int color)
 {
@@ -160,6 +164,43 @@ static void wipe_memory(char *buffer, size_t bufsize)
     for (k = buffer; k < (buffer + bufsize); k++) {
         *k = '\0';
     }
+}
+
+static void writemessage(Display *dpy, Window win, int screen)
+{
+    int font_height;
+    int len;
+    int x;
+    int y;
+
+    XGCValues gr_values;
+    XFontStruct *font_info;
+    XColor color, dummy;
+    GC gc;
+
+    if (!message || message[0] == '\0') {
+        return;
+    }
+
+    font_info = XLoadQueryFont(dpy, font);
+
+    if (font_info == NULL) {
+        warn("unable to load font \"%s\"", font);
+        return;
+    }
+
+    XAllocNamedColor(dpy, DefaultColormap(dpy, screen), colornames[COLOR_TEXT],
+        &color, &dummy);
+
+    gr_values.font = font_info->fid;
+    gr_values.foreground = color.pixel;
+    gc = XCreateGC(dpy,win,GCFont + GCForeground, &gr_values);
+
+    len = strlen(message);
+    font_height = font_info->ascent + font_info->descent;
+    y = (DisplayHeight(dpy, screen) + font_height) / 2;
+    x = (DisplayWidth(dpy, screen)- XTextWidth(font_info, message, len)) / 2;
+    XDrawString(dpy, win, gc, x, y, message, len);
 }
 
 static void
@@ -282,6 +323,7 @@ readpw(struct xrandr *rr, const char *hash)
                 }
 
                 XClearWindow(display, locks[screen]->win);
+                writemessage(display, locks[screen]->win, screen);
                 break;
             }
         } else {
@@ -398,14 +440,23 @@ static int parse_options(int argc, char **argv)
 
     int errors = 0;
 
-    while ((option = getopt(argc, argv, "d:i:f:p:")) != -1) {
+    while ((option = getopt(argc, argv, "+d:i:f:p:m:n:t:")) != -1) {
         color = COLOR_UNSET;
 
         switch (option) {
+          case 'm':
+            message = optarg;
+            break;
+
+          case 'n':
+            font = optarg;
+            break;
+
           case 'd': color = color ? color : COLOR_NO_ACTIVITY;
           case 'i': color = color ? color : COLOR_ENTRY_STARTED;
           case 'f': color = color ? color : COLOR_ENTRY_REJECTED;
           case 'p': color = color ? color : COLOR_PAM_AUTHENTICATION;
+          case 't': color = color ? color : COLOR_TEXT;
 
             if (XAllocNamedColor(display, DefaultColormap(display, 0),
               optarg, &xcolor, &ignored)) {
@@ -416,6 +467,14 @@ static int parse_options(int argc, char **argv)
             warn("-%c: %s: unrecognized color format or name", option, optarg);
             errors |= 1;
             break;
+
+        case '+':
+          // Using "+" to ensure POSIX-style argument parsing is a GNU
+          // extension, so an explicit check for "+" as a flag is added for
+          // other getopt(3) implementations.
+          fprintf(stderr, "%s: invalid option -- '%c'\n", argv[0], option);
+        default:
+          return 1;
         }
     }
 
@@ -489,6 +548,7 @@ int main(int argc, char **argv)
             return 1;
         }
 
+        writemessage(display, locks[s]->win, s);
         nlocks++;
     }
 

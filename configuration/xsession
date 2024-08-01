@@ -104,4 +104,4 @@ PATH="$EMUS/desktop-environment/scripts:$PATH"
 singleton media-control monitor &
 
 until dwm; do sleep 1; done
-kill -SIGHUP -$$
+kill -SIGTERM -$$

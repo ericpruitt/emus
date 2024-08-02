@@ -91,7 +91,7 @@ pipe="$HOME/.screen-locker-pipe"
 rm -f -- "$pipe"
 mkfifo -- "$pipe" || exit
 
-font_size="$(echo "scale=0; 60 / $DPI_SCALE / 1" | bc)"
+font_size="$((60 * display_height / 1200))"
 PIPE="$pipe" screen-locker \
     -m "${HOSTNAME:-Ready.}" \
     -n "-misc-fixed-bold-r-normal--$font_size-*-*-*-*-*-*-*" \

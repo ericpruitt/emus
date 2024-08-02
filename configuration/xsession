@@ -21,7 +21,7 @@ if [ "${NATIVE_DISPLAY_HEIGHT:-0}" -eq 3840 ]; then
             # elements being too big on a 14-inch display. The scale with 157
             # DPI should be ~1.6, but that ends up being too small for my
             # tastes, and fractional scaling support is spotty anyway.
-            export DISPLAY_DPI=157
+            export DISPLAY_DPI=174
         else
             export DISPLAY_DPI=185  # Untested
         fi

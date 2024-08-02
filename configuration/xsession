@@ -15,13 +15,17 @@ eval "$(
 
 if [ "${NATIVE_DISPLAY_HEIGHT:-0}" -eq 3840 ]; then
     # For 14-inch laptops and 24-inch monitors.
+    if [ -z "$FONT_DPI" ]; then
+        if [ "$IS_LAPTOP" ]; then
+            export FONT_DPI=174
+        else
+            export FONT_DPI=185  # Untested
+        fi
+    fi
+
     if [ -z "$DISPLAY_DPI" ]; then
         if [ "$IS_LAPTOP" ]; then
-            # The actual DPI is 314, but that results in the text and UI
-            # elements being too big on a 14-inch display. The scale with 157
-            # DPI should be ~1.6, but that ends up being too small for my
-            # tastes, and fractional scaling support is spotty anyway.
-            export DISPLAY_DPI=174
+            export DISPLAY_DPI=314
         else
             export DISPLAY_DPI=185  # Untested
         fi
@@ -34,7 +38,7 @@ else
     export UI_SCALE="${UI_SCALE:-1}"
 fi
 
-export DPI_SCALE="$(echo "1 / $UI_SCALE" | bc)"
+export DPI_SCALE="$(echo "$FONT_DPI / $DISPLAY_DPI" | bc)"
 export XCURSOR_SIZE="$(echo "scale=0; 24 * $UI_SCALE / 1" | bc)"
 
 export GDK_DPI_SCALE="$DPI_SCALE"
@@ -42,7 +46,7 @@ export GDK_SCALE="$UI_SCALE"
 export QT_SCALE_FACTOR="$UI_SCALE"
 
 xrdb -override "$EMUS/configuration/xrdb.ad"
-echo "Xft.dpi: $DISPLAY_DPI" | xrdb -override -
+echo "Xft.dpi: $FONT_DPI" | xrdb -override -
 xrandr --dpi "$DISPLAY_DPI"
 
 xset s off -dpms

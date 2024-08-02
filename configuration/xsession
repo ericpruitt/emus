@@ -5,15 +5,15 @@ exec > /dev/null 2>&1
 
 eval "$(
     xrandr --verbose \
-    | awk '/\+preferred/ {
+    | awk '/\*current/ {
         x_pos = index($1, "x")
-        print "export NATIVE_DISPLAY_WIDTH=" substr($1, x_pos + 1)
-        print "export NATIVE_DISPLAY_HEIGHT=" substr($1, 1, x_pos - 1)
+        print "display_height=" substr($1, x_pos + 1)
+        print "display_width=" substr($1, 1, x_pos - 1)
         exit
     }'
 )"
 
-if [ "${NATIVE_DISPLAY_HEIGHT:-0}" -eq 3840 ]; then
+if [ "${display_width:-0}" -eq 3840 ]; then
     # For 14-inch laptops and 24-inch monitors.
     if [ -z "$FONT_DPI" ]; then
         if [ "$IS_LAPTOP" ]; then

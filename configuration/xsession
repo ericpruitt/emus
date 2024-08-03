@@ -53,6 +53,7 @@ export QT_SCALE_FACTOR="$UI_SCALE"
 
 xrdb -override "$EMUS/configuration/xrdb.ad"
 echo "Xft.dpi: $FONT_DPI" | xrdb -override -
+echo "Xcursor.size: $XCURSOR_SIZE" | xrdb -override -
 xrandr --dpi "$DISPLAY_DPI"
 
 xset s off -dpms

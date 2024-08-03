@@ -60,11 +60,9 @@ compton -C $(
 ) &
 
 # Configure NVIDIA driver to make full use of the compositor to reduce tearing.
-if command -v nvidia-settings; then
-    nvidia-settings --assign CurrentMetaMode="nvidia-auto-select +0+0 {
-        ForceFullCompositionPipeline = On
-    }"
-fi
+nvidia-settings --assign CurrentMetaMode="nvidia-auto-select +0+0 {
+    ForceFullCompositionPipeline = On
+}"
 
 # Monitor "/dev/input/by-id/" for keyboards that have been plugged in and
 # configure them to convert the Caps Lock key to the Hyper key. Plugging in a

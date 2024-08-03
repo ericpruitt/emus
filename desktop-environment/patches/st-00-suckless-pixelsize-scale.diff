@@ -1,0 +1,55 @@
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+Add support for scaling fonts that have their height defined with fontconfig's
+"pixelsize" parameter by the factor defined in the "SUCKLESS_PIXELSIZE_SCALE"
+environment variable. The factor is implemented with support for fractional
+values. "size" is not scaled because Xft implicitly does DPI-based scaling of
+its own when that parameter is used.
+
+diff --git a/x.c b/x.c
+index b36fb8c..6aeeceb 100644
+--- a/x.c
++++ b/x.c
+@@ -980,6 +980,33 @@ xloadfont(Font *f, FcPattern *pattern)
+ 	return 0;
+ }
+ 
++static void
++scale_pixelsize(FcPattern *pattern)
++{
++	double pixelsize;
++	char *value;
++
++	static int scale_initialized = 0;
++	static double scale = 1;
++
++	if (!scale_initialized) {
++		if ((value = getenv("SUCKLESS_PIXELSIZE_SCALE"))) {
++			scale = atof(value);
++
++			if (scale <= 0) {
++				scale = 1;
++			}
++		}
++
++		scale_initialized = 1;
++	}
++
++	if (FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &pixelsize) == FcResultMatch) {
++		FcPatternDel(pattern, FC_PIXEL_SIZE);
++		FcPatternAddDouble(pattern, FC_PIXEL_SIZE, pixelsize * scale);
++	}
++}
++
+ void
+ xloadfonts(const char *fontstr, double fontsize)
+ {
+@@ -994,6 +1021,8 @@ xloadfonts(const char *fontstr, double fontsize)
+ 	if (!pattern)
+ 		die("can't open font %s\n", fontstr);
+ 
++	scale_pixelsize(pattern);
++
+ 	if (fontsize > 1) {
+ 		FcPatternDel(pattern, FC_PIXEL_SIZE);
+ 		FcPatternDel(pattern, FC_SIZE);

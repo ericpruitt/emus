@@ -1,0 +1,70 @@
+- Author: Eric Pruitt (https://www.codevat.com/, https://github.com/ericpruitt/)
+
+Add support for scaling fonts that have their height defined with fontconfig's
+"pixelsize" parameter by the factor defined in the "SUCKLESS_PIXELSIZE_SCALE"
+environment variable. The factor is implemented with support for fractional
+values. "size" is not scaled because Xft implicitly does DPI-based scaling of
+its own when that parameter is used.
+
+diff --git a/drw.c b/drw.c
+index a58a2b4..955fbcb 100644
+--- a/drw.c
++++ b/drw.c
+@@ -99,6 +99,33 @@ drw_free(Drw *drw)
+ 	free(drw);
+ }
+ 
++static void
++scale_pixelsize(FcPattern *pattern)
++{
++	double pixelsize;
++	char *value;
++
++	static int scale_initialized = 0;
++	static double scale = 1;
++
++	if (!scale_initialized) {
++		if ((value = getenv("SUCKLESS_PIXELSIZE_SCALE"))) {
++			scale = atof(value);
++
++			if (scale <= 0) {
++				scale = 1;
++			}
++		}
++
++		scale_initialized = 1;
++	}
++
++	if (FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &pixelsize) == FcResultMatch) {
++		FcPatternDel(pattern, FC_PIXEL_SIZE);
++		FcPatternAddDouble(pattern, FC_PIXEL_SIZE, pixelsize * scale);
++	}
++}
++
+ /* This function is an implementation detail. Library users should use
+  * drw_fontset_create instead.
+  */
+@@ -115,15 +142,19 @@ xfont_create(Drw *drw, const char *fontname, FcPattern *fontpattern)
+ 		 * FcNameParse; using the latter results in the desired fallback
+ 		 * behaviour whereas the former just results in missing-character
+ 		 * rectangles being drawn, at least with some fonts. */
+-		if (!(xfont = XftFontOpenName(drw->dpy, drw->screen, fontname))) {
+-			fprintf(stderr, "error, cannot load font from name: '%s'\n", fontname);
+-			return NULL;
+-		}
+ 		if (!(pattern = FcNameParse((FcChar8 *) fontname))) {
+ 			fprintf(stderr, "error, cannot parse font name to pattern: '%s'\n", fontname);
+ 			XftFontClose(drw->dpy, xfont);
+ 			return NULL;
+ 		}
++
++		scale_pixelsize(pattern);
++
++		// XXX: Not sure why XftFontOpenPattern(drw->dpy, pattern) doesn't work.
++		if (!(xfont = XftFontOpenName(drw->dpy, drw->screen, FcNameUnparse(pattern)))) {
++			fprintf(stderr, "error, cannot load font from pattern: %s\n", (FcChar8 *) FcNameUnparse(pattern));
++			return NULL;
++		}
+ 	} else if (fontpattern) {
+ 		if (!(xfont = XftFontOpenPattern(drw->dpy, fontpattern))) {
+ 			fprintf(stderr, "error, cannot load font from pattern.\n");

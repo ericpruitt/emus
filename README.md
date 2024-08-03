@@ -440,6 +440,14 @@ Adds a new command line option ("-g") that turns dmenu into a password prompt.
 This patch adds a new command line option ("-a") that will make dmenu print the
 current selection and exit if the user input only matches one item.
 
+#### dmenu-00-suckless-pixelsize-scale.diff ####
+
+Add support for scaling fonts that have their height defined with fontconfig's
+"pixelsize" parameter by the factor defined in the "SUCKLESS_PIXELSIZE_SCALE"
+environment variable. The factor is implemented with support for fractional
+values. "size" is not scaled because Xft implicitly does DPI-based scaling of
+its own when that parameter is used.
+
 #### dmenu-00-user-defined-prompt-colors.diff ####
 
 With this patch, the prompt foreground can be specified with the "-pf" command
@@ -584,6 +592,14 @@ equal to 199309 (`cc ... -D_POSIX_C_SOURCE=199309L ...`).
 Makes clicks on the window title area register only if they happen in the top
 half. This patch was created to reduce the amount of accidental window closures
 caused by attempts to middle-mouse-click browser tabs.
+
+#### dwm-00-suckless-pixelsize-scale.diff ####
+
+Add support for scaling fonts that have their height defined with fontconfig's
+"pixelsize" parameter by the factor defined in the "SUCKLESS_PIXELSIZE_SCALE"
+environment variable. The factor is implemented with support for fractional
+values. "size" is not scaled because Xft implicitly does DPI-based scaling of
+its own when that parameter is used.
 
 #### dwm-00-systray.diff ####
 
@@ -738,6 +754,14 @@ with two others specified as fallbacks:
         "WenQuanYi Micro Hei",
         NULL
     };
+
+#### st-00-suckless-pixelsize-scale.diff ####
+
+Add support for scaling fonts that have their height defined with fontconfig's
+"pixelsize" parameter by the factor defined in the "SUCKLESS_PIXELSIZE_SCALE"
+environment variable. The factor is implemented with support for fractional
+values. "size" is not scaled because Xft implicitly does DPI-based scaling of
+its own when that parameter is used.
 
 #### st-01-underscore-ascent-scale.diff ####
 

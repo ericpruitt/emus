@@ -31,11 +31,19 @@ if [ "${display_width:-0}" -eq 3840 ]; then
         fi
     fi
 
-    export UHD_DISPLAY="x"
     export UI_SCALE="${UI_SCALE:-2}"
 else
     export DISPLAY_DPI="${DISPLAY_DPI:-96}"
     export UI_SCALE="${UI_SCALE:-1}"
+fi
+
+if [ -z "$SUCKLESS_PIXELSIZE_SCALE" ]; then
+    # Suckless GUI sizes are determined exclusively by the font size, so the
+    # effective scaling ratio is the ratio of the desired font DPI and what
+    # value the font DPI would need be to maintain proportionality with the UI.
+    export SUCKLESS_PIXELSIZE_SCALE="$(
+        echo "$UI_SCALE * $FONT_DPI / ($DISPLAY_DPI / $UI_SCALE)" | bc
+    )"
 fi
 
 export DPI_SCALE="$(echo "$FONT_DPI / $DISPLAY_DPI" | bc)"

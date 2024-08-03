@@ -1,5 +1,3 @@
-#include "xft.h"
-
 static int topbar = 1;
 static unsigned int lines = 0;
 static const char worddelimiters[] = " ";
@@ -7,7 +5,7 @@ static const char *prompt = NULL;
 static int fuzzy = 0;
 
 static const char *fonts[] = {
-    XFT_FONT("Sans"),
+    "Sans:pixelsize=14",
 };
 
 static const char *colors[SchemeLast][2] = {

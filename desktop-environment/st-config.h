@@ -1,5 +1,3 @@
-#include "xft.h"
-
 /**
  * Array of the primary font and fallback fonts
  *
@@ -13,11 +11,11 @@ static const char *fonts[] = {
     // appearance of other characters to change for reasons beyond my
     // knowledge. Both font definitions here appear here to address those
     // issues.
-    XFT_FONT("DejaVu Sans Mono"),
-    XFT_FONT("DejaVu Sans Mono:style=Book"),
+    "DejaVu Sans Mono:pixelsize=14",
+    "DejaVu Sans Mono:style=Book:pixelsize=14",
 
-    XFT_FONT("VL Gothic"),
-    XFT_FONT("WenQuanYi Micro Hei"),
+    "VL Gothic:pixelsize=14",
+    "WenQuanYi Micro Hei:pixelsize=14",
 };
 
 static int borderpx = 0;

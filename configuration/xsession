@@ -46,10 +46,8 @@ if [ -z "$SUCKLESS_PIXELSIZE_SCALE" ]; then
     )"
 fi
 
-export DPI_SCALE="$(echo "$FONT_DPI / $DISPLAY_DPI" | bc)"
 export XCURSOR_SIZE="$(echo "scale=0; 24 * $UI_SCALE / 1" | bc)"
-
-export GDK_DPI_SCALE="$DPI_SCALE"
+export GDK_DPI_SCALE="$(echo "$FONT_DPI / $DISPLAY_DPI" | bc)"
 export GDK_SCALE="$UI_SCALE"
 export QT_SCALE_FACTOR="$UI_SCALE"
 

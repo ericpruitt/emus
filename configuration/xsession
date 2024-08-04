@@ -66,17 +66,21 @@ xrandr --dpi "$DISPLAY_DPI"
 xset s off -dpms
 blackwalls
 
-# Using "--daemon" does not work on my T14 AMD laptop and results in no windows
-# or UI elements being displayed although I can still interact with them; see
-# <https://github.com/chjj/compton/issues/339>.
-compton -C $(
-    glxinfo | fgrep -q "direct rendering: Yes" && echo " --backend=glx"
-) &
-
-# Configure NVIDIA driver to make full use of the compositor to reduce tearing.
-nvidia-settings --assign CurrentMetaMode="nvidia-auto-select +0+0 {
-    ForceFullCompositionPipeline = On
-}"
+if ! glxinfo | fgrep -q "direct rendering: Yes"; then
+    compton --daemon -C
+elif command -v nvidia-settings; then
+    compton --daemon -C --backend=glx
+    # Configure NVIDIA driver to make full use of the compositor to reduce
+    # tearing.
+    nvidia-settings --assign CurrentMetaMode="nvidia-auto-select +0+0 {
+        ForceFullCompositionPipeline = On
+    }"
+else
+    # Using "--daemon" does not work on my T14 AMD laptop and results in no
+    # windows or UI elements being displayed although I can still interact with
+    # them; see <https://github.com/chjj/compton/issues/339>.
+    compton -C --backend=glx &
+fi
 
 # Monitor "/dev/input/by-id/" for keyboards that have been plugged in and
 # configure them to convert the Caps Lock key to the Hyper key. Plugging in a

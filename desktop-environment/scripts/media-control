@@ -77,6 +77,20 @@ _bass_toggle()
     amixer -q -c "Audigy2" set Tone playback toggle
 }
 
+# Increase backlight brightness.
+#
+_brightness_up()
+{
+    brightnessctl set 10%+
+}
+
+# Decrease backlight brightness.
+#
+_brightness_down()
+{
+    brightnessctl set 10%-
+}
+
 # Monitor and react to media and audio-related ACPI events.
 #
 # Arguments:
@@ -97,6 +111,8 @@ _monitor()
           */next*)          _next_track         ;;
           */stop*)          _stop_playlist      ;;
           */mute*)          _toggle_muted_audio ;;
+          */brightnessup*)  _brightness_up      ;;
+          */brightnessdown*)_brightness_down    ;;
         esac || : # Ignore non-zero return codes from functions.
     done
 

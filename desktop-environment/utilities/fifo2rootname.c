@@ -13,7 +13,9 @@
 #include <errno.h>
 #include <libgen.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <X11/Xlib.h>
@@ -39,10 +41,18 @@ int main(int argc, char **argv)
     size_t bufsize = 0;
     Display *display = NULL;
     char *line = NULL;
+    bool quiet = false;
 
-    if (argc > 1) {
-        fprintf(stderr, "%s: command does not accept arguments\n", argv[0]);
+    if (argc > 2) {
+        fprintf(stderr, "Usage: %s [-q]\n", argv[0]);
         return 1;
+    } else if (argc == 2) {
+        if (strcmp(argv[1], "-q")) {
+            fprintf(stderr, "Usage: %s [-q]\n", argv[0]);
+            return 1;
+        }
+
+        quiet = true;
     }
 
     if (!(display = XOpenDisplay(NULL))) {
@@ -56,8 +66,12 @@ int main(int argc, char **argv)
 
     while ((chars_read = getline(&line, &bufsize, stdin)) != -1) {
         line[chars_read - 1] = '\0';  // Remove trailing line feed.
-        puts(line);
-        fflush(NULL);
+
+        if (!quiet) {
+            puts(line);
+            fflush(NULL);
+        }
+
         set_root_name(display, line);
     }
 

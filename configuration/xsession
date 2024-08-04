@@ -118,7 +118,7 @@ fi
 test -e "$HOME/.local.xsession" && . "$HOME/.local.xsession"
 
 st &
-statusline -i -m -z US/Pacific | singleton fifo2rootname &
+statusline -i -m -z US/Pacific | singleton fifo2rootname -q &
 thunar --daemon &
 
 PATH="$EMUS/desktop-environment/scripts:$PATH"

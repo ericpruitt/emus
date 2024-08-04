@@ -51,6 +51,13 @@ export GDK_DPI_SCALE="$(echo "$FONT_DPI / $DISPLAY_DPI" | bc)"
 export GDK_SCALE="$UI_SCALE"
 export QT_SCALE_FACTOR="$UI_SCALE"
 
+systemctl --user import-environment \
+    GDK_DPI_SCALE \
+    GDK_SCALE \
+    QT_SCALE_FACTOR \
+    XCURSOR_SIZE \
+;
+
 xrdb -override "$EMUS/configuration/xrdb.ad"
 echo "Xft.dpi: $FONT_DPI" | xrdb -override -
 echo "Xcursor.size: $XCURSOR_SIZE" | xrdb -override -
@@ -102,6 +109,11 @@ PIPE="$pipe" screen-locker \
     -n "-misc-fixed-bold-r-normal--$font_size-*-*-*-*-*-*-*" \
     sh -c 'echo OK > "$PIPE"' &
 timeout 5 grep -q OK -- "$pipe" || exit
+
+if ! systemctl --user restart xfce4-notifyd && command -v xfce4-notifyd; then
+    pkill -u "$LOGNAME" -x xfce4-notifyd
+    xfce4-notifyd &
+fi
 
 test -e "$HOME/.local.xsession" && . "$HOME/.local.xsession"
 

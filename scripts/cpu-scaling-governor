@@ -1,0 +1,47 @@
+#!/bin/sh
+SELF="${0##*/}"
+USAGE="\
+Usage: $SELF GOVERNOR
+       $SELF status
+       $SELF help
+"
+
+status()
+{
+    {
+        echo "CPUS GOVERNOR"
+        sort /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor | uniq -c
+    } | column -t
+}
+
+help()
+{
+    echo "$USAGE"
+    echo "Change or query the CPU scaling/performance governor."
+    echo
+    echo "Available governors:"
+
+    printf '\055 %s\n' $(
+        grep -h -o '[^[:space:]]\+' \
+            /sys/devices/system/cpu/cpu*/cpufreq/scaling_available_governors \
+        | sort -u
+    )
+}
+
+main()
+{
+    if [ "$#" -ne 1 ]; then
+        echo -n "$USAGE" >&2
+        return 1
+    elif [ "$1" = "-h" ] || [ "$1" = "--help" ] || [ "$1" = "help" ]; then
+        help
+    elif [ "$1" = "status" ]; then
+        status
+    else
+        printf "%s\n" "$1" \
+        | sudo 2>&1 >/dev/null \
+            sh -c "/usr/bin/tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
+    fi
+}
+
+main "$@"

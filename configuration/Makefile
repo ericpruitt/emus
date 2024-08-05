@@ -65,6 +65,7 @@ TEMPLATED = \
 LINUX_HOST_TARGETS = \
 	/etc/fstab \
 	/etc/modprobe.d/local.conf \
+	/etc/sudoers.d/cpu-scaling-governor \
 	/etc/sudoers.d/keyboard-leds \
 	/etc/systemd/system/lock-on-suspend.service \
 
@@ -158,6 +159,11 @@ $(HOME)/.terminfo: terminfo/st.info terminfo/tmux.info
 
 /etc/modprobe.d/local.conf: linux/modprobe.conf
 	echo "- $@"
+	cp $? $@
+
+/etc/sudoers.d/cpu-scaling-governor: linux/cpu-scaling-governor.sudoers
+	echo "- $@"
+	mkdir -p $(@D)
 	cp $? $@
 
 /etc/sudoers.d/keyboard-leds: linux/keyboard-leds.sudoers

@@ -54,6 +54,7 @@ ControlPath ~/.ssh/sockets/%r@%h:%p
 ControlPersist yes
 LogLevel ERROR
 UserKnownHostsFile ~/.ssh/.known-hosts
+HashKnownHosts no
 
 # Search for identity files starting with the most specific pattern before
 # falling back to more generic patterns until a match is found.

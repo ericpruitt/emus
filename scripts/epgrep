@@ -54,6 +54,18 @@ case "$*" in
     # Get a list of PIDs that match the conditions and filter out this script's
     # PID.
     results="$(pgrep "$@" || test "$?" -eq 1)"
+
+    # The options "-l", "-a", "--list-full" and "--list-name" change the output
+    # from being just PIDs to lines with PID followed by another string where
+    # as the output of "--help" and "-V" never starts with a number. Detect
+    # these patterns and emit the text as-is if there is match.
+    case "$results" in
+      *[0-9]\ *|[!0-9]*)
+        printf "%s\n" "$results"
+        exit
+      ;;
+    esac
+
     for pid in $results; do
         test "$pid" -eq "$$" && continue
         test -n "${pids:-}" && pids="$pids,$pid" || pids="-p $pid"

@@ -262,8 +262,8 @@ static Key key[] = {
 	// Custom mapping for Ctrl+J
 	{ XK_j,             ControlMask,    "\033[^j~",      0,    0},
 
-	// Custom mapping for Ctrl+Equals
-	{ XK_equal,         ControlMask,    "\033[^=",       0,    0},
+	// Custom mapping for Ctrl+Enter
+	{ XK_Return,        ControlMask,    "\033[^=",       0,    0},
 
 	// Make Ctrl+[/] behave like Ctrl+Left/Right
 	{ XK_bracketleft,   ControlMask,    "\033[1;5D",     0,    0},

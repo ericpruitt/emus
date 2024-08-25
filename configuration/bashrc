@@ -107,6 +107,7 @@ function -define-aliases()
     alias rm='rm -v'
     alias rmdir='rmdir -v'
     alias rot13='tr "A-Za-z" "N-ZA-Mn-za-m"'
+    alias rsync='rsync --stats'
     alias scp='scp -p -r'
     alias screen='env SHLVL_OFFSET= screen'
     alias sed='-paginate sed --'

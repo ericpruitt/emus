@@ -409,7 +409,15 @@ function run()
 #
 function -reload-tmux-env()
 {
+    local -i elapsed_sec
+
     test "${TMUX:-}" -a "${TMUX_ENV_FILE:-}" || return 0
+
+    # Only check the tmux environment file if at least one second has passed
+    # since the last check.
+    elapsed_sec="$((EPOCHSECONDS - ${_LAST_TMUX_RELOAD_CHECK:-0}))"
+    test "$elapsed_sec" -ge 10 || return 0
+    _LAST_TMUX_RELOAD_CHECK="$EPOCHSECONDS"
 
     # Use an empty file to keep track of when the tmux environment file was
     # last read so it is only sourced when there have been changes to the file.
@@ -481,11 +489,7 @@ function -prompt-command()
         PS1="${depth:+$depth: }${SSH_TTY:+\\u@\\h:}\\W${jobs:+ [\\j]}\\$ "
     fi
 
-    # SECONDS is reset in -debug-hook, and this logic ensures the reload
-    # function is only called during prompt generation if more than one second
-    # has passed since the last reload call.
-    test "$SECONDS" -lt 1 || -reload-tmux-env
-
+    -reload-tmux-env
     unset $(compgen -v -X '[A-Z_]*([A-Z0-9_])')
 }
 
@@ -537,13 +541,8 @@ function -debug-hook()
             '\e]2;%s\e\' "${SSH_TTY:+${LOGNAME:-$USER}@$HOSTNAME: }$command"
     fi
 
-    # To minimize the performance impact of calling -reload-tmux-env, only try
-    # to run -reload-tmux-env once per script i.e. only one time after the user
-    # presses enter instead of whenever any command in the script runs.
-    # Additionally, the special SECONDS variable is reset and used by
-    # -prompt-command so the reload function is only called if more than one
-    # second has passed since -debug-hook called the reload function.
-    test ! "${debug_hook_ran:-}" && -reload-tmux-env && SECONDS=0
+    # Only check the reload hook once during script execution.
+    test "${debug_hook_ran:-}" || -reload-tmux-env
 
     debug_hook_ran="x"
 }

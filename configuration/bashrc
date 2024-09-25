@@ -71,6 +71,7 @@ function -define-aliases()
     alias du='-paginate du -- -h'
     alias egrep='grep -E'
     alias esed='sed -E'
+    alias factor='factor --exponents'
     alias fgrep='grep -F'
     alias find='-paginate find -- -xdev -regextype egrep'
     alias gawk='-paginate gawk --'

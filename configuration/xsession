@@ -82,16 +82,14 @@ else
     compton -C --backend=glx &
 fi
 
-# Monitor "/dev/input/by-id/" for keyboards that have been plugged in and
-# configure them to convert the Caps Lock key to the Hyper key. Plugging in a
-# single physical device can result in multiple event devices being created in
+# Monitor "/dev/input" for keyboards that have been plugged in and configure
+# them to convert the Caps Lock key to the Hyper key. Plugging in a single
+# physical device can result in multiple event devices being created in
 # "/dev/", so xmodmap execution has a refractory period of one second before it
 # will respond to another inotifywait event. The "echo" ensures the keyboard
 # mappings are configured immediately the first time this code runs.
-(echo x-kbd; inotifywait -mq -e create /dev/input/by-id/) | while read line; do
-    case "$line" in
-      *-kbd*)
-        jobs % && continue
+(echo; inotifywait -mqr -e create --include=-kbd /dev/input) | while read _; do
+    if ! jobs %; then
         setxkbmap -layout us &&
         xmodmap \
             -e "remove mod4 = Hyper_L" \
@@ -99,8 +97,7 @@ fi
             -e "keysym Caps_Lock = Hyper_L" \
             -e "add mod3 = Hyper_L" &&
         sleep 1 &
-      ;;
-    esac
+    fi
 done &
 
 pipe="$HOME/.screen-locker-pipe"

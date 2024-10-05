@@ -28,7 +28,7 @@ fi
 # This regex is used to determine whether a username are included in the shell
 # prompt and title; if the current username does not match this pattern, the
 # username and hostname are inserted in the text.
-declare -r EPONYMS='^e(ric)?pruitt$'
+declare -r EPONYMS='^(e(ric)?pruitt|eric)$'
 
 # If the "TERM" environment variable matches this regular expression, tmux will
 # not be launched automatically.

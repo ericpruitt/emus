@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Usage: Zefir [XEHPYR_OPTION]... COMMAND [ARGUMENT]...
        Zefir [XEHPYR_OPTION]... -- COMMAND [ARGUMENT]...
@@ -25,8 +25,6 @@ import subprocess
 import sys
 
 SELF = os.path.basename(sys.argv[0])
-
-PYTHON_2 = (sys.version_info.major == 2)
 
 XEPHYR_COMMAND = "Xephyr"
 XEPHYR_OPTIONS_WITH_VALUES = {
@@ -139,18 +137,13 @@ def main(argv):
         argn += 1
 
     if not command:
-        raise Error('no command specified; try "%s -help"' % SELF)
+        raise Error(f'no command specified; try "{SELF} -help"')
 
     child_output, child_fd = os.pipe()
     xephyr = [XEPHYR_COMMAND, "-displayfd", str(child_fd)] + xehpyr_args
 
     try:
-        if PYTHON_2:
-            name, value = "close_fds", False
-        else:
-            name, value = "pass_fds", [child_fd]
-
-        process = subprocess.Popen(xephyr, **{name: value})
+        process = subprocess.Popen(xephyr, pass_fds=[child_fd])
     finally:
         os.close(child_fd)
 
@@ -185,7 +178,7 @@ if __name__ == "__main__":
         sys.exit(main(sys.argv))
     except Error as error:
         try:
-            print("%s: %s" % (SELF, error), file=sys.stderr)
+            print(f"{SELF}: {error}", file=sys.stderr)
         except IOError:
             pass
 

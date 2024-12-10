@@ -12,7 +12,7 @@ which will backslash-escape shell metacharacters.
  /* Mode of appropriate file for coloring.  */
  static mode_t
  file_or_link_mode (struct fileinfo const *file)
-@@ -2190,9 +2192,14 @@
+@@ -2190,9 +2192,15 @@
            break;
  
          case QUOTING_STYLE_OPTION:
@@ -23,6 +23,7 @@ which will backslash-escape shell metacharacters.
 +            quoting_style_opt = escape_quoting_style;
 +            escape_shell_metacharacters = true;
 +          } else {
++            escape_shell_metacharacters = false;
 +            quoting_style_opt = XARGMATCH ("--quoting-style", optarg,
 +                                           quoting_style_args,
 +                                           quoting_style_vals);
@@ -30,7 +31,7 @@ which will backslash-escape shell metacharacters.
            break;
  
          case TIME_STYLE_OPTION:
-@@ -2356,8 +2363,13 @@
+@@ -2356,8 +2364,13 @@
             || qs == shell_escape_quoting_style
             || qs == c_maybe_quoting_style));
    filename_quoting_options = clone_quoting_options (nullptr);

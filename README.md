@@ -334,7 +334,7 @@ Refine the heuristics for "substr: start index ... is past end of string" so
 the warning is only shown if the third argument is set or if the start index is
 more than 1 character beyond the end of a string.
 
-#### less-643-intr-with-F-X-quits.patch ####
+#### less-668-intr-with-F-X-quits.patch ####
 
 Normally hitting Ctrl+C when less than one screen of text has been shown
 effectively results in "--quit-if-one-screen" being ignored. This patch

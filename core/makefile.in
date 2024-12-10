@@ -41,7 +41,7 @@ READLINE = readline-8.2
 RSYNC = rsync-3.1.3
 SED = sed-4.9
 TMUX = tmux-src
-TREE = tree-2.1.1
+TREE = tree-2.2.1
 UCONV = uconv-src
 UTF8PROC = utf8proc-src
 VIM = vim-src
@@ -1069,7 +1069,7 @@ $(BIN)/sed: $(SED)/sed/sed
 	cp -f $? $@
 
 $(TREE).tar.gz:
-	$(WGET) -O $@ -nc http://mama.indstate.edu/users/ice/tree/src/$(TREE).tgz
+	$(WGET) -O $@ -nc https://oldmanprogrammer.net/tar/tree/$(TREE).tgz
 
 $(TREE)/.FOLDER: $(TREE).tar.gz
 	tar -x -z -f $?

@@ -86,8 +86,9 @@ function -define-aliases()
     alias info='info --vi-keys'
     alias jq='-paginate jq -C --indent 4'
     alias ldd='-paginate ldd --'
-    alias ls='-paginate ls "-C -w $COLUMNS --color=always" -b -h \
-        -I lost+found -I __pycache__ --almost-all-if-not-home'
+    alias ls='-paginate ls "--quoting-style=escape-shell-metacharacters \
+        -C -w $COLUMNS --color=always" -b -h -I lost+found -I __pycache__ \
+        --almost-all-if-not-home'
     alias lsblk='-paginate lsblk --'
     alias make='gmake'
     alias meme='sed -r "s/([a-z])([^a-z]*)([a-z])/\\l\\1\\2\\u\\3/gI" --'

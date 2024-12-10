@@ -1,0 +1,57 @@
+Add support for a new "--quoting-style" value, "escape-shell-metacharacters",
+which will backslash-escape shell metacharacters.
+
+--- src/ls.c	2023-08-29 04:39:27.000000000 -0700
++++ src/ls.c	2024-12-09 21:02:54.009234276 -0800
+@@ -358,6 +358,8 @@
+ 
+ static char const *hostname;
+ 
++static bool escape_shell_metacharacters;
++
+ /* Mode of appropriate file for coloring.  */
+ static mode_t
+ file_or_link_mode (struct fileinfo const *file)
+@@ -2190,9 +2192,14 @@
+           break;
+ 
+         case QUOTING_STYLE_OPTION:
+-          quoting_style_opt = XARGMATCH ("--quoting-style", optarg,
+-                                         quoting_style_args,
+-                                         quoting_style_vals);
++          if (strcmp(optarg, "escape-shell-metacharacters") == 0) {
++            quoting_style_opt = escape_quoting_style;
++            escape_shell_metacharacters = true;
++          } else {
++            quoting_style_opt = XARGMATCH ("--quoting-style", optarg,
++                                           quoting_style_args,
++                                           quoting_style_vals);
++          }
+           break;
+ 
+         case TIME_STYLE_OPTION:
+@@ -2356,8 +2363,13 @@
+            || qs == shell_escape_quoting_style
+            || qs == c_maybe_quoting_style));
+   filename_quoting_options = clone_quoting_options (nullptr);
+-  if (qs == escape_quoting_style)
++  if (qs == escape_quoting_style) {
+     set_char_quoting (filename_quoting_options, ' ', 1);
++
++    if (escape_shell_metacharacters)
++      for (char *c = (char *) &"|&;<>()$`\\\"'*?[#~"; *c; c++)
++        set_char_quoting (filename_quoting_options, *c, 1);
++  }
+   if (file_type <= indicator_style)
+     {
+       char const *p;
+--- lib/quotearg.c	2023-07-30 03:58:32.000000000 -0700
++++ lib/quotearg.c	2024-12-09 21:00:16.907730378 -0800
+@@ -86,6 +86,7 @@
+   "escape",
+   "locale",
+   "clocale",
++  "escape-shell-metacharacters",
+   0
+ };
+ 

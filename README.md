@@ -290,6 +290,11 @@ which strings are literal sequences in the input and which strings represent
 escaped characters. The "--bold-escapes" option is ignored if "-v" is not
 specified since it may conflict with escape sequences present in the input.
 
+#### coreutils-9.4-escape-shell-metacharacters.patch ####
+
+Add support for a new "--quoting-style" value, "escape-shell-metacharacters",
+which will backslash-escape shell metacharacters.
+
 #### coreutils-9.4-pw_name-from-environment.patch ####
 
 If the current user's information cannot be queried from the password database,

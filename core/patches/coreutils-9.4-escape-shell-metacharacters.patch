@@ -40,7 +40,7 @@ which will backslash-escape shell metacharacters.
      set_char_quoting (filename_quoting_options, ' ', 1);
 +
 +    if (escape_shell_metacharacters)
-+      for (char *c = (char *) &"|&;<>()$`\\\"'*?[#~"; *c; c++)
++      for (char *c = (char *) &"|&;<>()$`\\\"'*?[#~!{}"; *c; c++)
 +        set_char_quoting (filename_quoting_options, *c, 1);
 +  }
    if (file_type <= indicator_style)

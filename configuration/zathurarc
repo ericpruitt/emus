@@ -1,0 +1,10 @@
+set sandbox strict
+
+map <C-=> zoom in
+map <C--> zoom out
+map <C-0> zoom default
+
+# Disable default zoom shortcuts
+unmap +
+unmap -
+unmap =

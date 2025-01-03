@@ -10,7 +10,7 @@ DOTFILES = \
 	$(HOME)/.abcde.conf \
 	$(HOME)/.bashrc \
 	$(HOME)/.config/flake8 \
-	$(HOME)/.config/mpv/mpv.conf \
+	$(HOME)/.config/mpv \
 	$(HOME)/.config/zathura/zathurarc \
 	$(HOME)/.dircolors \
 	$(HOME)/.elinks/elinks.conf \

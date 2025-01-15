@@ -88,7 +88,7 @@ function -define-aliases()
     alias ldd='-paginate ldd --'
     alias ls='-paginate ls "--quoting-style=escape-shell-metacharacters \
         -C -w $COLUMNS --color=always" -b -h -I lost+found -I __pycache__ \
-        --almost-all-if-not-home'
+        -I "._*" -I .DS_Store -I .localized --almost-all-if-not-home'
     alias lsblk='-paginate lsblk --'
     alias make='gmake'
     alias meme='sed -r "s/([a-z])([^a-z]*)([a-z])/\\l\\1\\2\\u\\3/gI" --'

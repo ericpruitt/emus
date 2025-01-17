@@ -95,6 +95,8 @@ static const Rule rules[] = {
     { INSTANCE("google-chrome"),                                      TAG(2),  0,     -1,      0   },
     { INSTANCE("chromium"),                                           TAG(3),  0,     -1,      0   },
 
+    { CLASS("^mpv$"),                                                 0,       1,     -1,      0   },
+
     // All Wine applications should float by default.
     { CLASS("Wine"),                                                  0,       1,     -1,      0   },
 

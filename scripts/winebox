@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+"""
+Usage: winebox COMMAND [ARGUMENT]...
+
+Ensure that there are no symlinks pointing to paths outside a Wine prefix
+before executing the "wine" command with the specified arguments as a form of
+light sandboxing.
+"""
+import errno
+import glob
+import os
+import string
+import subprocess
+import sys
+
+WINE_COMMAND = "wine"
+
+HELP_OPTIONS = {"--help", "-h", "-V", "-?", "/?", "/h", "/help"}
+
+
+def directory_contains(directory, path):
+    """
+    Verify whether or not a directory contains the specified path. This
+    function does not resolve symlinks and operates based purely on string
+    operations which means neither argument needs to exist.
+
+    Arguments:
+    - directory
+    - path
+
+    Return: True if "path" is in "directory" or false otherwise.
+    """
+    directory = os.path.abspath(directory) + os.path.sep
+    path = os.path.abspath(path)
+    return path.startswith(directory)
+
+
+def main(argv):
+    """
+    Main entry point for the script.
+
+    Arguments:
+    - argv: Command line argument list.
+
+    Return: None or a numeric value representing the exit status.
+    """
+    if len(argv) > 1 and argv[1] in HELP_OPTIONS:
+        print(__doc__.strip())
+        return
+
+    wine_prefix = os.environ.get("WINEPREFIX") or os.path.expanduser("~/.wine")
+    dosdevices = os.path.join(wine_prefix, "dosdevices")
+
+    # Create the Wine prefix if it does not already exist by running "cmd /c"
+    # which is a no-op command.
+    if not os.path.exists(dosdevices):
+        try:
+            subprocess.check_call([WINE_COMMAND, "cmd", "/c"])
+        except subprocess.CalledProcessError as error:
+            return error.returncode
+
+    os.chmod(dosdevices, 0o700)
+
+    for root, dirs, files in os.walk(wine_prefix):
+        root = os.path.abspath(root)
+        in_dosdevices = os.path.samefile(dosdevices, root)
+
+        for basename in dirs + files:
+            path = os.path.join(root, basename)
+            is_dir = basename in dirs
+
+            try:
+                destination = os.path.join(root, os.readlink(path))
+            except Exception as error:
+                if error.errno == errno.EINVAL:
+                    continue
+                else:
+                    raise
+
+            # If a symlink points to the Wine prefix or a file inside the Wine
+            # prefix, there is no need to delete it.
+            if (os.path.samefile(wine_prefix, destination) or
+              directory_contains(wine_prefix, destination)):
+                continue
+
+            os.unlink(path)
+
+            # Don't replace directory symlinks with empty directories inside of
+            # "dosdevices" to ensure user data stays inside of "drive_c".
+            if not in_dosdevices and is_dir:
+                os.mkdir(path)
+
+    # Wine's mountmgr.sys will only try to make lettered drives. If a
+    # particular drive letter is already in use, it will go to the next letter
+    # until it finds an open device. By creating all possible drive letters in
+    # advance that are empty files, we can ensure that is never attempts to
+    # create the symlinks.
+    for letter in string.ascii_lowercase:
+        # Wine uses a ":" suffix for symlinks to folders and "::" for symlinks
+        # to devices, so we glob to match both.
+        if not glob.glob(os.path.join(dosdevices, f"{letter}:*")):
+            with open(os.path.join(dosdevices, f"{letter}:"), "a"):
+                pass
+
+    # Unfortunately, the same approach does not work with COM device symlinks,
+    # so we have to lock down the directory dosdevices directory permissions.
+    # We can't use this by itself because mountmgr.sys will loop indefinitely
+    # if it tries to make a drive symlink but cannot, but this does not happen
+    # with the com* symlinks.
+    os.chmod(dosdevices, 0o500)
+
+    os.execvp(WINE_COMMAND, [WINE_COMMAND] + argv[1:])
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

@@ -93,7 +93,7 @@ def main(argv):
     # Wine's mountmgr.sys will only try to make lettered drives. If a
     # particular drive letter is already in use, it will go to the next letter
     # until it finds an open device. By creating all possible drive letters in
-    # advance that are empty files, we can ensure that is never attempts to
+    # advance that are empty files, we can ensure that it never attempts to
     # create the symlinks.
     for letter in string.ascii_lowercase:
         # Wine uses a ":" suffix for symlinks to folders and "::" for symlinks
@@ -103,10 +103,10 @@ def main(argv):
                 pass
 
     # Unfortunately, the same approach does not work with COM device symlinks,
-    # so we have to lock down the directory dosdevices directory permissions.
-    # We can't use this by itself because mountmgr.sys will loop indefinitely
-    # if it tries to make a drive symlink but cannot, but this does not happen
-    # with the com* symlinks.
+    # so we have to lock down the dosdevices directory permissions. We can't
+    # use this by itself because mountmgr.sys will loop indefinitely if it
+    # tries to make a drive symlink but cannot, but this does not happen with
+    # the com* symlinks.
     os.chmod(dosdevices, 0o500)
 
     os.execvp(WINE_COMMAND, [WINE_COMMAND] + argv[1:])

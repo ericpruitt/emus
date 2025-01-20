@@ -94,6 +94,7 @@ function -define-aliases()
     alias meme='sed -r "s/([a-z])([^a-z]*)([a-z])/\\l\\1\\2\\u\\3/gI" --'
     alias mocp='env COLUMNS= LINES= mocp'
     alias mtr='mtr -t'
+    alias mv='mv -v'
     alias nohist='HISTFILE=/dev/null && exit'
     alias open='xdg-open'
     alias otr='env HISTFILE=/dev/null bash'

@@ -61,6 +61,7 @@ def main(argv):
 
     os.chmod(dosdevices, 0o700)
 
+    # Delete or replace all symlinks that point outside the Wine prefix.
     for root, dirs, files in os.walk(wine_prefix):
         root = os.path.abspath(root)
         in_dosdevices = os.path.samefile(dosdevices, root)

@@ -51,11 +51,10 @@ def main(argv):
     wine_prefix = os.environ.get("WINEPREFIX") or os.path.expanduser("~/.wine")
     dosdevices = os.path.join(wine_prefix, "dosdevices")
 
-    # Create the Wine prefix if it does not already exist by running "cmd /c"
-    # which is a no-op command.
+    # Create the Wine prefix if it does not already exist.
     if not os.path.exists(dosdevices):
         try:
-            subprocess.check_call([WINE_COMMAND, "cmd", "/c"])
+            subprocess.check_call(["wineboot", "-i"])
         except subprocess.CalledProcessError as error:
             return error.returncode
 

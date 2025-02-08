@@ -1,14 +1,35 @@
 #!/usr/bin/env python3
 """
-Usage: winebox COMMAND [ARGUMENT]...
+Usage: winebox [-c INDEX:PATH] [-d DRIVE:PATH] [-w WINE] COMMAND [ARGUMENT]...
+       winebox -h
+       winebox --help
 
 Ensure that there are no symlinks pointing to paths outside a Wine prefix
 before executing the "wine" command with the specified arguments as a form of
-light sandboxing.
+light sandboxing. Option parsing stops at the first non-option argument.
+
+Options:
+  -c INDEX:PATH
+        Map the specified COM device to a path. The index must be a value from
+        1 through 256 which will create a symlink named "com1" through "com256"
+        accordingly. For example, "-c 3:/dev/ttyS0" would make "/dev/ttyS0"
+        accessible as "COM3".
+  -d DRIVE:PATH
+        Map the specified path to a drive in Wine. The drive is specified as a
+        single ASCII letter, "a" through "z". For example, "-d z:/tmp" would
+        make "/tmp" accessible as "Z:\\".
+  -h, --help
+        Show this documentation and exit.
+  -w WINE
+        Set the command or path to the Wine binary. This option can also be
+        used to execute other Wine tools; "winebox -w winetricks d3dx9_36"
+        could be used to install DirectX inside a sandboxed Wine prefix.
 """
 import errno
+import getopt
 import glob
 import os
+import stat
 import string
 import subprocess
 import sys
@@ -35,6 +56,13 @@ def directory_contains(directory, path):
     return path.startswith(directory)
 
 
+def usage():
+    """
+    Show script documentation and exit.
+    """
+    print(__doc__.strip())
+
+
 def main(argv):
     """
     Main entry point for the script.
@@ -45,8 +73,59 @@ def main(argv):
     Return: None or a numeric value representing the exit status.
     """
     if len(argv) > 1 and argv[1] in HELP_OPTIONS:
-        print(__doc__.strip())
+        usage()
         return
+
+    mappings = dict()
+    wine_command = WINE_COMMAND
+    options, command = getopt.getopt(argv[1:], "c:d:hw:", ["help"])
+
+    for option, value in options:
+        match option:
+          case "-c":
+            try:
+                index, path = value.split(":", 1)
+            except ValueError:
+                raise Exception('Argument must be in the form of "INDEX:PATH"')
+
+            if not path:
+                raise Exception("No mapping destination specified")
+
+            try:
+                index = int(index)
+
+                if index < 1 or index > 256:
+                    raise ValueError
+            except ValueError:
+                raise Exception("Index must be an integer from 1 through 256")
+
+            mappings[f"com{index}"] = path
+
+          case "-d":
+            try:
+                drive, path = value.split(":", 1)
+            except ValueError:
+                raise Exception('Argument must be in the form of "DRIVE:PATH"')
+
+            if not path:
+                raise Exception("No mapping destination specified")
+
+            drive = drive.lower()
+
+            if drive not in string.ascii_lowercase:
+                raise Exception("Drive must be a single ASCII letter")
+
+            # Wine uses a ":" suffix for directory symlinks and "::" for
+            # devices.
+            suffix = ":" if os.path.isdir(path) else "::"
+            mappings[f"{drive}{suffix}"] = path
+
+          case "-h" | "--help":
+            usage()
+            return
+
+          case "-w":
+            wine_command = value
 
     wine_prefix = os.environ.get("WINEPREFIX") or os.path.expanduser("~/.wine")
     dosdevices = os.path.join(wine_prefix, "dosdevices")
@@ -90,6 +169,22 @@ def main(argv):
             if not in_dosdevices and is_dir:
                 os.mkdir(path)
 
+    # Setup symlinks for user-defined mappings.
+    for basename, destination in mappings.items():
+        path = os.path.join(dosdevices, basename)
+
+        try:
+            status = os.lstat(path)
+
+            if not stat.S_ISLNK(status.st_mode) and status.st_size:
+                raise Exception("{path}: Non-empty file already exists")
+
+            os.unlink(path)
+        except FileNotFoundError:
+            pass
+
+        os.symlink(destination, path)
+
     # Wine's mountmgr.sys will only try to make lettered drives. If a
     # particular drive letter is already in use, it will go to the next letter
     # until it finds an open device. By creating all possible drive letters in
@@ -109,8 +204,12 @@ def main(argv):
     # the com* symlinks.
     os.chmod(dosdevices, 0o500)
 
-    os.execvp(WINE_COMMAND, [WINE_COMMAND] + argv[1:])
+    os.execvp(wine_command, [wine_command] + command)
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    try:
+        sys.exit(main(sys.argv))
+    except Exception as error:
+        print(f"{os.path.basename(sys.argv[0])}:", error, file=sys.stderr)
+        sys.exit(1)

@@ -1,0 +1,17 @@
+Disable the warning that appears when editing a file being viewed with
+LESSOPEN.
+
+--- command.c	2024-10-06 15:30:34.000000000 -0700
++++ command.c	2025-02-11 21:28:18.422803810 -0800
+@@ -1884,11 +1884,6 @@
+ 					error("Cannot edit standard input", NULL_PARG);
+ 					break;
+ 				}
+-				if (get_altfilename(curr_ifile) != NULL)
+-				{
+-					error("WARNING: This file was viewed via LESSOPEN",
+-						NULL_PARG);
+-				}
+ 				start_mca(A_SHELL, "!", ml_shell, 0);
+ 				/*
+ 				 * Expand the editor prototype string

@@ -582,13 +582,15 @@ function -setup()
 
     eval -- "${DECLARE_BASH_ALIASES:--define-aliases}"
 
-    if [[ -z "${TMUX:-}" ]]; then
+    if [[ -z "${TMUX:-}" ]] && [[ "${TERM:-}" ]]; then
         if [[ "$TERM" = tmux* ]]; then
             # If a terminfo definition for tmux is not available, use screen's.
             tput -S 2>&- < /dev/null || export TERM="screen"
-        elif [[ "$TERM" ]] && ! [[ "$TERM" =~ $NO_AUTO_TMUX ]]; then
+        fi
+
+        while ! [[ "$TERM" =~ $NO_AUTO_TMUX ]]; do
             orphaned_session="$(
-                tmux list-sessions -F \
+                tmux list-sessions 2>/dev/null -F \
                   '#{session_id} #{window_activity} #{window_active_clients}' \
                 | awk '
                     $3 == 0 && $2 > latest_activity {
@@ -602,12 +604,19 @@ function -setup()
                 '
             )"
 
+            SECONDS=0
+
             if [[ "$orphaned_session" ]]; then
-                exec tmux attach-session -t "$orphaned_session"
+                tmux attach-session -t "$orphaned_session"
             else
-                exec tmux new
+                tmux new
+            fi > /dev/null || break
+
+            if [[ "$SECONDS" -lt 2 ]]; then
+                echo "Short tmux session detected; dropping to shell"
+                break
             fi
-        fi
+        done
     fi
 
     if [[ -z "${SSH_TTY:-}" ]] && ! [[ "${LOGNAME:-$USER}" =~ $EPONYMS ]]; then

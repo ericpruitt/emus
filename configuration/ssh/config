@@ -55,6 +55,7 @@ ControlPersist yes
 LogLevel ERROR
 UserKnownHostsFile ~/.ssh/.known-hosts
 HashKnownHosts no
+ServerAliveInterval 5
 
 # Search for identity files starting with the most specific pattern before
 # falling back to more generic patterns until a match is found.

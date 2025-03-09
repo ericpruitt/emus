@@ -416,8 +416,10 @@ $(PUBRING):
 # because no patches have been uploaded. The *-patches folder will still be
 # created, but it will only contain the ".FOLDER" dummy target.
 $(BASH)-patches/.FOLDER $(READLINE)-patches/.FOLDER: $(PUBRING)
-	echo '$(@D)' \
-	| sed 's|^\(\(.*\)-.*-patches\)$$|ftp://ftp.gnu.org/gnu/\2/\1/*|' \
+	project="$$(echo $(@D) | cut -d- -f1)"; \
+	wget -qO- http://ftpmirror.gnu.org/gnu/$$project/$(@D)/ \
+	| sed -n 's/.*href="\([^"]*-[0-9][0-9][0-9][^"]*\)".*/\1/gp' \
+	| sed "s|.*|https://ftpmirror.gnu.org/gnu/$$project/$(@D)/\0|" \
 	| $(WGET) -c -i - -P "$(@D)" || test "$$?" -eq 8
 	test ! -e $(@D) || echo $(@D)/*.sig | xargs -n1 $(GPG)
 	mkdir -p $(@D)

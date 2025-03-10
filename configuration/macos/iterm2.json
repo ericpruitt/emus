@@ -160,6 +160,13 @@
                 "telnet"
             ],
             "Keyboard Map": {
+                "0x19-0x120000-0x30" : {
+                    "Version" : 2,
+                    "Apply Mode" : 0,
+                    "Action" : 10,
+                    "Text" : "[27;6;9~",
+                    "Escaping" : 2
+                },
                 "0x19-0x60000": {
                     "Action": 10,
                     "Text": "[27;6;9~"
@@ -171,6 +178,13 @@
                 "0x31-0x40000": {
                     "Action": 10,
                     "Text": "OP"
+                },
+                "0x9-0x100000-0x30" : {
+                    "Version" : 2,
+                    "Apply Mode" : 0,
+                    "Action" : 10,
+                    "Text" : "[27;5;9~",
+                    "Escaping" : 2
                 },
                 "0x32-0x40000": {
                     "Action": 10,

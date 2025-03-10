@@ -31,11 +31,11 @@ DOTFILES = \
 
 MACOS_DOTFILES = \
 	$(HOME)/.aqua-session \
-	$(HOME)/.config/karabiner/karabiner.json \
 
 MACOS_USER_CONFIGS = \
 	$(HOME)/Library/KeyBindings/DefaultKeyBinding.dict \
 	$(HOME)/Library/LaunchAgents/com.codevat.aqua-session.plist \
+	$(HOME)/.config/karabiner \
 
 # Local dotfiles are secondary configuration files that are not tracked by the
 # EMUS repository. These are loaded by the main configuration file (the path
@@ -193,6 +193,11 @@ $(HOME)/Library/LaunchAgents/com.codevat.aqua-session.plist: macos/aqua-session.
 	ln -s $(PWD)/$? $@
 
 $(HOME)/Library/KeyBindings/DefaultKeyBinding.dict: macos/DefaultKeyBinding.dict
+	echo "- $@"
+	mkdir -p $(@D)
+	ln -s $(PWD)/$? $@
+
+$(HOME)/.config/karabiner: macos/karabiner
 	echo "- $@"
 	mkdir -p $(@D)
 	ln -s $(PWD)/$? $@

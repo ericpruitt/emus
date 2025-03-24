@@ -1,0 +1,85 @@
+Make all _find(1)_ predicates case insensitive when the environment variable
+"GNU_FIND_FORCE_CASE_INSENSITIVE" is set to a non-empty string.
+
+diff -u -r findutils-4.9.0/find/defs.h findutils-4.9.0-new/find/defs.h
+--- find/defs.h	2022-01-02 17:34:22.000000000 -0600
++++ find/defs.h	2025-03-23 19:23:35.847664276 -0500
+@@ -64,6 +64,8 @@
+ # include "sharefile.h"
+ # include "gcc-function-attributes.h"
+ 
++extern bool force_case_insensitive;
++
+ int optionl_stat (const char *name, struct stat *p);
+ int optionp_stat (const char *name, struct stat *p);
+ int optionh_stat (const char *name, struct stat *p);
+diff -u -r findutils-4.9.0/find/ftsfind.c findutils-4.9.0-new/find/ftsfind.c
+--- find/ftsfind.c	2022-01-02 17:34:22.000000000 -0600
++++ find/ftsfind.c	2025-03-23 19:23:35.847664276 -0500
+@@ -75,7 +75,16 @@
+ static bool find (char *arg) __attribute_warn_unused_result__;
+ static bool process_all_startpoints (int argc, char *argv[]) __attribute_warn_unused_result__;
+ 
++bool force_case_insensitive = false;
+ 
++static void
++set_force_case_insensitive ()
++{
++    char *env_value;
++
++    env_value = getenv("GNU_FIND_FORCE_CASE_INSENSITIVE");
++    force_case_insensitive = env_value && env_value[0] != '\0';
++}
+ 
+ static void
+ left_dir (void)
+@@ -782,6 +791,7 @@
+   if (options.debug_options & DebugTime)
+     fprintf (stderr, "cur_day_start = %s", ctime (&options.cur_day_start.tv_sec));
+ 
++  set_force_case_insensitive ();
+ 
+   /* We are now processing the part of the "find" command line
+    * after the -H/-L options (if any).
+diff -u -r findutils-4.9.0/find/parser.c findutils-4.9.0-new/find/parser.c
+--- find/parser.c	2022-01-05 20:15:59.000000000 -0600
++++ find/parser.c	2025-03-23 19:23:35.847664276 -0500
+@@ -2037,7 +2037,7 @@
+ static bool
+ parse_regex (const struct parser_table* entry, char **argv, int *arg_ptr)
+ {
+-  return insert_regex (argv, arg_ptr, entry, options.regex_options);
++  return insert_regex (argv, arg_ptr, entry, (force_case_insensitive ? RE_ICASE : 0) | options.regex_options);
+ }
+ 
+ static bool
+diff -u -r findutils-4.9.0/find/pred.c findutils-4.9.0-new/find/pred.c
+--- find/pred.c	2022-01-02 17:34:22.000000000 -0600
++++ find/pred.c	2025-03-23 19:23:35.847664276 -0500
+@@ -552,7 +552,7 @@
+ bool
+ pred_lname (const char *pathname, struct stat *stat_buf, struct predicate *pred_ptr)
+ {
+-  return match_lname (pathname, stat_buf, pred_ptr, false);
++  return match_lname (pathname, stat_buf, pred_ptr, force_case_insensitive ? true : false);
+ }
+ 
+ static bool
+@@ -604,7 +604,7 @@
+ pred_name (const char *pathname, struct stat *stat_buf, struct predicate *pred_ptr)
+ {
+   (void) stat_buf;
+-  return pred_name_common (pathname, pred_ptr->args.str, 0);
++  return pred_name_common (pathname, pred_ptr->args.str, force_case_insensitive ? FNM_CASEFOLD : 0);
+ }
+ 
+ bool
+@@ -746,7 +746,7 @@
+ pred_path (const char *pathname, struct stat *stat_buf, struct predicate *pred_ptr)
+ {
+   (void) stat_buf;
+-  if (fnmatch (pred_ptr->args.str, pathname, 0) == 0)
++  if (fnmatch (pred_ptr->args.str, pathname, force_case_insensitive ? FNM_CASEFOLD : 0) == 0)
+     return (true);
+   return (false);
+ }

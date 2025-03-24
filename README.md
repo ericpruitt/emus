@@ -299,6 +299,11 @@ Adds support for having _sleep(1)_ report the amount of time remaining via the
 terminal title. This feature is activated by setting the environment variable
 "REPORT_REMAINING_SLEEP_TIME_VARIABLE" to a non-empty string.
 
+#### findutils-4.9.0-case-insensitive-toggle.patch ####
+
+Make all _find(1)_ predicates case insensitive when the environment variable
+"GNU_FIND_FORCE_CASE_INSENSITIVE" is set to a non-empty string.
+
 #### flock-src-explicit-format-string-type.patch ####
 
 Explicitly cast arithmetic result to fix "error: format ‘%u’ expects argument

@@ -22,7 +22,7 @@ Options:
 import errno
 import getopt
 import os
-import pipes
+import shlex
 import sys
 
 SELF = os.path.basename(__file__)
@@ -128,7 +128,7 @@ def main(argv):
                 'tput sgr0\n'
                 'printf "\\a"\n'
                 'read -n 1 -s\n'
-                % (" ".join(map(pipes.quote, args)), success_command)
+                % (" ".join(map(shlex.quote, args)), success_command)
             )
             args = ["bash", "-c", script]
 

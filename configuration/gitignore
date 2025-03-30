@@ -1,9 +1,4 @@
 # User-friendly Ignored File Extensions
-*.ignore
-*.no-revision-control
-*.no-version-control
-*.norcs
-*.novcs
 *.secret
 *.untracked
 

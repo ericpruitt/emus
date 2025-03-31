@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -e -f -u -o pipefail
+trap 'rm -rf "${WORKSPACE:-}"' EXIT
+
+WORKSPACE="$(mktemp -d)"
+readonly WORKSPACE
+
+main()
+{
+    local output
+    local paths
+
+    local -i grep_status=0
+    local IFS=$'\n'
+
+    if [[ "$#" -ne 1 ]]; then
+        echo "Usage: ${0##*/} REGEX"
+        return 2
+    fi
+
+    output="$(
+        find ~/screenshots -name "*.txt" -exec grep -E -e "$1" -i -l -- {} +
+    )" || grep_status="$?"
+
+    if [[ "$output" ]]; then
+        paths=($output)
+        ln -s "${paths[@]/%.txt/.png}" "$WORKSPACE"
+        echo view 6 > ~/.dwmfifo
+        ristretto "$WORKSPACE"
+        return
+    fi
+
+    case "$grep_status" in
+      1)
+        echo "${0##*/}: no matches" >&2
+        return 1
+      ;;
+      *)
+        return "$grep_status"
+      ;;
+    esac
+}
+
+main "$@"

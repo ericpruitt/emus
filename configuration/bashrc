@@ -192,7 +192,7 @@ function -define-aliases()
             test "${argv[i]}" = "-calculate" && break
             let i++
         done
-        if ! hash -- "${argv[i]}" 2>&-; then
+        if ! hash -- "${argv[i]}" &>/dev/null; then
             # Disable aliases for unrecognized commands
             test -z "$alias_value" || unalias "$alias_key"
         elif [[ "$alias_value" = *$'\n'* ]]; then

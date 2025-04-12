@@ -300,6 +300,28 @@ function -paginate()
     "$command" "$@"
 }
 
+# Restore the working directory to its value before the "from" function was
+# invoked. This function exists because, if a command is interrupted
+# interactively with Ctrl+C, Bash aborts execution of all subsequent commands
+# and drops the user back at the prompt, so this logic needs to be executed by
+# the "from" function and the prompt handler. Implementing this logic as a
+# function avoids duplication.
+#
+function -from-cd-handler()
+{
+    test "${_from_oldpwd+isset}" || return 0
+
+    cd "$_from_oldpwd" > /dev/null || :
+
+    if [[ "$_from_oldpwd_was_set" ]]; then
+        OLDPWD="$_from_original_oldpwd"
+    else
+        unset OLDPWD
+    fi
+
+    unset _from_oldpwd _from_oldpwd_was_set _from_original_oldpwd
+}
+
 # Execute a command inside a folder. This command will expand aliases before
 # execution and is run in a subshell so "cd" will not change the working
 # directory of the parent shell.
@@ -314,9 +336,10 @@ function -paginate()
 #
 function from()
 {
-    local _from_oldpwd="$PWD"
-    local _from_oldpwd_was_set="${OLDPWD+x}"
-    local _from_original_oldpwd="${OLDPWD:-}"
+    _from_oldpwd="$PWD"
+    _from_oldpwd_was_set="${OLDPWD+x}"
+    _from_original_oldpwd="${OLDPWD:-}"
+
     local -i _from_return_code=0
 
     if [[ -z "${1:-}" ]] || [[ "$#" -lt 2 ]]; then
@@ -329,14 +352,8 @@ function from()
 
     # The eval command is used here because "$@" will not expand aliases.
     eval "$(printf " %q" "$@")" || _from_return_code="$?"
-    cd "$_from_oldpwd" > /dev/null || :
 
-    if [[ "$_from_oldpwd_was_set" ]]; then
-        OLDPWD="$_from_original_oldpwd"
-    else
-        unset OLDPWD
-    fi
-
+    -from-cd-handler
     return "$_from_return_code"
 }
 
@@ -493,6 +510,7 @@ function -prompt-command()
     fi
 
     -reload-tmux-env
+    -from-cd-handler
     unset $(compgen -v -X '[A-Z_]*([A-Z0-9_])')
 }
 

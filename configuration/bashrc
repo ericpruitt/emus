@@ -48,6 +48,8 @@ declare LAST_RESULT="0"
 # non-zero exit status should be displayed before the next prompt.
 declare -i PROMPT_HISTORY_NUMBER=0
 
+declare -i EXIT_SIGPIPE="$((128 + $(kill -l SIGPIPE)))"
+
 # Ensure TERM is always defined.
 : "${TERM:=}"
 
@@ -294,7 +296,7 @@ function -paginate()
         test "$tty_specific_args" != "--" || tty_specific_args=""
         test -t 2 || errfd=2
         "$command" $tty_specific_args "$@" 2>&"$errfd" | less "${lessopts[@]}"
-        return "${PIPESTATUS[0]/141/0}"  # Ignore SIGPIPE failures.
+        return "${PIPESTATUS[0]/$EXIT_SIGPIPE/0}"
     fi
 
     "$command" "$@"

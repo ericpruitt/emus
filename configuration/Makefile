@@ -27,6 +27,7 @@ DOTFILES = \
 	$(HOME)/.tmux.conf \
 	$(HOME)/.vim \
 	$(HOME)/.vimrc \
+	$(HOME)/.vnc/default.tigervnc \
 	$(HOME)/.xsession \
 
 MACOS_DOTFILES = \

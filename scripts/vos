@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+set -e -f -u -o pipefail
+
+declare -r SELF="${0##*/}"
+declare -r USAGE="\
+Usage: $SELF [-c CLIENT_COMMAND] [-l LOCAL_PORT] [-p SSH_PORT] [-r REMOTE_PORT] [-s COMMAND] HOST
+       $SELF -h
+"'
+VOS (VNC Over SSH) is used to connect to a remote VNC server securely over SSH
+without having to enter a VNC password. The remote VNC server is bound to
+localhost but guarded from unauthorized local access with a high-entropy,
+randomly generated password known only to this script. This script needs
+x11vnc(1) to be installed on the remote host and TigeVNC to be installed on the
+client.
+
+Options (and Defaults):
+  -c CLIENT_COMMAND (xtigervncviewer)
+        Set the command used to invoke the TigerVNC client.
+  -h    Show this documentation and exit.
+  -l LOCAL_PORT (5900)
+        Set the local port for the SSH tunnel used to connect to the VNC
+        server.
+  -p SSH_PORT (22)
+        Set the port used to connect to SSH on the remote system.
+  -r REMOTE_PORT (5900)
+        Set the remote port for the SSH tunnel used to connect to the VNC
+        server.
+  -s SERVER_COMMAND (x11vnc)
+        Set the command used to invoke the x11vnc(1) server on the remote host.
+'
+
+usage()
+{
+    printf "%s" "$USAGE"
+}
+
+main()
+{
+    local host
+    local line
+    local -x VNC_PASSWORD
+    local -a x11vnc_argv
+
+    local    client_command="xtigervncviewer"
+    local -i local_port=5900
+    local -i remote_port=5900
+    local    server_command="x11vnc"
+    local -i ssh_port=22
+
+    while getopts :c:hl:p:r:s: option "$@"; do
+        case "$option" in
+          c)    client_command="$OPTARG" ;;
+          h)    usage; return ;;
+          s)    server_command="$OPTARG" ;;
+
+          [lpr])
+            if [[ -z "$OPTARG" ]] || [[ "$OPTARG" = *[!0-9]* ]]; then
+                echo "$SELF: -$option: invalid port number \"$OPTARG\"" >&2
+                return 1
+            fi
+
+            case "$option" in
+              l)    local_port="$OPTARG" ;;
+              p)    ssh_port="$OPTARG" ;;
+              r)    remote_port="$OPTARG" ;;
+            esac
+          ;;
+
+          :)    echo "$SELF: -$OPTARG: option argument missing"; return 1 ;;
+          \?)   echo "$SELF: -$OPTARG: unrecognized option"; return 1 ;;
+        esac
+    done
+
+    shift "$((OPTIND - 1))"
+
+    if [[ "$#" -eq 1 ]]; then
+        host="$1"
+    else
+        echo "$SELF: missing host; see \"$SELF -h\" for usage" >&2
+        return 1
+    fi
+
+    VNC_PASSWORD="$(tr -dc '[[:graph:]]' </dev/urandom | head -c8)" \
+    || test "$?" -eq "$((128 + $(kill -l SIGPIPE)))"
+
+    if [[ -z "$VNC_PASSWORD" ]]; then
+        echo "$SELF: unable to generate random VNC password" >&2
+        return 1
+    elif [[ "${#VNC_PASSWORD}" -ne 8 ]]; then
+        echo "$SELF: length of generated password '$VNC_PASSWORD' is not 8" >&2
+        return 1
+    fi
+
+    x11vnc_argv=(
+        "$server_command"
+        -quiet
+        -timeout 5
+        -localhost
+        -grabkbd
+        -grabptr
+        -display :0
+        -rfbport "$remote_port"
+        -rfbportv6 "$remote_port"
+        -passwdfile /dev/stdin
+        -nowireframe
+        -gone "screen-locker </dev/null >/dev/null 2>&1 &"
+        -nobell
+
+        # For improved performance.
+        -threads -nolookup -xdamage
+    )
+
+    printf "%s\n" "$VNC_PASSWORD" \
+    | ssh -o ControlMaster=no -o ControlPath=none \
+       -p "$ssh_port" -L "$local_port:localhost:$remote_port" -- "$host" \
+        "LC_ALL=C ${x11vnc_argv[@]@Q} 2>&1" \
+    | while read line; do
+        printf "%s\n" "$line" >&2
+
+        case "$line" in
+          "PORT="*)
+            "$client_command" "localhost:$local_port" </dev/null \
+            || zenity --error --text="VNC client failed with exit code $?" &
+          ;;
+          *"No client after"*)
+            exit 1
+          ;;
+        esac
+    done
+}
+
+main "$@"

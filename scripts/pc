@@ -98,7 +98,7 @@ TOKEN_WHITELIST = {
 
 ASSIGNMENT_REGEX = re.compile(
     (
-        "^\s*([A-Za-z_][A-Za-z0-9_]*)\s*" +
+        "^\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*" +
         "|".join(map(re.escape, ASSIGNMENT_OPS)) +
         "\\b"
     ).encode("UTF-8")

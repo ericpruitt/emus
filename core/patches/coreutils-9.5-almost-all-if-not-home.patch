@@ -1,8 +1,8 @@
 Add support for a new option, "--almost-all-if-not-home", that implicitly shows
 dotfiles for every directory except `$HOME`.
 
---- src/ls.c	2023-08-29 04:39:27.000000000 -0700
-+++ src/ls.c	2023-11-18 19:33:32.904591051 -0800
+--- src/ls.c	2024-03-26 13:57:27.000000000 -0500
++++ src/ls.c	2025-06-05 01:28:37.980026746 -0500
 @@ -261,7 +261,7 @@
                                int needs_general_quoting, size_t *width,
                                bool *pad);
@@ -23,7 +23,20 @@ dotfiles for every directory except `$HOME`.
  /* Current time in seconds and nanoseconds since 1970, updated as
     needed when deciding whether a file is recent.  */
  
-@@ -843,6 +847,7 @@
+@@ -687,7 +691,11 @@
+   IGNORE_DOT_AND_DOTDOT,
+ 
+   /* Ignore only files specified by --ignore.  */
+-  IGNORE_MINIMAL
++  IGNORE_MINIMAL,
++
++  /* Acts like IGNORE_DOT_AND_DOTDOT for all directories other than
++     $HOME where it acts like IGNORE_DEFAULT. */
++  IGNORE_ALMOST_ALL_IF_NOT_HOME
+ } ignore_mode;
+ 
+ /* A linked list of shell-style globbing patterns.  If a non-argument
+@@ -843,6 +851,7 @@
    TIME_OPTION,
    TIME_STYLE_OPTION,
    ZERO_OPTION,
@@ -31,7 +44,7 @@ dotfiles for every directory except `$HOME`.
  };
  
  static struct option const long_options[] =
-@@ -891,6 +896,7 @@
+@@ -891,6 +900,7 @@
    {"block-size", required_argument, nullptr, BLOCK_SIZE_OPTION},
    {"context", no_argument, 0, 'Z'},
    {"author", no_argument, nullptr, AUTHOR_OPTION},
@@ -39,46 +52,28 @@ dotfiles for every directory except `$HOME`.
    {GETOPT_HELP_OPTION_DECL},
    {GETOPT_VERSION_OPTION_DECL},
    {nullptr, 0, nullptr, 0}
-@@ -958,6 +964,8 @@
-   size_t *col_arr;
- };
- 
-+static bool almost_all_if_not_home;
-+
- /* Array with information about column fullness.  */
- static struct column_info *column_info;
- 
-@@ -1666,6 +1674,8 @@
-   current_time.tv_sec = TYPE_MINIMUM (time_t);
-   current_time.tv_nsec = -1;
- 
-+  almost_all_if_not_home = false;
-+
-   i = decode_switches (argc, argv);
- 
-   if (print_with_color)
-@@ -1784,6 +1794,9 @@
+@@ -1794,6 +1804,9 @@
    else if (n_files <= 1 && pending_dirs && pending_dirs->next == 0)
      print_dir_name = false;
  
-+  if (!almost_all_if_not_home || !getenv("HOME") || stat(getenv("HOME"), &homedir_stat) < 0)
++  if (ignore_mode != IGNORE_ALMOST_ALL_IF_NOT_HOME || !getenv("HOME") || stat(getenv("HOME"), &homedir_stat) < 0)
 +    homedir_stat.st_dev = homedir_stat.st_ino = 0;
 +
    while (pending_dirs)
      {
        thispend = pending_dirs;
-@@ -2233,6 +2246,10 @@
+@@ -2243,6 +2256,10 @@
            quoting_style_opt = literal_quoting_style;
            break;
  
 +        case ALMOST_ALL_IF_NOT_HOME:
-+          almost_all_if_not_home = true;
++          ignore_mode = IGNORE_ALMOST_ALL_IF_NOT_HOME;
 +          break;
 +
          case_GETOPT_HELP_CHAR;
  
          case_GETOPT_VERSION_CHAR (PROGRAM_NAME, AUTHORS);
-@@ -2993,22 +3010,25 @@
+@@ -2997,22 +3014,25 @@
        return;
      }
  
@@ -118,8 +113,8 @@ dotfiles for every directory except `$HOME`.
        /* If we've already visited this dev/inode pair, warn that
           we've found a loop, and do not process this directory.  */
        if (visit_dir (dir_stat.st_dev, dir_stat.st_ino))
-@@ -3059,7 +3079,7 @@
-       next = readdir (dirp);
+@@ -3066,7 +3086,7 @@
+         errno = 0;
        if (next)
          {
 -          if (! file_ignored (next->d_name))
@@ -127,17 +122,25 @@ dotfiles for every directory except `$HOME`.
              {
                enum filetype type = unknown;
  
-@@ -3175,11 +3195,11 @@
+@@ -3182,12 +3202,17 @@
  /* Return true if FILE should be ignored.  */
  
  static bool
 -file_ignored (char const *name)
 +file_ignored (bool is_home, char const *name)
  {
-   return ((ignore_mode != IGNORE_MINIMAL
+-  return ((ignore_mode != IGNORE_MINIMAL
++  int local_mode = ignore_mode;
++
++  if (ignore_mode == IGNORE_ALMOST_ALL_IF_NOT_HOME)
++    local_mode = is_home ? IGNORE_DEFAULT : IGNORE_DOT_AND_DOTDOT;
++
++  return ((local_mode != IGNORE_MINIMAL
             && name[0] == '.'
 -           && (ignore_mode == IGNORE_DEFAULT || ! name[1 + (name[1] == '.')]))
-+           && (ignore_mode == IGNORE_DEFAULT && (!almost_all_if_not_home || is_home || ! name[1 + (name[1] == '.')])))
-           || (ignore_mode == IGNORE_DEFAULT
+-          || (ignore_mode == IGNORE_DEFAULT
++           && (local_mode == IGNORE_DEFAULT || ! name[1 + (name[1] == '.')]))
++          || (local_mode == IGNORE_DEFAULT
                && patterns_match (hide_patterns, name))
            || patterns_match (ignore_patterns, name));
+ }

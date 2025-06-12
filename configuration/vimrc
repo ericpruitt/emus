@@ -96,6 +96,10 @@ inoremap <C-Right> <C-o>e<C-o><Space>
 " Emacs-style bindings.
 inoremap <Esc>[^j~ <C-k>
 
+" Let Ctrl+Left and Ctrl+Right move between buffers.
+nnoremap <Esc>[1;5D :bp<Enter>
+nnoremap <Esc>[1;5C :bn<Enter>
+
 " Make global marks the default by remapping lowercase marks to uppercase.
 for char in "abcdefghijklmnopqrstuvwxyz"
     for context in ["nnoremap", "vnoremap"]

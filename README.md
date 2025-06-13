@@ -243,6 +243,13 @@ reading files. Taken from
 Allow the user to define a "no_such_file_handle" function which is analogous to
 "command_not_found_handle" but also runs when a command contains a "/".
 
+#### bash-5.2-pre-command.patch ####
+
+Add support for a new variable named "PRE_COMMAND" which can be set to a
+command that gets executed prior to the user's command. This solves the issue
+of not being able to run commands ahead of a subshell since subshells do not
+trigger DEBUG traps.
+
 #### bash-5.2-prompt-on-clean-line.patch ####
 
 Ensure the prompt will always be displayed on a clean line even if the output

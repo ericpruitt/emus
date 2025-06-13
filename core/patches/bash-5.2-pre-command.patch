@@ -1,0 +1,45 @@
+Add support for a new variable named "PRE_COMMAND" which can be set to command
+that gets executed prior to the user's command. This solves the issue of not
+being able to run commands ahead of a subshell since subshells do not trigger
+DEBUG traps.
+
+--- eval.c	2022-07-18 14:47:30.000000000 -0500
++++ eval.c	2025-06-13 03:44:28.629076078 -0500
+@@ -51,6 +51,34 @@
+ static void send_pwd_to_eterm PARAMS((void));
+ static sighandler alrm_catcher PARAMS((int));
+ 
++static void
++execute_pre_command ()
++{
++  char *command_to_execute;
++  SHELL_VAR *pcv;
++#if defined (ARRAY_VARS)
++  ARRAY *pcmds;
++#endif
++
++  pcv = find_variable ("PRE_COMMAND");
++  if (pcv  == 0 || var_isset (pcv) == 0 || invisible_p (pcv))
++    return;
++#if defined (ARRAY_VARS)
++  if (array_p (pcv))
++    {
++      if ((pcmds = array_cell (pcv)) && array_num_elements (pcmds) > 0)
++	execute_array_command (pcmds, "PRE_COMMAND");
++      return;
++    }
++  else if (assoc_p (pcv))
++    return;	/* currently don't allow associative arrays here */
++#endif
++
++  command_to_execute = value_cell (pcv);
++  if (command_to_execute && *command_to_execute)
++    execute_variable_command (command_to_execute, "PRE_COMMAND");
++}
++
+ /* Read and execute commands until EOF is reached.  This assumes that
+    the input source has already been initialized. */
+ int
+@@ -171,1 +193,2 @@
++	      execute_pre_command ();
+ 	      execute_command (current_command);

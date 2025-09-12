@@ -19,6 +19,7 @@
 #include <getopt.h>
 #include <libgen.h>
 #include <math.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,6 +44,11 @@ static size_t load_indicators_from_file(char *, size_t, const char *,
 static size_t tzstrftime(char *, size_t, const char *, time_t, const char *);
 
 /**
+ * Used to indicate whether updates should be paused.
+ */
+static int pause_updates = 0;
+
+/**
  * Get the number of members in a fixed-length array.
  *
  * Arguments:
@@ -61,6 +67,16 @@ static size_t tzstrftime(char *, size_t, const char *, time_t, const char *);
  * Separator used to show soft division between indicators.
  */
 #define SOFT_SEPARATOR " - "
+
+/**
+ * Signal used to temporarily pause status updates.
+ */
+#define PAUSE_SIGNAL SIGUSR1
+
+/**
+ * Time in seconds that updates are paused upon receiving the pause signal.
+ */
+#define PAUSE_DURATION_SEC 1.5
 
 /**
  * Identifiers for the named phases of the moon.
@@ -269,6 +285,19 @@ static char *battery_indicator(const char *path)
 
     fclose(file);
     return icon;
+}
+
+/**
+ * Signal handler that sets the global flag that indicates updates should
+ * temporarily be paused.
+ */
+static void set_pause_updates(int _1, siginfo_t *_2, void *_3)
+{
+    (void) _1;
+    (void) _2;
+    (void) _3;
+
+    pause_updates = 1;
 }
 
 /**
@@ -968,6 +997,7 @@ int main(int argc, char **argv)
     struct tm *ptm;
     int saved_errno;
     double status_file_mt_now;
+    struct sigaction sa;
     struct timeval tv;
 
     size_t altzones_count = 0;
@@ -1085,6 +1115,15 @@ int main(int argc, char **argv)
         battery_data_path = NULL;
     }
 
+    sa.sa_flags = SA_RESTART;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = set_pause_updates;
+
+    if (sigaction(PAUSE_SIGNAL, &sa, NULL) == -1) {
+        perror("sigaction");
+        return 1;
+    }
+
     while ((eol = message)) {
         tzset();
 
@@ -1122,6 +1161,13 @@ int main(int argc, char **argv)
         }
 
         first = 0;
+
+        while (pause_updates) {
+            pause_updates = 0;
+            tv.tv_sec = (time_t) PAUSE_DURATION_SEC;
+            tv.tv_usec = (suseconds_t) (PAUSE_DURATION_SEC * 1e6) % 1000000;
+            select(0, NULL, NULL, NULL, &tv);
+        }
 
         if (battery_data_path) {
             eol = stpcpy(eol, battery_indicator(battery_data_path));

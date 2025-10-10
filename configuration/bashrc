@@ -359,6 +359,47 @@ function from()
     return "$_from_return_code"
 }
 
+# Wrapper around "cd" built-in that accepts Windows paths when running under
+# WSL.
+#
+# Arguments:
+# - $@: Same arguments/options as the "cd" built-in.
+#
+function cd()
+{
+    local directory
+
+    local arguments=("$@")
+
+    # If we are not in WSL or there aren't any Windows path separators in the
+    # arguments, execute normal "cd".
+    if ! [[ "${WSL_DISTRO_NAME+x}" ]] || [[ "$#" -eq 0 ]] ||
+      [[ "$*" != *'\'* ]]; then
+        builtin cd "$@"
+        return
+    fi
+
+    case "${1:-}" in
+      *'\'*)
+        # We only need to invoke the special logic if we see a slash that
+        # suggests we might be dealing with a Windows path.
+      ;;
+      *)
+        builtin cd "$@"
+        return
+      ;;
+    esac
+
+    # Try to map the directory argument to a WSL path. If the translated path
+    # does not exist, then we restore the directory to its original form before
+    # calling "cd".
+    directory="${arguments[-1]}"
+    test -e "$directory" || directory="$(wslpath -- "$directory" 2>/dev/null)"
+    test -e "$directory" || directory="${arguments[-1]}"
+    unset "arguments[-1]"
+    builtin cd "${arguments[@]}" "$directory"
+}
+
 # Launch a background command detached from the current terminal session.
 #
 # Arguments:

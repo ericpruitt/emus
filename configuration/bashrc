@@ -133,6 +133,7 @@ function -define-aliases()
     alias watch='env TERM="${TERM/#tmux*/vt100}" watch'
     alias whois='-paginate whois --'
     alias wmctrl='-paginate env -- DISPLAY="${DISPLAY:-:0.0}" wmctrl'
+    alias wpwd='wslpath -w -- "$PWD"'
     alias xargs='xargs --verbose'
     alias xmllint='-paginate xmllint --format'
     alias xxd='-paginate xxd --'

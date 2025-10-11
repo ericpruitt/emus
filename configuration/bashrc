@@ -372,29 +372,24 @@ function cd()
 
     local arguments=("$@")
 
-    # If we are not in WSL or there aren't any Windows path separators in the
-    # arguments, execute normal "cd".
-    if ! [[ "${WSL_DISTRO_NAME+x}" ]] || [[ "$#" -eq 0 ]] ||
-      [[ "$*" != *'\'* ]]; then
+    # If we are not in WSL or there aren't any Windows path separators or "%"s
+    # in the arguments, execute normal "cd".
+    if ! [[ "${WSL_DISTRO_NAME:+isset}" ]] || [[ "$#" -eq 0 ]]; then
         builtin cd "$@"
         return
     fi
 
-    case "${1:-}" in
-      *'\'*)
-        # We only need to invoke the special logic if we see a slash that
-        # suggests we might be dealing with a Windows path.
-      ;;
-      *)
+    # We only need to invoke the special logic if we see indicators that a path
+    # might be Windows path.
+    if ! [[ "${arguments[-1]}" =~ .*(\\|%[^%\\]+%).* ]]; then
         builtin cd "$@"
         return
-      ;;
-    esac
+    fi
 
     # Try to map the directory argument to a WSL path. If the translated path
     # does not exist, then we restore the directory to its original form before
     # calling "cd".
-    directory="${arguments[-1]}"
+    directory="$(cmdecho "${arguments[-1]}")"
     test -e "$directory" || directory="$(wslpath -- "$directory" 2>/dev/null)"
     test -e "$directory" || directory="${arguments[-1]}"
     unset "arguments[-1]"

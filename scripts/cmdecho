@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""
+Usage: cmdecho TEXT...
+
+Replace anything that appears to be a Windows-style environment variable then
+echo the resulting text. This is similar to "echo" command when executing
+cmd.exe.
+
+Examples:
+  cmdecho "%USERPROFILE%"
+  cmdecho "SystemRoot=%SystemRoot%"
+"""
+import os
+import re
+import shlex
+import sys
+
+
+def main(argv):
+    if len(argv) < 2:
+        print(f"Usage: {os.path.basename(argv[0])} TEXT...", file=sys.stderr)
+        return 1
+
+    variables = {}
+    windows_env_file = os.environ.get("WINDOWS_ENV_FILE")
+
+    if windows_env_file:
+        try:
+            with open(windows_env_file) as fd:
+                contents = fd.read().strip()
+        except IOError:
+            contents = ""
+
+        if contents:
+            for token in shlex.split(contents):
+                name, value = token.split("=", 1)
+                name = name.lower()
+                variables[name] = value
+
+    if not variables:
+        print(argv[1])
+        return
+
+    pattern = re.compile(
+        f"%({'|'.join(map(re.escape, variables))})%", re.IGNORECASE
+    )
+
+    for arg in argv[1:]:
+        print(pattern.sub(lambda x: variables[x.group(0).lower()[1:-1]], arg))
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

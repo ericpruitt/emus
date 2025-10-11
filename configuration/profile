@@ -84,6 +84,11 @@ export PS_FORMAT="$(
     }'
 )"
 
+if [ "${WSL_DISTRO_NAME:+isset}" ]; then
+    export WINDOWS_ENV_FILE="$HOME/.windows.env"
+    wenv > "$WINDOWS_ENV_FILE"
+fi
+
 # These are the same values that Debian's laptop-detect script uses to
 # determine if a system is likely a laptop.
 case "$(cat /sys/devices/virtual/dmi/id/chassis_type 2>/dev/null)" in

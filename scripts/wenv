@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Usage: wenv
+#
+# Dump Windows environment variables in POSIX shell format.
+test "${WSL_DISTRO_NAME:-}" || return 0
+
+script="$(
+    cat << '____EOF'
+        Get-ChildItem env: | ForEach-Object {
+            "$($_.Name)='$($_.Value -replace '''', '''"''"''')'"
+        }
+____EOF
+)"
+
+shopt -s nocaseglob nullglob
+
+for exe in /mnt/*/WINDOWS/System32/WindowsPowerShell/*/powershell.exe; do
+    exec "$exe" -command "$script"
+done

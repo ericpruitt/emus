@@ -116,6 +116,10 @@ prepare uninstall:
 		fi; \
 	done
 
+# Dummy target used to ensure a recipe is always executed even if it is
+# otherwise up to date.
+ALWAYS_RUN:
+
 $(DOTFILES) $(MACOS_DOTFILES):
 	echo "- $@"
 	mkdir -p $(@D)
@@ -134,6 +138,14 @@ $(LOCAL_DOTFILES) $(LOCAL_MACOS_DOTFILES):
 	source="$(HOME)/localconfigs/$${target##*.local.}"; \
 	test -e "$$source" || touch "$$source"; \
 	ln -f -s "$$source" $@
+
+windows-terminal-settings.json: ALWAYS_RUN
+	jq --sort-keys --indent 4 < "$$( \
+		wslpath $$( \
+			cmdecho "%LocalAppData%/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json" \
+		) \
+	)" > $@.tmp
+	mv $@.tmp $@
 
 $(HOME)/.config/Trolltech.conf: qt.conf
 	echo "- $@"

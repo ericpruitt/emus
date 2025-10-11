@@ -1,0 +1,286 @@
+{
+    "$help": "https://aka.ms/terminal-documentation",
+    "$schema": "https://aka.ms/terminal-profiles-schema",
+    "actions": [
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001b[27;5;9~"
+            },
+            "id": "User.sendInput.CtrlTab"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001b[27;6;9~"
+            },
+            "id": "User.sendInput.CtrlShiftTab"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001b[17~"
+            },
+            "id": "User.sendInput.Ctrl6ToF6"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001bOS"
+            },
+            "id": "User.sendInput.Ctrl4ToF4"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001bOQ"
+            },
+            "id": "User.sendInput.Ctrl2ToF2"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u0016"
+            },
+            "id": "User.sendInput.LiteralCtrlV"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001b[20~"
+            },
+            "id": "User.sendInput.Ctrl9ToF9"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001b[19~"
+            },
+            "id": "User.sendInput.Ctrl8ToF8"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001b[18~"
+            },
+            "id": "User.sendInput.Ctrl7ToF7"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001bOP"
+            },
+            "id": "User.sendInput.Ctrl1ToF1"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001bOR"
+            },
+            "id": "User.sendInput.Ctrl3ToF3"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001b[15~"
+            },
+            "id": "User.sendInput.Ctrl5ToF5"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001b[21~"
+            },
+            "id": "User.sendInput.Ctrl0ToF10"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001b[^j~"
+            },
+            "id": "User.sendInput.CustomCtrlJ"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001b[^="
+            },
+            "id": "User.sendInput.CustomCtrlEquals"
+        },
+        {
+            "command": "paste",
+            "id": "User.sendInput.CtrlShiftVPaste"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001b[1;5D"
+            },
+            "id": "User.sendInput.CtrlLeftBracket"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001b[1;5C"
+            },
+            "id": "User.sendInput.CtrlRightBracket"
+        }
+    ],
+    "alwaysShowTabs": true,
+    "copyFormatting": "none",
+    "copyOnSelect": true,
+    "defaultProfile": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+    "disableAnimations": true,
+    "initialCols": 200,
+    "initialRows": 48,
+    "keybindings": [
+        {
+            "id": "User.sendInput.CtrlLeftBracket",
+            "keys": "ctrl+["
+        },
+        {
+            "id": "User.sendInput.CtrlRightBracket",
+            "keys": "ctrl+]"
+        },
+        {
+            "id": "User.sendInput.CtrlTab",
+            "keys": "ctrl+tab"
+        },
+        {
+            "id": "User.sendInput.CtrlShiftTab",
+            "keys": "ctrl+shift+tab"
+        },
+        {
+            "id": "Terminal.FindText",
+            "keys": "ctrl+shift+f"
+        },
+        {
+            "id": "User.sendInput.LiteralCtrlV",
+            "keys": "ctrl+v"
+        },
+        {
+            "id": "Terminal.DuplicatePaneAuto",
+            "keys": "alt+shift+d"
+        },
+        {
+            "id": "User.sendInput.CustomCtrlEquals",
+            "keys": "ctrl+plus"
+        },
+        {
+            "id": "User.sendInput.Ctrl2ToF2",
+            "keys": "ctrl+2"
+        },
+        {
+            "id": "User.sendInput.Ctrl1ToF1",
+            "keys": "ctrl+1"
+        },
+        {
+            "id": "User.sendInput.Ctrl3ToF3",
+            "keys": "ctrl+3"
+        },
+        {
+            "id": "User.sendInput.Ctrl4ToF4",
+            "keys": "ctrl+4"
+        },
+        {
+            "id": "User.sendInput.Ctrl5ToF5",
+            "keys": "ctrl+5"
+        },
+        {
+            "id": "User.sendInput.Ctrl6ToF6",
+            "keys": "ctrl+6"
+        },
+        {
+            "id": "User.sendInput.Ctrl7ToF7",
+            "keys": "ctrl+7"
+        },
+        {
+            "id": "User.sendInput.Ctrl8ToF8",
+            "keys": "ctrl+8"
+        },
+        {
+            "id": "User.sendInput.Ctrl9ToF9",
+            "keys": "ctrl+9"
+        },
+        {
+            "id": "User.sendInput.CustomCtrlJ",
+            "keys": "ctrl+j"
+        },
+        {
+            "id": "User.sendInput.CtrlShiftVPaste",
+            "keys": "ctrl+shift+v"
+        }
+    ],
+    "newTabMenu": [
+        {
+            "type": "remainingProfiles"
+        }
+    ],
+    "profiles": {
+        "defaults": {
+            "bellStyle": "taskbar",
+            "colorScheme": "Eric's ANSI Color Scheme",
+            "cursorShape": "filledBox",
+            "font": {
+                "size": 10.5,
+                "weight": "semi-light"
+            },
+            "intenseTextStyle": "all"
+        },
+        "list": [
+            {
+                "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+                "hidden": false,
+                "name": "Windows PowerShell"
+            },
+            {
+                "commandline": "%SystemRoot%\\System32\\cmd.exe",
+                "guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
+                "hidden": false,
+                "name": "Command Prompt"
+            },
+            {
+                "guid": "{b453ae62-4e3d-5e58-b989-0a998ec441b8}",
+                "hidden": false,
+                "name": "Azure Cloud Shell",
+                "source": "Windows.Terminal.Azure"
+            },
+            {
+                "guid": "{e12baf7d-fe55-5c1d-9e92-80c7b0b301ed}",
+                "hidden": false,
+                "name": "Ubuntu",
+                "source": "Microsoft.WSL"
+            }
+        ]
+    },
+    "schemes": [
+        {
+            "background": "#000000",
+            "black": "#0C0C0C",
+            "blue": "#000080",
+            "brightBlack": "#7F7F7F",
+            "brightBlue": "#1155CC",
+            "brightCyan": "#00FFFF",
+            "brightGreen": "#00FF00",
+            "brightPurple": "#FF00FF",
+            "brightRed": "#FF0000",
+            "brightWhite": "#FFFFFF",
+            "brightYellow": "#FFFF00",
+            "cursorColor": "#FF00FF",
+            "cyan": "#00CDCD",
+            "foreground": "#E5E5E5",
+            "green": "#00CD00",
+            "name": "Eric's ANSI Color Scheme",
+            "purple": "#CD00CD",
+            "red": "#CD0000",
+            "selectionBackground": "#FFFFFF",
+            "white": "#E5E5E5",
+            "yellow": "#CDCD00"
+        }
+    ],
+    "showTabsInTitlebar": true,
+    "showTerminalTitleInTitlebar": false,
+    "theme": "system",
+    "themes": []
+}

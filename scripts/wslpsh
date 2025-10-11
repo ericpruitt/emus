@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -e -u
+shopt -s nocaseglob nullglob
+
+main()
+{
+    local script
+
+    for psh in /mnt/*/WINDOWS/System32/WindowsPowerShell/*/powershell.exe; do
+        break
+    done
+
+    if ! [[ "${psh:-}" ]]; then
+        echo "${0##*/}: unable to locate PowerShell executable" >&2
+        return 127
+    elif [[ "$#" -eq 0 ]]; then
+        echo "${0##*/}: missing script path" >&2
+        return 1
+    fi
+
+    script="$1"
+    shift
+
+    case "$script" in
+      *.ps1)
+        # Nothing to do if the script already ends in *.ps1.
+      ;;
+      *)
+        trap 'rm -f -- "${new_script:-}"' EXIT
+        new_script="$(mktemp --tmpdir --suffix=".ps1" "${script##*/}-XXXXXX")"
+        cp "$script" "$new_script"
+        script="$new_script"
+      ;;
+    esac
+
+    "$psh" \
+        -ExecutionPolicy Bypass \
+        -NoProfile \
+        -NonInteractive \
+        -File "$(wslpath -w -- "$script")" \
+        "$@" \
+    ;
+}
+
+main "$@"

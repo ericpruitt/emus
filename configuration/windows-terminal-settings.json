@@ -257,7 +257,7 @@
     "schemes": [
         {
             "background": "#000000",
-            "black": "#0C0C0C",
+            "black": "#000000",
             "blue": "#000080",
             "brightBlack": "#7F7F7F",
             "brightBlue": "#1155CC",

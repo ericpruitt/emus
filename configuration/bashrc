@@ -372,11 +372,13 @@ function cd()
 
     local arguments=("$@")
 
-    # If we are not in WSL or there aren't any Windows path separators or
-    # indications of Windows-style environment variable references in the
-    # arguments, execute normal "cd".
+    # If we are not in WSL, the last argument appears to reference a file that
+    # exists, or there aren't any Windows path separators or indications of
+    # Windows-style environment variable references in the arguments, execute
+    # "cd" without modifying the arguments.
     if ! [[ "${WSL_DISTRO_NAME:+isset}" ]] || [[ "$#" -eq 0 ]] ||
-      ! [[ "${arguments[-1]}" =~ \\|%[^%]+% ]]; then
+     ! [[ "${arguments[-1]}" =~ \\|%[^%]+% ]] ||
+      [[ -e "${arguments[-1]}" ]]; then
         builtin cd "$@"
         return
     fi

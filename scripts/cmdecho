@@ -16,6 +16,37 @@ import shlex
 import sys
 
 
+def split_commands(text):
+    """
+    Split a POSIX-shell-like script into individual commands respecting
+    newlines, semicolons and quoting.
+
+    Arguments:
+    - text
+
+    Return: A list of lists. Each inner list represents a command followed by
+    any arguments.
+    """
+    text = text.strip()
+    tokenizer = shlex.shlex(text, posix=True)
+    tokenizer.whitespace = " \t"
+    tokenizer.wordchars += "!@$%^*()-_+=[]{}\\:,.?/"
+    commands = list()
+    buffer = list()
+
+    for token in tokenizer:
+        if token not in ";\n":
+            buffer.append(token)
+        elif buffer:
+            commands.append(buffer)
+            buffer = list()
+
+    if buffer:
+        commands.append(buffer)
+
+    return commands
+
+
 def main(argv):
     if len(argv) < 2:
         print(f"Usage: {os.path.basename(argv[0])} TEXT...", file=sys.stderr)
@@ -32,8 +63,8 @@ def main(argv):
             contents = ""
 
         if contents:
-            for token in shlex.split(contents):
-                name, value = token.split("=", 1)
+            for assignment, in split_commands(contents):
+                name, value = assignment.split("=", 1)
                 name = name.lower()
                 variables[name] = value
 

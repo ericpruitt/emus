@@ -48,7 +48,9 @@ def split_commands(text):
 
 
 def main(argv):
-    if len(argv) < 2:
+    strings = argv[1:]
+
+    if not strings:
         print(f"Usage: {os.path.basename(argv[0])} TEXT...", file=sys.stderr)
         return 1
 
@@ -68,16 +70,17 @@ def main(argv):
                 name = name.lower()
                 variables[name] = value
 
-    if not variables:
-        print(argv[1])
-        return
+    if variables:
+        pattern = re.compile(
+            f"%({'|'.join(map(re.escape, variables))})%", re.IGNORECASE
+        )
 
-    pattern = re.compile(
-        f"%({'|'.join(map(re.escape, variables))})%", re.IGNORECASE
-    )
+        for index, string in enumerate(strings):
+            strings[index] = pattern.sub(
+                lambda x: variables[x.group(0).lower()[1:-1]], string
+            )
 
-    for arg in argv[1:]:
-        print(pattern.sub(lambda x: variables[x.group(0).lower()[1:-1]], arg))
+    print(*strings)
 
 
 if __name__ == "__main__":

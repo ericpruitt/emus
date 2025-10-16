@@ -95,7 +95,7 @@ def main(argv):
         try:
             with open(windows_env_file) as fd:
                 contents = fd.read().strip()
-        except IOError:
+        except FileNotFoundError:
             contents = ""
 
         for argv in split_commands(contents):

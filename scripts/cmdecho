@@ -12,8 +12,22 @@ Examples:
 """
 import os
 import re
-import shlex
 import sys
+
+# The tokenization regex is designed so that, in syntactically valid file,
+# there will be no gaps between matches, so invalid syntax can be detected by
+# looking for gaps between matches.
+POSIX_SHELL_TOKENIZER_RE = re.compile(
+    r"""
+    '[^']*'           | # Single quoted strings have no escapes
+    "(?:[^"\\]|\\.)*" | # Double quoted strings support "\" for literal values
+    \\.               | # Escaped literals can appear outside of quotes.
+    [^\s'";\\]+       | # Bare tokens include any printable non-meta characters
+    \s*(?:[\n;]|\s+)  | # Line breaks and semicolons delimit commands
+    \s+                 # Whitespace delimits words
+    """,
+    re.DOTALL | re.VERBOSE
+)
 
 
 def split_commands(text):
@@ -27,24 +41,44 @@ def split_commands(text):
     Return: A list of lists. Each inner list represents a command followed by
     any arguments.
     """
-    text = text.strip()
-    tokenizer = shlex.shlex(text, posix=True)
-    tokenizer.whitespace = " \t"
-    tokenizer.wordchars += "!@$%^*()-_+=[]{}\\:,.?/"
-    commands = list()
-    buffer = list()
+    entries = [[]]
+    argument_tokens = list()
+    previous_end = 0
 
-    for token in tokenizer:
-        if token not in ";\n":
-            buffer.append(token)
-        elif buffer:
-            commands.append(buffer)
-            buffer = list()
+    for match in POSIX_SHELL_TOKENIZER_RE.finditer(text):
+        if match.start(0) != previous_end:
+            lineno = text[:match.start(0)].count("\n") + 1
+            raise Exception(f"Syntax error on or after line {lineno}")
 
-    if buffer:
-        commands.append(buffer)
+        previous_end = match.end(0)
+        token = match.group(0)
 
-    return commands
+        if token[0] == "'":
+            argument_tokens.append(token[1:-1])
+        elif token[0] == '"':
+            argument_tokens.append(token[1:-1].replace("\\", ""))
+        elif token[0] == "\\":
+            argument_tokens.append(token[1])
+        elif ";" in token or "\n" in token:
+            if argument_tokens:
+                entries[-1].append("".join(argument_tokens))
+                del argument_tokens[:]
+
+            if entries[-1]:
+                entries.append([])
+        elif not token[0].isspace():
+            argument_tokens.append(token)
+        elif argument_tokens:
+            argument = "".join(argument_tokens)
+            entries[-1].append(argument)
+            del argument_tokens[:]
+
+    if argument_tokens:
+        entries[-1].append("".join(argument_tokens))
+    elif not entries[-1]:
+        del entries[-1]
+
+    return entries
 
 
 def main(argv):
@@ -64,9 +98,9 @@ def main(argv):
         except IOError:
             contents = ""
 
-        if contents:
-            for assignment, in split_commands(contents):
-                name, value = assignment.split("=", 1)
+        for argv in split_commands(contents):
+            if len(argv) == 1 and "=" in argv[0]:
+                name, value = argv[0].split("=", 1)
                 name = name.lower()
                 variables[name] = value
 

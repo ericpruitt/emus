@@ -57,6 +57,7 @@ export ETCPATHS="$(
 )"
 
 export PATH="$HOME/bin:$EMUS/scripts:$HOME/.local/bin:$PATH$ETCPATHS"
+test -z "$WSL_DISTRO_NAME" || PATH="$EMUS/scripts/wsl:$PATH"
 
 # Secondary profile for machine-specific settings.
 test -e "$HOME/.local.profile" && . "$HOME/.local.profile"

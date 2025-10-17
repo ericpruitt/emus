@@ -361,7 +361,7 @@ function from()
 }
 
 # Wrapper around "cd" built-in that accepts Windows paths when running under
-# WSL.
+# WSL and also allows unquoted/unescaped spaces in paths.
 #
 # Arguments:
 # - $@: Same arguments/options as the "cd" built-in.
@@ -369,28 +369,49 @@ function from()
 function cd()
 {
     local directory
+    local OPTIND
+    local option
 
-    local arguments=("$@")
+    local options=()
 
-    # If we are not in WSL, the last argument appears to reference a file that
+    while getopts :LPe@ option "$@"; do
+        if [[ "$option" = "?" ]]; then
+            echo "bash: cd: -$OPTARG: invalid option" >&2
+            echo "cd: usage: cd [-L|[-P [-e]] [-@]] [dir]" >&2
+            return 2
+        fi
+
+        options+=("-$option")
+    done
+
+    shift "$((OPTIND - 1))"
+
+    if [[ "$#" -eq 0 ]]; then
+        builtin cd "${options[@]}"
+        return
+    fi
+
+    # Allow spaces in the argument to facilitate copying and pasting without
+    # quotes.
+    directory="$*"
+
+    # If we are not in WSL, the directory appears to reference a file that
     # exists, or there aren't any Windows path separators or indications of
     # Windows-style environment variable references in the arguments, execute
     # "cd" without modifying the arguments.
-    if ! [[ "${WSL_DISTRO_NAME:+isset}" ]] || [[ "$#" -eq 0 ]] ||
-     ! [[ "${arguments[-1]}" =~ \\|%[^%]+% ]] ||
-      [[ -e "${arguments[-1]}" ]]; then
-        builtin cd "$@"
+    if [[ -z "${WSL_DISTRO_NAME:-}" ]] || ! [[ "$directory" =~ \\|%[^%]+% ]] ||
+      [[ -e "$directory" ]]; then
+        builtin cd -- "$directory"
         return
     fi
 
     # Try to map the directory argument to a WSL path. If the translated path
     # does not exist, then we restore the directory to its original form before
     # calling "cd".
-    directory="$(cmdecho "${arguments[-1]}")"
+    directory="$(cmdecho "$directory")"
     test -e "$directory" || directory="$(wslpath -- "$directory" 2>/dev/null)"
-    test -e "$directory" || directory="${arguments[-1]}"
-    unset "arguments[-1]"
-    builtin cd "${arguments[@]}" "$directory"
+    test -e "$directory" || directory="$*"
+    builtin cd "${options[@]}" -- "$directory"
 }
 
 # Launch a background command detached from the current terminal session.

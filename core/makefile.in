@@ -462,7 +462,7 @@ $(SIGNED_ARCHIVE_FOLDERS): $(PUBRING)
 	touch $@
 
 $(MUSL).tar.gz $(MUSL).tar.gz.asc:
-	$(WGET) -nc https://www.musl-libc.org/releases/$@
+	$(WGET) -nc https://musl.libc.org/releases/$@
 
 $(MUSL)/.FOLDER: $(MUSL).tar.gz $(MUSL).tar.gz.asc $(PUBRING)
 	$(GPG) --verify $(MUSL).tar.gz.asc

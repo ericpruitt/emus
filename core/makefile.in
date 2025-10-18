@@ -21,7 +21,7 @@
 # MPFR_DEPS =
 
 # Packages:
-BASH = bash-5.2
+BASH = bash-5.3
 CMARK = cmark-src
 COREUTILS = coreutils-9.5
 FINDUTILS = findutils-4.9.0
@@ -37,7 +37,7 @@ MUSL = musl-1.2.5
 NCURSES = ncurses-6.3
 OATH_TOOLKIT = oath-toolkit-2.6.12
 PCRE2 = pcre2-10.42
-READLINE = readline-8.2
+READLINE = readline-8.3
 RSYNC = rsync-3.1.3
 SED = sed-4.9
 TMUX = tmux-src
@@ -60,8 +60,8 @@ TMUX_COMMIT = bdf8e614af34ba1eaa8243d3a818c8546cb21812
 UCONV_COMMIT = c26b74192229be34d65114db0ec85aecd61a2cbf
 
 # Patch level for Chet Ramey's packages:
-BASH_PATCH_LEVEL = 21
-READLINE_PATCH_LEVEL = 7
+BASH_PATCH_LEVEL = 3
+READLINE_PATCH_LEVEL = 1
 
 # Build dependencies:
 DEBIAN_BUILD_DEPS = automake bison build-essential cmake pkg-config libtool

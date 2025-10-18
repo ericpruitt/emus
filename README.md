@@ -223,7 +223,7 @@ Define a stub to replace _fmtcheck(3)_ on non-Apple systems.
 Make use of the deprecated xlocale.h header dependent on whether Bash is being
 compiled on an Apple OS.
 
-#### bash-5.2-automatic-susp-toggle.patch ####
+#### bash-5.3-automatic-susp-toggle.patch ####
 
 When running commands interactively, modify the terminal attributes so the
 suspend character is interpreted as literal sequence at the prompt but produces
@@ -232,25 +232,23 @@ readline. For example, adding `"\C-z": "\C-afg \C-m"` to "~/.inputrc" would
 make it possible to suspend a program using ^Z then pressing ^Z again to bring
 the program back to the foreground.
 
-#### bash-5.2-fix-memory-leak.patch ####
+#### bash-5.3-make-fltexpr-a-builtin.patch ####
 
-This patch fixes a memory leak associated with using `$(< ...)` constructs for
-reading files. Taken from
-<https://lists.gnu.org/archive/html/bug-bash/2024-01/msg00018.html>.
+Make the "fltexpr" loadable for doing floating point arithmetic a built-in.
 
-#### bash-5.2-nosuchfile-hook.patch ####
+#### bash-5.3-nosuchfile-hook.patch ####
 
 Allow the user to define a "no_such_file_handle" function which is analogous to
 "command_not_found_handle" but also runs when a command contains a "/".
 
-#### bash-5.2-pre-command.patch ####
+#### bash-5.3-pre-command.patch ####
 
-Add support for a new variable named "PRE_COMMAND" which can be set to a
-command that gets executed prior to the user's command. This solves the issue
-of not being able to run commands ahead of a subshell since subshells do not
-trigger DEBUG traps.
+Add support for a new variable named "PRE_COMMAND" which can be set to command
+that gets executed prior to the user's command. This solves the issue of not
+being able to run commands ahead of a subshell since subshells do not trigger
+DEBUG traps.
 
-#### bash-5.2-prompt-on-clean-line.patch ####
+#### bash-5.3-prompt-on-clean-line.patch ####
 
 Ensure the prompt will always be displayed on a clean line even if the output
 of the last program did not end with a newline.
@@ -266,12 +264,12 @@ of the last program did not end with a newline.
     abc
     ~$
 
-#### bash-5.2-saner-current_user-fallbacks.patch ####
+#### bash-5.3-saner-current_user-fallbacks.patch ####
 
 If a user's information cannot be queried from the password database, use the
 environment variables "LOGNAME", "HOME" and "SHELL" if they are set.
 
-#### bash-5.2-strtoimax.patch ####
+#### bash-5.3-strtoimax.patch ####
 
 Disable _strtoimax(3)_ compatibility implementation when using C99 and up since
 it is part of the C99 standard.

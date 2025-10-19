@@ -51,7 +51,7 @@ APPLE_BASH = apple-$(APPLE_BASH_RELEASE)
 
 # Revision-controlled package versions:
 UTF8PROC_VERSION = 2.7.0
-VIM_VERSION = 9.1.0918
+VIM_VERSION = 9.1.1868
 
 CMARK_COMMIT = ce6e7624d528146b20e9673cdb7b9970e8951c34
 FLOCK_COMMIT = b9f6170fff275e569ef6681ce05077ebef29cc2d
@@ -1165,6 +1165,7 @@ $(VIM)/src/auto/config.h: $(VIM)/.git $(COMMON)/$(NCURSES)
 		--with-features=normal \
 		--with-tlib=ncurses \
 		--without-x \
+		--without-wayland \
 	)
 
 $(VIM)/src/vim $(VIM)/src/xxd/xxd: $(VIM)/src/auto/config.h

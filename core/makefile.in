@@ -471,6 +471,7 @@ $(MUSL)/.FOLDER: $(MUSL).tar.gz $(MUSL).tar.gz.asc $(PUBRING)
 	$(GPG) --verify $(MUSL).tar.gz.asc
 	tar -x -z -f $(MUSL).tar.gz
 	rm $(MUSL)/src/ctype/wcwidth.c
+	cat $(PWD)/patches/$(MUSL)-* | (cd $(MUSL) && patch -p1)
 	touch $@
 
 $(MUSL)/config.mak: $(MUSL)/.FOLDER

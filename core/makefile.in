@@ -234,6 +234,9 @@ purge:
 	rm -f -r dist.tmp dist.tar.xz "$(GNUPGHOME)" "$(GNUPGHOME).tmp"
 	rm -f $(COMPAT)
 	for prefix in $(FOLDERS); do \
+		if [ "$$(git ls-tree HEAD --name-only "$$prefix")" ]; then \
+			continue; \
+		fi; \
 		rm -f -r "$$prefix".*.asc "$$prefix".*.sig "$$prefix".tar.* \
 		         "$$prefix"-patches/ "$$prefix"/; \
 	done

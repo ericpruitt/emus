@@ -222,7 +222,8 @@
             "colorScheme": "Eric's ANSI Color Scheme",
             "cursorShape": "filledBox",
             "font": {
-                "size": 10.5,
+                "face": "Consolas",
+                "size": 12,
                 "weight": "semi-light"
             },
             "intenseTextStyle": "all"

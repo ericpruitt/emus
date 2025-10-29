@@ -170,6 +170,9 @@ BEGIN {
     # Determines whether email addresses are shown instead of names.
     SHOW_EMAIL = 0
 
+    # Template for invoking date(1) with a UNIX timestamp.
+    DATE_COMMAND_TEMPLATE = ""
+
     #                          --- Constants ---
 
     # This number is used as the maximum width of individual expanded tabs.
@@ -462,7 +465,23 @@ function init(    argument, command, optind0)
     } else if (TIMEZONE == "author") {
         SHOW_TIMEZONE = 1
         TIMEZONE_OFFSET = ""
-    } else if (TIMEZONE != "host") {
+    } else if (TIMEZONE == "host") {
+        # POSIX date(1) only supports displaying the current time, but
+        # extensions to do it are common across systems. Unfortunately GNU
+        # date(1) uses a different option from BSD dates, so we have to do some
+        # testing to figure out how to invoke date(1) with a UNIX timestamp.
+        # The fallback, if the date(1) command does not support either of the
+        # common flags, is to use the current timezone offset for all commits
+        # which means that things like DST changes will not be reflected.
+
+        # GNU
+        if (system("[ \"$(date -d @123 +%s 2>&1)\" = \"123\" ]") == 0) {
+            DATE_COMMAND_TEMPLATE = "date -d @%d '+%%Y-%%m-%%d %%H:%%M'"
+        # BSD
+        } else if (system("[ \"$(date -r 123 +%s 2>&1)\" = \"123\" ]") == 0) {
+            DATE_COMMAND_TEMPLATE = "date -r %d '+%%Y-%%m-%%d %%H:%%M'"
+        }
+    } else {
         abort("timezone selection must be \"author\", \"host\" or \"utc\"")
     }
 
@@ -471,10 +490,7 @@ function init(    argument, command, optind0)
         command | getline
         close(command)
 
-        if (TIMEZONE == "host") {
-            TIMEZONE_OFFSET = $1
-        }
-
+        TIMEZONE_OFFSET = $1
         NOW = $2
     }
 
@@ -568,6 +584,29 @@ function unix2iso(timestamp, tz,    D, e, f, g, HH, h, J, M, MM, Y)
     M = ((int(h / 153) + 2) % 12) + 1
     Y = int(e / 1461) - 4716 + int((12 + 2 - M) / 12)
     return sprintf("%4s-%02d-%02d %02d:%02d", Y, M, D, HH, MM) tz
+}
+
+# Convert a Unix timestamp into an ISO 8601-formatted date and time in the
+# current time zone.
+#
+# Arguments:
+# - timestamp: Unix timestamp representing the time to be displayed.
+#
+# Returns: A string formatted as specified by ISO 8601.
+#
+function unix2local_iso(timestamp,    command)
+{
+    # We only show time down to the minute, so we round the timestamp down to
+    # increase the chances of cache hits.
+    timestamp -= timestamp % 60
+
+    if (!(timestamp in TIMESTAMP_CACHE)) {
+        command = sprintf(DATE_COMMAND_TEMPLATE, timestamp)
+        command | getline TIMESTAMP_CACHE[timestamp]
+        close(command)
+    }
+
+    return TIMESTAMP_CACHE[timestamp]
 }
 
 # Truncate text so that it contains no more than "width" characters.
@@ -683,7 +722,11 @@ function annotate(    clock, date, name, offset, rightcol)
         offset = commits[hash, TZ_FIELD]
     }
 
-    clock = unix2iso(commits[hash, TIME_FIELD], offset)
+    if (TIMEZONE == "host" && length(DATE_COMMAND_TEMPLATE)) {
+        clock = unix2local_iso(commits[hash, TIME_FIELD])
+    } else {
+        clock = unix2iso(commits[hash, TIME_FIELD], offset)
+    }
 
     # Line 1: Author name or email address.
     # Line 2: Date and the commit summary.

@@ -369,8 +369,8 @@ linked. See also: <https://github.com/PCRE2Project/pcre2/issues/341>.
 #### uconv-src-us-defaults.patch ####
 
 Use US standards by default where imperial or metric alternatives exist, add
-some units commonly used for cooking in the USA, and do not subdivide miles
-into yards since that is rarely done in the USA.
+some units commonly used for cooking and machining in the USA, and do not
+subdivide miles into yards since that is rarely done in the USA.
 
 #### vim-src-disable-check_more.patch ####
 

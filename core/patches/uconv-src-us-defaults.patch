@@ -1,9 +1,9 @@
 Use US standards by default where imperial or metric alternatives exist, add
-some units commonly used for cooking in the USA, and do not subdivide miles
-into yards since that is rarely done in the USA.
+some units commonly used for cooking and machining in the USA, and do not
+subdivide miles into yards since that is rarely done in the USA.
 
 diff --git units.c units.c
-index cd17bf4..2f68748 100644
+index cd17bf4..3ab95ca 100644
 --- units.c
 +++ units.c
 @@ -36,7 +36,7 @@ typedef struct _UnitTable
@@ -23,7 +23,7 @@ index cd17bf4..2f68748 100644
    { degree, "degree", "degrees,deg,degs", "angular degree" , "degrees" }, 
    { dms, "dms", "", "degrees with minutes and seconds" , "degrees" },
    { day, "day", "days", "day" , "days" }, 
-@@ -73,35 +74,35 @@ UnitTable unit_table [] =
+@@ -73,35 +74,36 @@ UnitTable unit_table [] =
    { fahrenheit, "fahrenheit", "fahr,F", "degrees fahrenheit" , "fahrenheit" }, 
    { faraday, "faraday", "faradays", "farady" , "faradays" }, 
    { fathom, "fathom", "fathoms,fm,fms", "fathom" , "fathoms" }, 
@@ -58,6 +58,7 @@ index cd17bf4..2f68748 100644
 +  { hundredweight, "ukhundredweight", "ukcwt", "impl. hundredweight" , 
 +     "uk hundredweight" }, 
    { inch, "inch", "inches,in", "imperial inch" , "inches" }, 
++  { thou, "thou", "", "1/1000th of an inch" , "thou" },
    { joule, "joule", "joules,j,J", "joule" , "joules" }, 
    { kelvin, "kelvin", "kelvins,k,K", "kelvin" , "kelvin" }, 
    { rankine, "rankine", "rankines,ra,Ra", "rankine" , "rankine" }, 
@@ -68,7 +69,7 @@ index cd17bf4..2f68748 100644
    { kilobit, "kilobit", "kilobits,kbit,kbits", "kilobits", "kilobits" },
    { kilobyte, "kilobyte", "kilobytes,kb", "kilobytes", "kilobytes" },
    { kmh, "kmh", "kmh", "kilometres per hour" , "kmh" }, 
-@@ -125,7 +126,7 @@ UnitTable unit_table [] =
+@@ -125,7 +127,7 @@ UnitTable unit_table [] =
    { nauticalmile, "nautical-mile", "nautical mile,nmi,NM", 
      "nautical mile" , "nautical-miles" }, 
    { mmHg, "mmHg", "mmhg", "mm of mercury" , "mmHg" }, 
@@ -77,7 +78,7 @@ index cd17bf4..2f68748 100644
    { mph, "mph", "mph", "miles per hour" , "mph" }, 
    { newton, "newton", "newtons,N", "newton" , "newtons" }, 
    { ounce, "ounce", "ounces,oz", "avoirdupois ounce" , "ounces" }, 
-@@ -135,13 +136,13 @@ UnitTable unit_table [] =
+@@ -135,13 +137,13 @@ UnitTable unit_table [] =
    { petabit, "petabit", "petabits,pbit,pbits", "petabits", "petabits" },
    { petabyte, "petabyte", "petabytes,pb", "petabytes", "petabytes" },
    { phot, "phot", "phots,ph", "phot" , "phots" }, 
@@ -93,7 +94,7 @@ index cd17bf4..2f68748 100644
    { rad, "rad", "rads", "rad" , "rads" }, 
    { radian, "radian", "radians", "angular radian" , "radians" }, 
    { REM, "REM", "REMS,rem,rems", "Roentgen equiv. man"  , "REM" }, 
-@@ -153,29 +154,31 @@ UnitTable unit_table [] =
+@@ -153,29 +155,31 @@ UnitTable unit_table [] =
    { sievert, "sievert", "sieverts,Sv,Svs", "sievert" , "sieverts" }, 
    { steradian, "steradian", "steradians,sterads", "solid angle" , "steradians" }, 
    { stone, "stone", "stones,st", "imperial stone" , "stones" }, 
@@ -136,7 +137,15 @@ index cd17bf4..2f68748 100644
    { watt, "watt", "watts,w", "watt" , "watts" }, 
    { wood_cord, "wood-cord", "woodcord,woodcords,wood-cords", "wood cord (volume)"  ,
      "wood-cords" }, 
-@@ -251,6 +254,9 @@ ConvTable conv_table [] =
+@@ -228,6 +232,7 @@ ConvTable conv_table [] =
+   {  foot, 1, {1, {{ meter, 1, 0}}}, INCH_TO_METRE * 12 },
+   {  hand, 1, {1, {{ meter, 1, 0}}}, 4*INCH_TO_METRE },
+   {  inch, 1, {1, {{ meter, 1, 0}}}, INCH_TO_METRE },
++  {  thou, 1, {1, {{ meter, 1, 0}}}, INCH_TO_METRE / 1000 },
+   {  light_year, 1, {1, {{ meter, 1, 0}}}, 9.4607304725808e15 },
+   {  meter, 1, {1, {{ meter, 1, 0}}}, 1 },
+   {  nauticalmile, 1, {1, {{ meter, 1, 0}}}, 1853.184 },
+@@ -251,6 +256,9 @@ ConvTable conv_table [] =
    {  usquart, 1, {1, {{ meter, 3, 0}}}, 2 * 473.176473 / 1e6 },
    {  wood_cord, 1, {1, {{ meter, 3, 0}}}, 3.62456 },
    {  yard, 3, {1, {{ meter, 3, 0}}}, CUBE(INCH_TO_METRE * 36) },
@@ -146,7 +155,7 @@ index cd17bf4..2f68748 100644
  
    // Area
    {  acre, 1, {1, {{ meter, 2, 0}}}, 4046.8564224 },
-@@ -589,7 +595,7 @@ void unit_parse_single_unit (const char *s, Unit *unit, int *power,
+@@ -589,7 +597,7 @@ void unit_parse_single_unit (const char *s, Unit *unit, int *power,
      skip = 3;
      ab_power = 3;
      }
@@ -155,7 +164,7 @@ index cd17bf4..2f68748 100644
      {
      skip = 2;
      ab_power = 3;
-@@ -1332,9 +1338,6 @@ char *units_format_string_and_value (const Units *self, double n,
+@@ -1332,9 +1340,6 @@ char *units_format_string_and_value (const Units *self, double n,
      {
      switch (self->units[0].unit)
        {
@@ -165,16 +174,17 @@ index cd17bf4..2f68748 100644
        case yard:
          return SUBDIVIDE(n, yard, foot, inch);
  
-diff --git units.h units.h
-index 4f6e3ec..c5222db 100644
+diff --git a/units.h b/units.h
+index 4f6e3ec..b0d54e4 100644
 --- units.h
 +++ units.h
-@@ -37,7 +37,7 @@ typedef enum { meter = 1, second, hectare, foot, acre, usacre, hour, minute, day
+@@ -37,7 +37,8 @@ typedef enum { meter = 1, second, hectare, foot, acre, usacre, hour, minute, day
     kilobyte, megabyte, gigabyte, terabyte, petabyte, exabyte, kibibyte, mebibyte,
     gibibyte, tebibyte, pebibyte, exbibyte, bit, kilobit, megabit, gigabit, terabit,
     petabit, exabit, kibibit, mebibit, gibibit, tebibit, pebibit, exbibit, rankine,
 -   usmpg, usfluid_ounce, arc_minute, arc_second, dms}
-+   usmpg, usfluid_ounce, arc_minute, arc_second, dms, cup, teaspoon, tablespoon}
++   usmpg, usfluid_ounce, arc_minute, arc_second, dms, cup, teaspoon, tablespoon,
++   thou}
    Unit;
  
  typedef struct _UnitAndPower

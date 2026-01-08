@@ -24,6 +24,7 @@
 
 [pager]
 	colorized-blame = true
+	branch = false
 
 [color]
 	diff = true

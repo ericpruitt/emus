@@ -136,7 +136,7 @@ function -define-aliases()
     alias wpwd='wslpath -w -- "$PWD"'
     alias xargs='xargs --verbose'
     alias xmllint='-paginate xmllint --format'
-    alias xxd='-paginate xxd --'
+    alias xxd='-paginate xxd "-R always"'
     alias zcat='-paginate zcat --'
 
     alias ...="cd ../.."

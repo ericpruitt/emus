@@ -5,13 +5,6 @@
         {
             "command": {
                 "action": "sendInput",
-                "input": "\u001b[27;5;9~"
-            },
-            "id": "User.sendInput.CtrlTab"
-        },
-        {
-            "command": {
-                "action": "sendInput",
                 "input": "\u001b[27;6;9~"
             },
             "id": "User.sendInput.CtrlShiftTab"
@@ -19,23 +12,9 @@
         {
             "command": {
                 "action": "sendInput",
-                "input": "\u001b[17~"
+                "input": "\u001b[27;5;9~"
             },
-            "id": "User.sendInput.Ctrl6ToF6"
-        },
-        {
-            "command": {
-                "action": "sendInput",
-                "input": "\u001bOS"
-            },
-            "id": "User.sendInput.Ctrl4ToF4"
-        },
-        {
-            "command": {
-                "action": "sendInput",
-                "input": "\u001bOQ"
-            },
-            "id": "User.sendInput.Ctrl2ToF2"
+            "id": "User.sendInput.CtrlTab"
         },
         {
             "command": {
@@ -47,9 +26,23 @@
         {
             "command": {
                 "action": "sendInput",
-                "input": "\u001b[20~"
+                "input": "\u001bOQ"
             },
-            "id": "User.sendInput.Ctrl9ToF9"
+            "id": "User.sendInput.Ctrl2ToF2"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001bOS"
+            },
+            "id": "User.sendInput.Ctrl4ToF4"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001b[17~"
+            },
+            "id": "User.sendInput.Ctrl6ToF6"
         },
         {
             "command": {
@@ -57,6 +50,13 @@
                 "input": "\u001b[19~"
             },
             "id": "User.sendInput.Ctrl8ToF8"
+        },
+        {
+            "command": {
+                "action": "sendInput",
+                "input": "\u001b[20~"
+            },
+            "id": "User.sendInput.Ctrl9ToF9"
         },
         {
             "command": {
@@ -143,28 +143,32 @@
             "keys": "ctrl+]"
         },
         {
-            "id": "User.sendInput.CtrlTab",
-            "keys": "ctrl+tab"
-        },
-        {
             "id": "User.sendInput.CtrlShiftTab",
             "keys": "ctrl+shift+tab"
         },
         {
-            "id": "Terminal.FindText",
-            "keys": "ctrl+shift+f"
+            "id": "User.sendInput.CtrlTab",
+            "keys": "ctrl+tab"
         },
         {
             "id": "User.sendInput.LiteralCtrlV",
             "keys": "ctrl+v"
         },
         {
-            "id": "Terminal.DuplicatePaneAuto",
-            "keys": "alt+shift+d"
+            "id": "Terminal.FindText",
+            "keys": "ctrl+shift+f"
+        },
+        {
+            "id": null,
+            "keys": "ctrl+minus"
         },
         {
             "id": "User.sendInput.CustomCtrlEquals",
             "keys": "ctrl+plus"
+        },
+        {
+            "id": "Terminal.DuplicatePaneAuto",
+            "keys": "alt+shift+d"
         },
         {
             "id": "User.sendInput.Ctrl2ToF2",

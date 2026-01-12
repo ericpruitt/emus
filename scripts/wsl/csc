@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e -u
+
+csc="$(
+    find /mnt/?/Windows/Microsoft.NET/Framework/ -iname csc.exe \
+    | sort -n \
+    | tail -n1
+)"
+
+if ! [ "$csc" ]; then
+    echo "Unable to locate csc.exe on the host system" >&2
+    return 127
+fi
+
+exec "$csc" "$@"

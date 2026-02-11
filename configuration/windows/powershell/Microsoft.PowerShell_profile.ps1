@@ -449,7 +449,9 @@ function Set-SimpleLocation
         }
     }
 
-    Set-Location -LiteralPath $Path
+    [Environment]::CurrentDirectory = (
+        (Set-Location -PassThru -LiteralPath $Path).Path
+    )
 }
 
 function Set-InteractiveSessionOptions

@@ -603,8 +603,9 @@ Set-UserEnvironmentVariables @{
     PYTHONIOENCODING = "utf-8:surrogateescape"
 }
 
-if (Test-Path -Path "$env:WSL_ENVIRONMENT_FILE") {
-    . "$env:WSL_ENVIRONMENT_FILE"
+if ((Get-Content -ErrorAction SilentlyContinue Env:WSL_ENVIRONMENT_FILE) -and
+  (Test-Path -Path $env:WSL_ENVIRONMENT_FILE)) {
+    . $env:WSL_ENVIRONMENT_FILE
 } else {
     $WSLEnvironment = @{}
 }

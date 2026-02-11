@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Usage: envtopsh
+#
+# Generate a PowerShell variable called $WSLEnvironment that maps WSL
+# environment variables to their values.
+set -e -u
+
+main()
+{
+    echo '$Global:WSLEnvironment = @{'
+
+    for variable in $(compgen -e); do
+        # We don't want to expose these dynamic variables to PowerShell because
+        # thy might not be accurate anymore.
+        case "$variable" in
+          _|COLUMNS|LINES|OLDPWD|PWD)
+            continue
+          ;;
+        esac
+
+        printf "    %s = '%s'\n" "$variable" "${!variable//\'/\'\'}"
+    done
+
+    echo '}'
+}
+
+main "$@"

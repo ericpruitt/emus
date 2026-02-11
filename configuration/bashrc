@@ -703,8 +703,9 @@ function -setup()
         export REPORT_REMAINING_SLEEP_TIME=x
     fi
 
-    # macOS tends to use filesystems configured to be case insensitive.
-    if [[ "$UNAME" = "Darwin" ]]; then
+    # Windows and macOS tend to use filesystems configured to be case
+    # insensitive.
+    if [[ "$UNAME" = "Darwin" ]] || [[ "${WSL_DISTRO_NAMEL:-}" ]]; then
         bind "set completion-ignore-case on"
         export GNU_FIND_FORCE_CASE_INSENSITIVE=x
     fi

@@ -444,14 +444,12 @@ function Set-SimpleLocation
 
         if (Test-Path -Path $Path -PathType Leaf) {
             throw "'$Path' is not a directory."
-        } elseif (-not [System.IO.Directory]::Exists($Path)) {
+        } elseif (-not (Test-Path -Path $Path -PathType Container)) {
             throw "Directory '$Path' does not exist."
         }
     }
 
-    [Environment]::CurrentDirectory = (
-        (Set-Location -PassThru -LiteralPath $Path).Path
-    )
+    Set-Location -LiteralPath $Path
 }
 
 function Set-InteractiveSessionOptions
@@ -493,7 +491,7 @@ function Set-InteractiveSessionOptions
             $text = $text.Trim()
         }
 
-        if ([System.IO.Directory]::Exists($text) -or $text -match '^\.{3,}$') {
+        if ((Test-Path -Path $text) -or $text -match '^\.{3,}$') {
             try {
                 Set-SimpleLocation $text
             } catch {
@@ -574,6 +572,11 @@ function Prompt
     $Global:LASTEXITCODE = 0  # Ensure code doesn't persist after blank input.
 
     $path = $executionContext.SessionState.Path.CurrentLocation.ProviderPath
+
+    if (-not $path) {
+        $path = $executionContext.SessionState.Path.CurrentLocation.Path
+    }
+
     $marker = ">" * ($nestedPromptLevel + 1)
     $prompt = "PS $path$marker "
 

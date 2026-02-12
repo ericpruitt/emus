@@ -245,7 +245,9 @@ function Get-WSLTranslatedExecArgV
                 break
             }
 
-            # Match a bare arg that looks like it could be a Windows path.
+            # Match a bare argument that looks like it could be a Windows path.
+            # The reason we match based on ".\" is because PowerShell will
+            # always add a leading ".\" when using tab completion.
             "^([A-Z]:|\\|\.\.?)\\.*|.*%[^%]+%.*" {
                 $argument = Get-WSLPath -ExpandEnvironmentVariables $argument
             }

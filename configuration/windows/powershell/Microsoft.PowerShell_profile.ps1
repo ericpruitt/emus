@@ -598,6 +598,40 @@ function Prompt
     return $prompt
 }
 
+function Edit-Profile
+{
+    <#
+    .SYNOPSIS
+        Edit the PowerShell profile with Vim.
+
+    .DESCRIPTION
+        Open the PowerShell profile in Vim under WSL in its canonical location
+        in the $EMUS folder.
+
+    .PARAM Reload
+        When this is set, the profile is reloaded using the "." operator after
+        the editor is closed.
+    #>
+    param (
+        [switch] $Reload
+    )
+
+    if (-not $WSLEnvironment.ContainsKey("WSL_DISTRO_NAME")) {
+        throw "`"WSL_DISTRO_NAME`" is missing from `$WSLEnvironment"
+    } elseif (-not $WSLEnvironment.ContainsKey("EMUS")) {
+        throw "`"EMUS`" is missing from `$WSLEnvironment"
+    }
+
+    $emus = "\\wsl$\$($WSLEnvironment.WSL_DISTRO_NAME)$($WSLEnvironment.EMUS)"
+    $path = "$emus\configuration\windows\powershell\Microsoft.PowerShell_profile.ps1"
+
+    vim $path
+
+    if ($Reload) {
+        . $path
+    }
+}
+
 Set-UserEnvironmentVariables @{
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"
     DISABLE_AUTOUPDATER = "1"

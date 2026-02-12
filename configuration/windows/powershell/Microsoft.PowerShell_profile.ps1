@@ -246,8 +246,8 @@ function Get-WSLTranslatedExecArgV
             }
 
             # Match a bare arg that looks like it could be a Windows path.
-            "^([A-Z]:|\\|\.)\\.*|.*%[^%]+%.*" {
-                $argument = Get-WSLPath -ExpandEnvironmentVariables $Matches[0]
+            "^([A-Z]:|\\|\.\.?)\\.*|.*%[^%]+%.*" {
+                $argument = Get-WSLPath -ExpandEnvironmentVariables $argument
             }
         }
 

@@ -70,8 +70,8 @@ function Get-WSLPath
         This is a pure-PowerShell alternative to `wslpath -u ...` that is much
         faster to execute but has some limitations and differences from that
         command:
-        - This function assumes that all WSL paths reference the active VM
-          regardless of what comes after "//wsl$/" or "//wsl.localhost/".
+        - This function assumes only resolves WSL UNC paths referencing the
+          active VM.
         - It does not reference "/proc/mounts". Instead, it naively assumes
           that any drive letter in the specified path is mounted at
           `/mnt/$DRIVE_LETTER/` inside of WSL, and UNC paths pointing to
@@ -155,9 +155,13 @@ function Get-WSLPath
     }
 
     # Handle UNC paths.
-    if ($WindowsPath -match "^\\\\(?<host>[^\\]+)\\[^\\]+(?<tail>(\\.*)?)$") {
-        # We treat all WSL paths as pointing to the VM hosting PowerShell.
+    if ($WindowsPath -match
+      "^\\\\(?<host>[^\\]+)\\(?<share>[^\\]+)(?<tail>(\\.*)?)$") {
         if ($Matches.host -eq "wsl$" -or $Matches.host -eq "wsl.localhost") {
+            if ($Matches.share -ne $env:WSL_DISTRO_NAME) {
+                return $original
+            }
+
             $tail = $Matches.tail
 
             if ($tail -eq "") {

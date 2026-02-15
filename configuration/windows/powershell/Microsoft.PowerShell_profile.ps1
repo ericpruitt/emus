@@ -653,6 +653,17 @@ if ((Get-Content -ErrorAction SilentlyContinue Env:WSL_ENVIRONMENT_FILE) -and
     . $env:WSL_ENVIRONMENT_FILE
 } else {
     $WSLEnvironment = @{}
+
+    # Fallback in case the PowerShell was not launched within WSL.
+    & {
+        $envFile = [System.Environment]::ExpandEnvironmentVariables(
+            "%LOCALAPPDATA%\Temp\wsl-env.ps1"
+        )
+
+        if (Test-Path $envFile) {
+            . $envFile
+        }
+    }
 }
 
 Remove-Item -ErrorAction SilentlyContinue Alias:cat, Alias:ls

@@ -667,3 +667,5 @@ if ((Get-Content -ErrorAction SilentlyContinue Env:WSL_ENVIRONMENT_FILE) -and
 }
 
 Remove-Item -ErrorAction SilentlyContinue Alias:cat, Alias:ls
+Set-Alias -Scope Script list Get-ChildItem
+Set-Alias -Scope Script show Get-Content

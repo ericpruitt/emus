@@ -236,14 +236,14 @@ function Get-WSLTranslatedExecArgV
 
         switch -Regex ($argument) {
             # Match "--x=y" or "-x=y" where "y" could be a Windows path.
-            "^(-[^=]+=)(([A-Z]:|\\|\.)\\.*|.*%[^%]+%.*)" {
+            "^(-[^=]+=)(([A-Z]:|\\|\.\.?)\\.*|.*%[^%]+%.*)" {
                 $prefix = $Matches[1]
                 $argument = Get-WSLPath -ExpandEnvironmentVariables $Matches[2]
                 break
             }
 
             # Match "x:y" where "y" could be a Windows path.
-            "^([^:]{2,}:)(([A-Z]:|\\|\.)\\.*|.*%[^%]+%.*)" {
+            "^([^:]{2,}:)(([A-Z]:|\\|\.\.?)\\.*|.*%[^%]+%.*)" {
                 $prefix = $Matches[1]
                 $argument = Get-WSLPath -ExpandEnvironmentVariables $Matches[2]
                 break

@@ -21,6 +21,7 @@
 	save = stash push --keep-index
 	staged = diff --cached
 	cstaged = !git cdiff --cached
+	surgery = rebase --committer-date-is-author-date --interactive
 
 [pager]
 	colorized-blame = true

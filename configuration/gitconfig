@@ -37,6 +37,7 @@
 
 [diff]
 	algorithm = patience
+	colorMoved = zebra
 
 [include]
 	path = ~/.local.gitconfig

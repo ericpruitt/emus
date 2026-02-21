@@ -1,19 +1,89 @@
 #!/bin/sh
-set -e -u
+set -e -u -f
+
+SELF="${0##*/}"
+
+USAGE="$SELF [-e] [-l ARGUMENT]... [-p] [-S] [-s]
+       $SELF -h
+
+View or dump the active tmux pane's scrollback buffer.
+
+Options:
+  -e    Include escape sequences in the output.
+  -h    Show this documentation and exit.
+  -l ARGUMENT
+        Add the specified value to the arguments passed to Less. Multiple
+        options can be specified in a single value, and the option can also be
+        repeated to append more values to Less's arguments.
+  -p    Plain-text mode; do not include escape sequences in the output. This is
+        the default behavior.
+  -S    The opposite of \"-s\"; do not insert a separator. This is the default
+        behavior.
+  -s    Insert a separator between the visible contents and the off-screen
+        contents.
+"
+
+# Option defaults
+include_escape_sequences=""
+include_visible_area_separator=""
 
 capture_pane()
 {
-    tmux capture-pane -e -p -S - -E -1 -J
-    # Add a bold cyan separator to indicate which text is in the visible area.
-    printf '\033[1m\033[36m~~~\033[0m\n'
-    tmux capture-pane -e -p -J
+    options="-p -J"
+    test "$include_escape_sequences" && options="$options -e"
+
+    if [ "$include_visible_area_separator" ]; then
+        tmux capture-pane $options -S - -E -1
+
+        if [ "$include_escape_sequences" ]; then
+            printf '\033[0m~~~\n'
+        else
+            echo "~~~"
+        fi
+
+        tmux capture-pane $options
+    else
+        tmux capture-pane $options -S - -E -
+    fi
 }
 
 main()
 {
-    # In the Less invocations, "+G +k" ensures the viewport used by Less
-    # exactly matches the pane to make the transition seamless.
-    if [ "${TMUX_PANE:-}" ]; then
+    # Use of "+G +k" ensures the viewport used by Less exactly matches the pane
+    # to make the transition seamless when using this script to view the active
+    # pane's contents.
+    less_args="+G +k"
+
+    while getopts ehl:Ss option "$@"; do
+        case "$option" in
+          e)    include_escape_sequences="x" ;;
+          l)    less_args="$less_args $OPTARG" ;;
+          p)    include_escape_sequences="" ;;
+          S)    include_visible_area_separator="" ;;
+          s)    include_visible_area_separator="x" ;;
+
+          h)
+            printf 'Usage: %s' "$USAGE"
+            return
+          ;;
+          \?)
+            echo "Try \"$SELF -h\""
+            return 1
+          ;;
+        esac
+    done
+
+    if [ "$include_escape_sequences" ]; then
+        pipeline="capture_pane | redundansi"
+    else
+        pipeline="capture_pane"
+    fi
+
+    shift "$((OPTIND - 1))"
+
+    if ! [ -t 1 ]; then
+        eval "$pipeline"
+    elif [ "${TMUX_PANE:-}" ]; then
         # When starting Less from a shell session, Less may switch to the
         # alternate screen which immediately clears the display, spoiling the
         # output of capture-pane. To work around this, the scrollback is dumped
@@ -21,10 +91,10 @@ main()
         # command is run from a shell.
         trap 'rm -f -- "${tempfile:-}"' EXIT
         tempfile="$(mktemp)"
-        capture_pane | redundansi > "$tempfile"
-        less +G +k "$@" -- "$tempfile"
+        eval "$pipeline" > "$tempfile"
+        less $less_args -- "$tempfile"
     else
-        capture_pane | redundansi less +G +k "$@"
+        eval "$pipeline" | less $less_args
     fi
 }
 

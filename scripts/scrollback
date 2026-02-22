@@ -6,7 +6,9 @@ SELF="${0##*/}"
 USAGE="$SELF [-e] [-l ARGUMENT]... [-p] [-S] [-s]
        $SELF -h
 
-View or dump the active tmux pane's scrollback buffer.
+View or dump the active tmux pane's scrollback buffer. When standard output is
+a TTY, Less is invoked to view the scrollback buffer. Otherwise, its contents
+are dumped verbatim.
 
 Options:
   -e    Include escape sequences in the output.

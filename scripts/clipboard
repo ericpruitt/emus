@@ -7,7 +7,7 @@ POWERSHELL="/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0/powershell.exe \
 CLIP_EXE="/mnt/c/Windows/System32/clip.exe"
 
 USAGE="\
-Usage: $SELF [-p] [ACTION]
+Usage: $SELF [-p] [-t] [ACTION]
        $SELF --help
 
 Read from or write to the desktop environment's clipboard. When no explicit

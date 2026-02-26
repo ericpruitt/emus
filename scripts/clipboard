@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+set -e -u -o pipefail
+
+SELF="${0##*/}"
+POWERSHELL="/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0/powershell.exe \
+    -ExecutionPolicy Bypass -NoProfile -NonInteractive"
+CLIP_EXE="/mnt/c/Windows/System32/clip.exe"
+
+USAGE="\
+Usage: $SELF [-p] [ACTION]
+       $SELF --help
+
+Read from or write to the desktop environment's clipboard. When no explicit
+action is specified, whether the clipboard is read from or written to depends
+on the program's file descriptors. If standard input is \"/dev/null\" or a TTY,
+the clipboard is read. Otherwise, the contents of standard input are written to
+the clipboard. On X11 systems, either xclip or xsel must be installed.
+
+Actions:
+  read, r
+        Read from the clipboard.
+  write, w
+        Write to the clipboard.
+
+Options:
+  --help, -h, -V
+        Show this documentation and exit.
+  -p    On X11 systems, interact with the primary selection instead of the
+        clipboard. On other systems, this option is silently ignored.
+  -t    When running under tmux, interact with the copy buffer.
+"
+
+die()
+{
+    echo "$SELF: $*" >&2
+    exit 1
+}
+
+main()
+{
+    local action
+    local char
+    local option
+    local read
+    local write
+
+    local opts=""
+    local selection="default"
+
+    while getopts :hptV-: char; do
+        option="-${char#\?}${OPTARG:-}"
+
+        case "$option" in
+          -p)
+            selection="primary"
+          ;;
+
+          -t)
+            test "${TMUX:-}" || die "-t specified while not running under tmux"
+            selection="tmux"
+          ;;
+
+          -h|--help|-V)
+            printf "%s" "$USAGE"
+            return
+          ;;
+
+          *)
+            die "unrecognized option \"$option\"; try \"$SELF --help\""
+          ;;
+        esac
+    done
+
+    shift "$((OPTIND - 1))"
+
+    if [[ "$selection" = "tmux" ]]; then
+        read="tmux save-buffer -"
+        write="tmux load-buffer -"
+    elif [[ "${WSL_DISTRO_NAME:-}" ]]; then
+        read="$POWERSHELL -Command Get-Clipboard | tr -d '\\r'"
+        write="iconv -f utf-8 -t utf-16le | $CLIP_EXE"
+    elif [[ "$(uname)" = Darwin ]]; then
+        read="pbpaste"
+        write="pbcopy"
+    elif command -v xclip >/dev/null; then
+        test "$selection" = "default" && opts="-selection clipboard"
+        read="xclip $opts -out"
+        # From <https://wiki.archlinux.org/title/Tmux#X_clipboard_integration>:
+        # "xclip does not close STDOUT after it has read from the tmux buffer.
+        # As such, tmux does not know that the copy task has completed, and
+        # continues to wait for xclip to terminate, thereby rendering tmux
+        # unresponsive. A workaround is to redirect `STDOUT` to `/dev/null`."
+        write="xclip $opts -in >/dev/null"
+    elif command -v xsel >/dev/null; then
+        test "$selection" = "default" && opts="--clipboard"
+        read="xsel $opts --output"
+        write="xsel $opts --input"
+    else
+        die "no supported X11 clipboard program found"
+    fi
+
+    if [[ "$#" -gt 0 ]]; then
+        test "$#" -eq 1 || die "too many arguments; try \"$SELF --help\""
+        action="$1"
+    elif [[ -t 0 ]] || [[ /dev/fd/0 -ef /dev/null ]]; then
+        action="read"
+    else
+        action="write"
+    fi
+
+    case "$action" in
+      read|r)
+        eval "$read"
+      ;;
+      write|w)
+        eval "$write"
+      ;;
+      *)
+        die "$action: invalid action; try \"$SELF --help\""
+      ;;
+    esac
+}
+
+main "$@"

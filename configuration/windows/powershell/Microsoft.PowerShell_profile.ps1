@@ -666,6 +666,10 @@ if ((Get-Content -ErrorAction SilentlyContinue Env:WSL_ENVIRONMENT_FILE) -and
     }
 }
 
+if (Get-Content -ErrorAction SilentlyContinue Env:WSL_DISTRO_NAME) {
+    $OutputEncoding = [System.Text.Encoding]::UTF8
+}
+
 Remove-Item -ErrorAction SilentlyContinue Alias:cat, Alias:ls
 Set-Alias -Scope Script list Get-ChildItem
 Set-Alias -Scope Script show Get-Content

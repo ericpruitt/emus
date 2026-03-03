@@ -523,7 +523,6 @@ function Set-InteractiveSessionOptions
         "cat -vT --bold-escapes"
         "clipboard"
         "cut"
-        "cut"
         "date"
         "diff --color=always -u"
         "find -xdev -regextype egrep"

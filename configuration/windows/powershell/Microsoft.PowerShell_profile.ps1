@@ -229,6 +229,10 @@ function Get-WSLTranslatedExecArgV
         [string[]] $ArgV
     )
 
+    if ($ArgV.Length -eq 1) {
+        return $ArgV
+    }
+
     $result = @($ArgV[0])
 
     foreach ($argument in $ArgV[1..($ArgV.Length - 1)]) {

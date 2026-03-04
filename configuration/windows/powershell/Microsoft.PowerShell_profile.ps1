@@ -418,6 +418,26 @@ function Set-MyPSReadLineOptions
     }
 }
 
+function Set-Location
+{
+    <#
+    .SYNOPSIS
+        A proxy for the Set-Location cmdlet that sets $OldLocation.
+
+    .DESCRIPTION
+        This function accepts the same options and arguments as the canonical
+        Set-Location function. See `Get-Help -Category cmdlet set-location` for
+        details.
+    #>
+    $originalSetLocation = Get-Command Set-Location -CommandType Cmdlet
+
+    $location = Get-Location
+    $result = & $originalSetLocation @args
+    $Global:OldLocation = $location
+
+    return $result
+}
+
 function Set-SimpleLocation
 {
     <#
@@ -441,21 +461,35 @@ function Set-SimpleLocation
         arguments unmodified so this function can take Set-Location's place as
         the alias for "cd".
     #>
-    if ($args.Length -eq 0 -or $args[0][0] -eq "-") {
+    if ($args.Length -eq 0 -or $args[0] -match "^-.") {
         return Set-Location @args
     }
 
-    $Path = $args -join " "
+    if ($args[0] -eq "-") {
+        if ($OldLocation -eq $null) {
+            throw '$OldLocation is not set'
+        }
 
-    if ($Path -match "^\.{3,}$" ) {
-        $Path = $Path -replace "^\.\.|\.", "..\"  # "...." -> "..\..\..\"
+        if ($OldLocation.ProviderPath) {
+            Write-Host $OldLocation.ProviderPath
+        } else {
+            Write-Host $OldLocation.Path
+        }
+
+        $Path = $OldLocation
     } else {
-        $Path = [System.Environment]::ExpandEnvironmentVariables($Path)
+        $Path = $args -join " "
 
-        if (Test-Path -Path $Path -PathType Leaf) {
-            throw "'$Path' is not a directory."
-        } elseif (-not (Test-Path -Path $Path -PathType Container)) {
-            throw "Directory '$Path' does not exist."
+        if ($Path -match "^\.{3,}$" ) {
+            $Path = $Path -replace "^\.\.|\.", "..\"  # "...." -> "..\..\..\"
+        } else {
+            $Path = [System.Environment]::ExpandEnvironmentVariables($Path)
+
+            if (Test-Path -Path $Path -PathType Leaf) {
+                throw "'$Path' is not a directory."
+            } elseif (-not (Test-Path -Path $Path -PathType Container)) {
+                throw "Directory '$Path' does not exist."
+            }
         }
     }
 
@@ -686,3 +720,5 @@ if (Get-Content -ErrorAction SilentlyContinue Env:WSL_DISTRO_NAME) {
 Remove-Item -ErrorAction SilentlyContinue Alias:cat, Alias:ls
 Set-Alias -Scope Script list Get-ChildItem
 Set-Alias -Scope Script show Get-Content
+
+$OldLocation = $null

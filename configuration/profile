@@ -112,7 +112,7 @@ if [ "${WSL_DISTRO_NAME:+x}" ]; then
     export WSL_ENVIRONMENT_FILE="$(cmdecho '%LOCALAPPDATA%\Temp\wsl-env.ps1')"
     envtopsh > "$(wslpath -- "$WSL_ENVIRONMENT_FILE")"
 
-    export WSLENV="TMUX:TMUX_PANE:WSL_ENVIRONMENT_FILE"
+    export WSLENV="TMUX:TMUX_PANE:WSL_ENVIRONMENT_FILE:WSL_DISTRO_NAME"
 fi
 
 # If Bash is available and this file was loaded interactively by another shell

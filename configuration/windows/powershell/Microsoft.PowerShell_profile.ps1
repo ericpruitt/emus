@@ -582,7 +582,7 @@ function Set-InteractiveSessionOptions
         "tmux"
         "tput"
         "tree -C -a -I .git|__pycache__|lost+found"
-        "uconv"
+        "uconv -m"
         "uniq"
         "vi"
         "vim"

@@ -7,7 +7,7 @@ POWERSHELL="/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0/powershell.exe \
 CLIP_EXE="/mnt/c/Windows/System32/clip.exe"
 
 USAGE="\
-Usage: $SELF [-p] [-t] [ACTION]
+Usage: $SELF [-p] [-t] [-x] [ACTION]
        $SELF --help
 
 Read from or write to the desktop environment's clipboard. When no explicit
@@ -27,7 +27,8 @@ Options:
         Show this documentation and exit.
   -p    On X11 systems, interact with the primary selection instead of the
         clipboard. On other systems, this option is silently ignored.
-  -t    When running under tmux, interact with the copy buffer.
+  -t    When reading data from standard input, tee/copy it to standard output.
+  -x    When running under tmux, interact with the copy buffer.
 "
 
 die()
@@ -46,6 +47,7 @@ main()
 
     local opts=""
     local selection="default"
+    local tee=""
 
     while getopts :hptV-: char; do
         option="-${char#\?}${OPTARG:-}"
@@ -56,6 +58,10 @@ main()
           ;;
 
           -t)
+            tee="x"
+          ;;
+
+          -x)
             test "${TMUX:-}" || die "-t specified while not running under tmux"
             selection="tmux"
           ;;
@@ -113,6 +119,11 @@ main()
         eval "$read"
       ;;
       write|w)
+        if [[ "$tee" ]]; then
+            exec {parent_stdout}>&1
+            write="tee /dev/fd/$parent_stdout | $write"
+        fi
+
         eval "$write"
       ;;
       *)

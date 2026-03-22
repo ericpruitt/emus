@@ -147,6 +147,11 @@ autocmd FileType * setlocal formatoptions-=c formatoptions-=r formatoptions-=o
 " Select the last changed text or the text that was just pasted
 nnoremap gp `[v`]
 
+" In visual mode, use "gc" will copy text to the clipboard while in normal
+" mode, that key binding will copy the default register to the clipboard.
+xnoremap <silent> gc :silent w !clipboard<CR>
+nnoremap <silent> gc :call system('clipboard', @")\|:echo 'Register copied'<CR>
+
 " Make :q and :Q run :qa
 cabbrev q <C-r>=getcmdtype() == ":" && getcmdpos() == 1 ? "qa" : "q"<CR>
 cabbrev Q <C-r>=getcmdtype() == ":" && getcmdpos() == 1 ? "qa" : "Q"<CR>

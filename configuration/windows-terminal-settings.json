@@ -47,16 +47,16 @@
         {
             "command": {
                 "action": "sendInput",
-                "input": "\u001b[19~"
+                "input": "\u001b[20~"
             },
-            "id": "User.sendInput.Ctrl8ToF8"
+            "id": "User.sendInput.Ctrl9ToF9"
         },
         {
             "command": {
                 "action": "sendInput",
-                "input": "\u001b[20~"
+                "input": "\u001b[19~"
             },
-            "id": "User.sendInput.Ctrl9ToF9"
+            "id": "User.sendInput.Ctrl8ToF8"
         },
         {
             "command": {
@@ -151,24 +151,28 @@
             "keys": "ctrl+tab"
         },
         {
+            "id": "Terminal.FindText",
+            "keys": "ctrl+shift+f"
+        },
+        {
             "id": "User.sendInput.LiteralCtrlV",
             "keys": "ctrl+v"
         },
         {
-            "id": "Terminal.FindText",
-            "keys": "ctrl+shift+f"
+            "id": null,
+            "keys": "ctrl+shift+3"
         },
         {
             "id": null,
             "keys": "ctrl+minus"
         },
         {
-            "id": "User.sendInput.CustomCtrlEquals",
-            "keys": "ctrl+plus"
-        },
-        {
             "id": "Terminal.DuplicatePaneAuto",
             "keys": "alt+shift+d"
+        },
+        {
+            "id": "User.sendInput.CustomCtrlEquals",
+            "keys": "ctrl+plus"
         },
         {
             "id": "User.sendInput.Ctrl2ToF2",
@@ -177,6 +181,10 @@
         {
             "id": "User.sendInput.Ctrl1ToF1",
             "keys": "ctrl+1"
+        },
+        {
+            "id": null,
+            "keys": "ctrl+shift+9"
         },
         {
             "id": "User.sendInput.Ctrl3ToF3",
@@ -203,6 +211,10 @@
             "keys": "ctrl+8"
         },
         {
+            "id": null,
+            "keys": "ctrl+shift+6"
+        },
+        {
             "id": "User.sendInput.Ctrl9ToF9",
             "keys": "ctrl+9"
         },
@@ -213,6 +225,34 @@
         {
             "id": "User.sendInput.CtrlShiftVPaste",
             "keys": "ctrl+shift+v"
+        },
+        {
+            "id": null,
+            "keys": "ctrl+shift+1"
+        },
+        {
+            "id": null,
+            "keys": "ctrl+shift+5"
+        },
+        {
+            "id": null,
+            "keys": "ctrl+shift+2"
+        },
+        {
+            "id": null,
+            "keys": "ctrl+shift+t"
+        },
+        {
+            "id": null,
+            "keys": "ctrl+shift+4"
+        },
+        {
+            "id": null,
+            "keys": "ctrl+shift+7"
+        },
+        {
+            "id": null,
+            "keys": "ctrl+shift+8"
         }
     ],
     "newTabMenu": [

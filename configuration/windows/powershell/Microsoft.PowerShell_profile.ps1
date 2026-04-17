@@ -373,10 +373,10 @@ function Set-MyPSReadLineOptions
 {
     <#
     .SYNOPSIS
-        Configure PSReadline.
+        Configure PSReadLine.
 
     .DESCRIPTION
-        Configure PSReadline so it behaves more like out-of-the-box libreadline
+        Configure PSReadLine so it behaves more like out-of-the-box libreadline
         on *NIX systems, sets the history retention to the maximum value and
         sets the window title to the command being executed.
     #>
@@ -388,14 +388,14 @@ function Set-MyPSReadLineOptions
     try {
         Set-PSReadLineOption -PredictionSource None
     } catch {
-        # Not supported on old PSReadline releases.
+        # Not supported on old PSReadLine releases.
     }
 
     Set-PSReadLineKeyHandler -Key Ctrl+LeftArrow -Function BackwardWord
     Set-PSReadLineKeyHandler -Key Ctrl+RightArrow -Function NextWord
     Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
     Set-PSReadLineKeyHandler -Key UpArrow -Function HistorySearchBackward
-    Set-PSReadlineKeyHandler -Key Tab -Function Complete
+    Set-PSReadLineKeyHandler -Key Tab -Function Complete
 
     # Set the window title to the current command before executing it.
     Set-PSReadLineKeyHandler -Key Enter -ScriptBlock {

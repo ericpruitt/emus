@@ -685,6 +685,25 @@ function Edit-Profile
     }
 }
 
+function Show-PSReadLineHistory
+{
+    <#
+    .SYNOPSIS
+        Show the PSReadLine history.
+
+    .DESCRIPTION
+        Display the PSReadLine history. When running under WSL, the output is
+        paginated using Less.
+    #>
+    $file = (Get-PSReadLineOption).HistorySavePath
+
+    if (Get-Content -ErrorAction SilentlyContinue Env:WSL_DISTRO_NAME) {
+        less -N +G $file
+    } else {
+        Get-Content $file
+    }
+}
+
 Set-UserEnvironmentVariables @{
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"
     DISABLE_AUTOUPDATER = "1"
@@ -717,8 +736,15 @@ if (Get-Content -ErrorAction SilentlyContinue Env:WSL_DISTRO_NAME) {
     $OutputEncoding = [System.Text.Encoding]::UTF8
 }
 
-Remove-Item -ErrorAction SilentlyContinue Alias:cat, Alias:ls
+Remove-Item -Force -ErrorAction SilentlyContinue @(
+    "Alias:cat"
+    "Alias:ls"
+    "Alias:diff"
+    "Alias:history"
+)
+
 Set-Alias -Scope Script list Get-ChildItem
 Set-Alias -Scope Script show Get-Content
+Set-Alias history Show-PSReadLineHistory
 
 $OldLocation = $null

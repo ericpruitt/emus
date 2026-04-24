@@ -742,6 +742,9 @@ if (Get-Content -ErrorAction SilentlyContinue Env:WSL_DISTRO_NAME) {
     # Ensures redirection with ">" produces UTF-8
     $PSDefaultParameterValues["Out-File:Encoding"] = "UTF8"
 
+    # Ensure wsl.exe produces UTF-8 output
+    $env:WSL_UTF8 = 1
+
     # Default to UTF-8 in the Windows console
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
     [Console]::InputEncoding = [System.Text.Encoding]::UTF8

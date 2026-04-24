@@ -42,6 +42,7 @@ export UNAME="$(uname)"
 export USER="$LOGNAME"
 export WINEDLLOVERRIDES="winemenubuilder.exe=d"
 export WINEPREFIX="/dev/null"
+export WSL_UTF8="1"
 export XDG_CACHE_HOME="/tmp/xdg-cache-$LOGNAME"
 export XZ_OPT="-9"
 export _JAVA_AWT_WM_NONREPARENTING="1"
@@ -112,7 +113,13 @@ if [ "${WSL_DISTRO_NAME:+x}" ]; then
     export WSL_ENVIRONMENT_FILE="$(cmdecho '%LOCALAPPDATA%\Temp\wsl-env.ps1')"
     envtopsh > "$(wslpath -- "$WSL_ENVIRONMENT_FILE")"
 
-    export WSLENV="TMUX:TMUX_PANE:WSL_ENVIRONMENT_FILE:WSL_DISTRO_NAME"
+    export WSLENV="$(printf "%s:" \
+        TMUX \
+        TMUX_PANE \
+        WSL_DISTRO_NAME \
+        WSL_ENVIRONMENT_FILE \
+        WSL_UTF8 \
+    )"
 fi
 
 # If Bash is available and this file was loaded interactively by another shell

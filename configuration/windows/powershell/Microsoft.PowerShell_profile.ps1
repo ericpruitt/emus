@@ -733,7 +733,18 @@ if ((Get-Content -ErrorAction SilentlyContinue Env:WSL_ENVIRONMENT_FILE) -and
 }
 
 if (Get-Content -ErrorAction SilentlyContinue Env:WSL_DISTRO_NAME) {
+    # Set the Windows code page to UTF-8
+    chcp 65001 > $null
+
+    # Affects communication with external programs
     $OutputEncoding = [System.Text.Encoding]::UTF8
+
+    # Ensures redirection with ">" produces UTF-8
+    $PSDefaultParameterValues["Out-File:Encoding"] = "UTF8"
+
+    # Default to UTF-8 in the Windows console
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    [Console]::InputEncoding = [System.Text.Encoding]::UTF8
 }
 
 Remove-Item -Force -ErrorAction SilentlyContinue @(

@@ -270,7 +270,8 @@
                 "size": 12,
                 "weight": "semi-light"
             },
-            "intenseTextStyle": "all"
+            "intenseTextStyle": "all",
+            "scrollbarState": "hidden"
         },
         "list": [
             {

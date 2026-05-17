@@ -1,12 +1,15 @@
 #!/bin/sh
-# Usage: epgrep [--enhance] [--ps-options=...] [PS_ARGUMENT]...
+# Usage: epgrep [--enhance] [--kill] [--ps-options=...] [PGREP_ARGUMENT]...
 #
-# Enhanced pgrep (epgrep) is wrapper for pgrep(1) that adds a couple of new
-# features when the "--enhance" is given as the first command line argument:
+# Enhanced pgrep (epgrep) is wrapper for pgrep(1) and pkill(1) that adds a new
+# features when the "--enhance" or "--kill" is specified:
 # - ps(1) is used to show detailed information about matching processes instead
 #   of just their PIDs.
-# - When there no other arguments, detailed information about all non-kernel
-#   processes is shown.
+# - When "--kill" is specified, the user is shown the list of matching
+#   processes and prompted to confirm killing the processes. Note that this is
+#   inherently racy.
+# - When there no other arguments, information about all non-kernel processes
+#   is shown.
 #
 # The option "--ps-options" is used to forward options to ps(1) when the output
 # is being enhanced.
@@ -14,74 +17,99 @@
 # If standard output is a terminal, "--enhance" is implied.
 
 set -e -u
+SELF="${0##*/}"
+
 test -t 1 && enhance="x" || enhance=""
-test "${1:-}" = "--enhance" && shift && enhance="x"
+kill=""
+ps_options=""
+pids=""
 
-case "${1:-}" in
-  --ps-options)
-    ps_options="$2"
-    shift 2
-  ;;
-  --ps-options=*)
-    ps_options="${1#--ps-options=}"
+while [ "${1:-}" ]; do
+    case "$1" in
+      --enhance)            enhance="x"; ;;
+      --kill)               kill="x"; ;;
+      --ps-options)         ps_options="$2"; shift ;;
+      --ps-options=*)       ps_options="${1#*=}" ;;
+      *)                    break ;;
+    esac
+
     shift
-  ;;
-esac
+done
 
-test "$enhance" || exec pgrep "$@"
+if ! [ "$kill" ] && ! [ "$enhance" ]; then
+    exec pgrep "$@"
+fi
 
-case "$*" in
-  # When no arguments are given, show every non-kernel process.
-  "")
+if [ "$#" -eq 0 ] && ! [ "$kill" ]; then
+    # When no arguments are given and not in kill mode, show every non-kernel
+    # process.
     case "${UNAME:-$(uname)}" in
       Linux)
         non_kernel_pids="$(pgrep -v -P "$(pgrep -x kthreadd -U 0)")"
       ;;
 
       *)
+        # TODO: Figure out how to filter out kernel processes on other systems.
         non_kernel_pids="$(pgrep ^)"
       ;;
     esac
 
-    for pid in $non_kernel_pids; do
-        test "$pid" -eq "$$" && continue
-        test -n "${pids:-}" && pids="$pids,$pid" || pids="-p $pid"
-    done
-  ;;
-
-  # If the arguments are non-numeric, assume they're pgrep flags.
-  *[!0-9\ ]*)
-    # Get a list of PIDs that match the conditions and filter out this script's
-    # PID.
+    pids="$(set -- $non_kernel_pids; IFS=","; echo "$*")"
+else
     results="$(pgrep "$@" || test "$?" -eq 1)"
 
-    # The options "-l", "-a", "--list-full" and "--list-name" change the output
-    # from being just PIDs to lines with PID followed by another string where
-    # as the output of "--help" and "-V" never starts with a number. Detect
-    # these patterns and emit the text as-is if there is match.
     case "$results" in
+      # The options "-l", "-a", "--list-full" and "--list-name" change the
+      # output from being just PIDs to lines with PID followed by another
+      # string whereas the output of "--help" and "-V" never starts with a
+      # number. Detect these patterns and emit the text as-is if there is match
+      # and "--kill" is not specified.
       *[0-9]\ *|[!0-9]*)
-        printf "%s\n" "$results"
-        exit
+        if [ "$kill" ]; then
+            echo "$SELF: options used are incompatible with \"--kill\"" >&2
+            exit 1
+        else
+            printf "%s\n" "$results"
+            exit
+        fi
+      ;;
+
+      *)
+        # Filter out the script's PID.
+        for pid in $results; do
+            test "$pid" -eq "$$" && continue
+            test -n "$pids" && pids="$pids,$pid" || pids="$pid"
+        done
+
+        if ! [ "$pids" ]; then
+            echo "$SELF: no processes matching the query \"$*\"" >&2
+            exit 1
+        fi
       ;;
     esac
+fi
 
-    for pid in $results; do
-        test "$pid" -eq "$$" && continue
-        test -n "${pids:-}" && pids="$pids,$pid" || pids="-p $pid"
-    done
+ps $ps_options -p "$pids"
 
-    if [ -z "${pids:-}" ]; then
-        echo "${0##*/}: no processes matching the query \"$*\"" >&2
-        exit 1
-    fi
-  ;;
+if [ "$kill" ]; then
+    extant_pids="$(ps -o pid= -p "$pids")"  # Should work on GNU and BSDs.
+    set -- $extant_pids
+    test "$#" -eq 1 && suffix="" || suffix="es"
+    printf "%s" "Kill $# process$suffix? [y/N] or signal name or number " >&2
+    read -r response
 
-  # If the args are numeric, assume they're PIDs.
-  *)
-    pids="$*"
-  ;;
-esac
-
-COLUMNS="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}" \
-exec ps ${ps_options:-} ${pids:-}
+    case "$response" in
+      [Yy]*)
+        kill -- $extant_pids
+      ;;
+      ""|[nN]*)
+        # Conveniently, no commonly used signals start with "N."
+      ;;
+      *[!0-9]*)
+        kill -s "${response#[sS][iI][gG]}" -- $extant_pids
+      ;;
+      *)
+        kill "-$response" -- $pids
+      ;;
+    esac
+fi

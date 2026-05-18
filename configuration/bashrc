@@ -104,7 +104,7 @@ function -define-aliases()
     alias pcre2grep='-paginate pcre2grep --color=always \
         --exclude-dir="(^__pycache__|^lost\\+found|\\.(git|py[co]))$"'
     alias pgrep='-paginate epgrep --enhance'
-    alias pkill='epgrep --kill'
+    alias pkill='epgrep --kill -u "$UID"'
     alias plgrep='grep -P'
     alias ps='-paginate ps --'
     alias pstree='-paginate pstree -- -a -p -s -U'

@@ -109,7 +109,7 @@ if [ "$kill" ]; then
         kill -s "${response#[sS][iI][gG]}" -- $extant_pids
       ;;
       *)
-        kill "-$response" -- $pids
+        kill "-$response" -- $extant_pids
       ;;
     esac
 fi

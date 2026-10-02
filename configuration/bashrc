@@ -57,6 +57,7 @@ declare -i EXIT_SIGPIPE="$((128 + $(kill -l SIGPIPE)))"
 #
 function -define-aliases()
 {
+    alias atrace='gtrace -a'
     alias awk='-paginate awk --'
     alias aws='-paginate aws --'
     alias back='cd -'
@@ -86,6 +87,7 @@ function -define-aliases()
     alias highlight='egrep --color=always -C 999999999'
     alias history='-paginate +G history --'
     alias info='info --vi-keys'
+    alias iotrace='gtrace -i'
     alias ipkill='epgrep --kill -u "$UID"'
     alias jq='-paginate jq -C --indent 4'
     alias ldd='-paginate ldd --'
@@ -98,6 +100,7 @@ function -define-aliases()
     alias mocp='env COLUMNS= LINES= mocp'
     alias mtr='mtr -t'
     alias mv='mv -v'
+    alias nettrace='gtrace -n'
     alias nohist='HISTFILE=/dev/null && exit'
     alias open='xdg-open'
     alias otr='env HISTFILE=/dev/null bash'

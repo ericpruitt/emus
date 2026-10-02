@@ -1,0 +1,92 @@
+#!/bin/sh
+set -e -f -u
+
+NET_SYSCALLS="
+    accept accept4 bind connect getpeername getsockname getsockopt recv
+    recvfrom recvmsg send sendmsg sendto setsockopt shutdown socket
+"
+
+IO_SYSCALLS="
+    accept accept4 access bind close connect creat dup dup2 dup3 execve
+    faccessat fchdir fchmod fchmodat fchown fchownat fcntl fdatasync fgetxattr
+    flistxattr flock fremovexattr fsetxattr fstat fstatfs fsync ftruncate
+    getdents getdents64 io_uring_enter io_uring_register io_uring_setup lchown
+    lgetxattr link linkat listen llistxattr lremovexattr lseek lsetxattr lstat
+    mkdirat mknod mknodat mount name_to_handle_at newfstatat open
+    open_by_handle_at openat openat2 pipe pipe2 ppoll pread64 preadv pwrite64
+    pwritev read readahead readlink readlinkat readv recv recvfrom rename
+    renameat send sendto splice swapoff swapon symlink symlinkat sync
+    sync_file_range syncfs sysfs syslog tee truncate umount2 unlink unlinkat
+    ustat vmsplice write writev
+"
+
+FILE_ACCESS_SYSCALLS="
+    access bind chdir chmod chown creat execve fallocate getxattr lchown
+    lgetxattr link linkat listxattr llistxattr lremovexattr lsetxattr lstat
+    mkdir mkdirat mknod mknodat mount name_to_handle_at open open_by_handle_at
+    openat openat2 readlink readlinkat removexattr rename renameat renameat2
+    rmdir setxattr stat statfs swapoff swapon symlink symlinkat syslog truncate
+    umount umount2 unlink unlinkat
+"
+
+EVENT_SYSCALLS="
+    epoll_create1 epoll_ctl epoll_wait poll ppoll pselect6 select
+"
+
+MMAP_SYSCALLS="
+    mmap mprotect msync munmap
+"
+
+usage()
+{
+    echo "Usage: ${0##*/} [-aeimn] [STRACE_OPTION]... COMMAND [ARGUMENT]..."
+}
+
+main()
+{
+    syscalls=""
+    user_options=""
+
+    while getopts aehimnV option "$@"; do
+        case "$option" in
+          [hV]) usage; return ;;
+          a)    syscalls="$syscalls $FILE_ACCESS_SYSCALLS" ;;
+          e)    syscalls="$syscalls $EVENT_SYSCALLS" ;;
+          i)    syscalls="$syscalls $IO_SYSCALLS" ;;
+          m)    syscalls="$syscalls $MMAP_SYSCALLS" ;;
+          n)    syscalls="$syscalls $NET_SYSCALLS" ;;
+        esac
+
+        user_options="$user_options$option"
+    done
+
+    shift "$((OPTIND - 1))"
+
+    if [ "$#" -eq 0 ]; then
+        usage >&2
+        return 1
+    fi
+
+    if ! [ "$user_options" ]; then
+        echo "No syscall group option specified" >&2
+        return 1
+    fi
+
+    strace_options="-e $(printf '%s\n' $syscalls | sort -u | tr "\n" ",")"
+
+    # If the only string-heavy option is "-a", then the strings we expect to
+    # see are file names, so we want to make sure the strings are shown in
+    # full.
+    case "$user_options" in
+      *[!aem]*|"")
+        # Nothing to do
+      ;;
+      *)
+        strace_options="$strace_options -s 8192"
+      ;;
+    esac
+
+    exec strace $strace_options "$@"
+}
+
+main "$@"

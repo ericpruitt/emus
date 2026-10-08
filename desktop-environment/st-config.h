@@ -180,6 +180,8 @@ static MouseShortcut mshortcuts[] = {
 /* Internal keyboard shortcuts. */
 #define MODKEY Mod1Mask
 #define ShiftControl (ShiftMask | ControlMask)
+#define CTRL_SHIFT_CSIU(keysym, codepoint) \
+	{ keysym, ShiftControl, "\033[" #codepoint ";6u", 0, 0 }
 
 static Shortcut shortcuts[] = {
 	/* mask                 keysym          function        argument */
@@ -228,7 +230,7 @@ static Shortcut shortcuts[] = {
  */
 static KeySym mappedkeys[] = {
     XK_1, XK_2, XK_3, XK_4, XK_5, XK_6, XK_7, XK_8, XK_9, XK_0, XK_bracketleft,
-    XK_bracketright, XK_j, XK_equal
+    XK_bracketright, XK_j, XK_equal, XK_F, XK_O, XK_P
 };
 
 /*
@@ -268,6 +270,15 @@ static Key key[] = {
 	// Make Ctrl+[/] behave like Ctrl+Left/Right
 	{ XK_bracketleft,   ControlMask,    "\033[1;5D",     0,    0},
 	{ XK_bracketright,  ControlMask,    "\033[1;5C",     0,    0},
+
+	// Ctrl+Shift+(Letter) bindings. To generate codepoint in Python:
+	//
+	//     >>> (lambda x: 97 + ord(x.upper()) - ord("A"))("F")
+	//     102
+	//
+	CTRL_SHIFT_CSIU(XK_F, 102),
+	CTRL_SHIFT_CSIU(XK_O, 111),
+	CTRL_SHIFT_CSIU(XK_P, 112),
 
 	// st default key bindings
 	/* keysym           mask            string      appkey appcursor */

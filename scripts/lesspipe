@@ -12,7 +12,7 @@
 # - HTML (`/\.s?html?/`)
 # - _man(1)_ pages (`/\.([1-9n]|[1-9]x|man|[0-9]p)(\.(bz2|[gx]z|lzma))*`)
 # - Various compressed archive formats
-# - JSON (`/\.json$/`)
+# - JSON (`/\.jsonl?$/`)
 # - Scene [NFO files](https://en.wikipedia.org/wiki/.nfo) (`/\.nfo$/`)
 # - PGP / GPG keys (`/\.asc$/`)
 # - PGP / GPG encrypted files (`/\.(pgp|gpg)/`)
@@ -75,7 +75,7 @@ function view()
       ;;
 
       # Pretty-print JSON files
-      *.json|.arclint)
+      *.json|*.jsonl|.arclint)
         jq --color-output --indent 4 < "$path"
       ;;
 

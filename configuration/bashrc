@@ -569,7 +569,17 @@ function -prompt-command()
 
     # Only set PS1 if a pre-existing value was not inherited.
     if [[ "${PS1@a}" != *x* ]]; then
-        PS1="${depth:+$depth: }${SSH_TTY:+\\u@\\h:}\\W${jobs:+ [\\j]}\\$ "
+        local user_host=""
+
+        if [[ "${SSH_TTY:-}" ]]; then
+            if [[ "${HOSTCOLOR:-}" ]]; then
+                user_host="\\u@\\[\\033$HOSTCOLOR\\]\\h\\[\\033[0m\\]:"
+            else
+                user_host="\\u@\\h:"
+            fi
+        fi
+
+        PS1="${depth:+$depth: }$user_host\\W${jobs:+ [\\j]}\\$ "
     fi
 
     -reload-tmux-env

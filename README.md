@@ -232,6 +232,36 @@ readline. For example, adding `"\C-z": "\C-afg \C-m"` to "~/.inputrc" would
 make it possible to suspend a program using ^Z then pressing ^Z again to bring
 the program back to the foreground.
 
+#### bash-5.3-interactive-errexit.patch ####
+
+If errexit is enabled for an interactive session, drop the user back at a
+prompt instead of exiting when a command fails. Subshells, including the
+children forked for pipelines, still exit.
+
+**AI Disclosure:**
+- **Authorship:** AI-generated
+- **Models:** claude-opus-5-5 (Anthropic)
+- **Scope:** AI debugged Eric Pruitt's earlier, partially working patch and
+  rewrote it. His error.c changes were kept, but now use a new check that
+  excludes subshells. The AI wrote the unwinding of shell state in eval.c and
+  builtins/evalstring.c and the errexit exemption for shell-run hooks, and
+  tested the patch with Bash's regression tests and interactive reproduction
+  scripts.
+- **References:** ~/emus/core/bash-5.3 (Bash 5.3 source tree)
+
+When errexit fires, bash longjmps to the top level without running the
+unwind-protects registered by functions, loops, traps, eval and source
+because the shell is about to exit anyway. Since the shell keeps running
+here, those are unwound the same way an interrupt would unwind them.
+Otherwise state such as FUNCNAME, BASH_SOURCE, BASH_LINENO, the
+positional parameters and funcnest would be left in place indefinitely.
+
+Commands the shell runs on its own behalf -- PROMPT_COMMAND, traps, `bind
+-x` key bindings and completion functions -- ignore errexit in interactive
+shells as if they were run as `command || true`. Otherwise a failing
+PROMPT_COMMAND would loop forever without reading input, and a failing
+DEBUG trap would abort every command, including the one to remove it.
+
 #### bash-5.3-make-fltexpr-a-builtin.patch ####
 
 Make the "fltexpr" loadable for doing floating point arithmetic a built-in.

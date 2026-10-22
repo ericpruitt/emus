@@ -1,0 +1,254 @@
+If errexit is enabled for an interactive session, drop the user back at a
+prompt instead of exiting when a command fails. Subshells, including the
+children forked for pipelines, still exit.
+
+**AI Disclosure:**
+- **Authorship:** AI-generated
+- **Models:** claude-opus-5-5 (Anthropic)
+- **Scope:** AI debugged Eric Pruitt's earlier, partially working patch and
+  rewrote it. His error.c changes were kept, but now use a new check that
+  excludes subshells. The AI wrote the unwinding of shell state in eval.c and
+  builtins/evalstring.c and the errexit exemption for shell-run hooks, and
+  tested the patch with Bash's regression tests and interactive reproduction
+  scripts.
+- **References:** ~/emus/core/bash-5.3 (Bash 5.3 source tree)
+
+When errexit fires, bash longjmps to the top level without running the
+unwind-protects registered by functions, loops, traps, eval and source
+because the shell is about to exit anyway. Since the shell keeps running
+here, those are unwound the same way an interrupt would unwind them.
+Otherwise state such as FUNCNAME, BASH_SOURCE, BASH_LINENO, the
+positional parameters and funcnest would be left in place indefinitely.
+
+Commands the shell runs on its own behalf -- PROMPT_COMMAND, traps, `bind
+-x` key bindings and completion functions -- ignore errexit in interactive
+shells as if they were run as `command || true`. Otherwise a failing
+PROMPT_COMMAND would loop forever without reading input, and a failing
+DEBUG trap would abort every command, including the one to remove it.
+
+--- shell.h
++++ shell.h
+@@ -107,6 +107,11 @@
+ extern int shell_initialized;
+ extern int bash_argv_initialized;
+ extern int subshell_environment;
++
++/* If errexit is enabled in an interactive shell, failures drop the user back
++   at a prompt instead of exiting. Subshells still exit. */
++#define ERREXIT_RETURNS_TO_PROMPT() \
++  (interactive_shell && subshell_environment == 0)
+ extern int current_command_number;
+ extern int indirection_level;
+ extern int shell_compatibility_level;
+--- error.c
++++ error.c
+@@ -179,7 +179,7 @@
+   fprintf (stderr, "\n");
+ 
+   va_end (args);
+-  if (exit_immediately_on_error)
++  if (exit_immediately_on_error && ERREXIT_RETURNS_TO_PROMPT () == 0)
+     {
+       if (last_command_exit_value == 0)
+ 	last_command_exit_value = EXECUTION_FAILURE;
+@@ -321,7 +321,7 @@
+ 
+   va_end (args);
+ 
+-  if (exit_immediately_on_error)
++  if (exit_immediately_on_error && ERREXIT_RETURNS_TO_PROMPT () == 0)
+     exit_shell (last_command_exit_value = 2);
+ }
+ 
+--- eval.c
++++ eval.c
+@@ -45,6 +45,11 @@
+ #include "input.h"
+ #include "execute_cmd.h"
+ 
++#if defined (READLINE)
++#  include "bashline.h"
++#  include <readline/readline.h>
++#endif
++
+ #if defined (HISTORY)
+ #  include "bashhist.h"
+ #endif
+@@ -105,6 +110,41 @@
+ 	    {
+ 	      /* Some kind of throw to top_level has occurred. */
+ 	    case ERREXIT:
++	      if (ERREXIT_RETURNS_TO_PROMPT ())
++		{
++		  /* Unlike the exit path, the shell keeps running, so unwind
++		     any functions, loops and traps that were executing when
++		     the error occurred. Without this, things like FUNCNAME
++		     and the positional parameters are never restored. */
++		  if (running_trap > 0)
++		    {
++		      run_trap_cleanup (running_trap - 1);
++		      running_trap = 0;
++		    }
++#if defined (READLINE)
++		  /* The error may have occurred while readline was active, e.g.
++		     during edit-and-execute-command. */
++		  if (interactive)
++		    {
++		      if (RL_ISSTATE (RL_STATE_SIGHANDLER) == 0)
++			rl_cleanup_after_signal ();
++		      bashline_reset ();
++		    }
++#endif
++		  reset_parser ();
++		  run_unwind_protects ();
++		  if (variable_context)
++		    reset_local_contexts ();
++		  loop_level = continuing = breaking = funcnest = 0;
++		  executing_funsub = return_catch_flag = 0;
++		  if (current_command)
++		    {
++		      dispose_command (current_command);
++		      current_command = (COMMAND *)NULL;
++		    }
++		  restore_sigmask ();
++		  break;
++		}
+ 	      /* POSIX says to exit on error "as if by executing the
+ 		 exit special built-in utility with no arguments," so we
+ 		 don't reset any local contexts and keep the execution
+--- execute_cmd.h
++++ execute_cmd.h
+@@ -85,6 +85,7 @@
+ extern void dispose_exec_redirects (void);
+ 
+ extern int execute_shell_function (SHELL_VAR *, WORD_LIST *);
++extern void ignore_errexit_in_hook (void);
+ 
+ extern struct coproc *getcoprocbypid (pid_t);
+ extern struct coproc *getcoprocbyname (const char *);
+--- execute_cmd.c
++++ execute_cmd.c
+@@ -5433,6 +5433,31 @@
+ 
+ /* A convenience routine for use by other parts of the shell to execute
+    a particular shell function. */
++/* Recompute exit_immediately_on_error once builtin_ignoring_errexit has been
++   restored, honoring any `set -e' or `set +e' run in the meantime. */
++static void
++uw_restore_errexit (void *ignore)
++{
++  exit_immediately_on_error = builtin_ignoring_errexit ? 0 : errexit_flag;
++}
++
++/* Commands the shell runs on its own behalf -- PROMPT_COMMAND, traps, `bind
++   -x' key bindings and completion functions -- ignore errexit in interactive
++   shells as if they were run as `command || true'. Otherwise a failing hook
++   would abort every command the user types, or in the case of
++   PROMPT_COMMAND, loop forever without reading input. The caller must have
++   begun an unwind frame; running it restores the previous settings. */
++void
++ignore_errexit_in_hook (void)
++{
++  if (ERREXIT_RETURNS_TO_PROMPT () == 0)
++    return;
++  add_unwind_protect (uw_restore_errexit, NULL);
++  unwind_protect_int (builtin_ignoring_errexit);
++  builtin_ignoring_errexit = 1;
++  exit_immediately_on_error = 0;
++}
++
+ int
+ execute_shell_function (SHELL_VAR *var, WORD_LIST *words)
+ {
+--- builtins/common.h
++++ builtins/common.h
+@@ -53,6 +53,7 @@
+ #define SEVAL_NOHISTEXP	0x200		/* inhibit history expansion */
+ #define SEVAL_NOOPTIMIZE 0x400		/* don't try to set optimization flags */
+ #define SEVAL_NOTIFY	0x800		/* want job notifications */
++#define SEVAL_NOERREXIT	0x1000		/* hook: ignore errexit if interactive */
+ 
+ /* Flags for describe_command, shared between type.def and command.def */
+ #define CDESC_ALL		0x001	/* type -a */
+--- builtins/evalstring.c
++++ builtins/evalstring.c
+@@ -320,6 +320,8 @@
+   volatile sigset_t pe_sigmask;
+ 
+   parse_prologue (string, flags, PE_TAG);
++  if (flags & SEVAL_NOERREXIT)
++    ignore_errexit_in_hook ();
+ 
+   parse_and_execute_level++;
+ 
+@@ -377,6 +379,16 @@
+ 	  switch (code)
+ 	    {
+ 	    case ERREXIT:
++	      /* An interactive shell is going to keep running, so unwind
++		 everything this command started so reader_loop() can finish
++		 the job. */
++	      if (ERREXIT_RETURNS_TO_PROMPT ())
++		{
++		  if (command)
++		    run_unwind_frame ("pe_dispose");
++		  should_jump_to_top_level = 1;
++		  goto out;
++		}
+ 	      /* variable_context -> 0 is what eval.c:reader_loop() does in
+ 		 these circumstances.  Don't bother with cleanup here because
+ 		 we don't want to run the function execution cleanup stuff
+--- parse.y
++++ parse.y
+@@ -3016,7 +3016,7 @@
+   save_parser_state (&ps);
+   last_lastarg = save_lastarg ();
+ 
+-  parse_and_execute (savestring (command), vname, SEVAL_NONINT|SEVAL_NOHIST|SEVAL_NOOPTIMIZE|SEVAL_NOTIFY);
++  parse_and_execute (savestring (command), vname, SEVAL_NONINT|SEVAL_NOHIST|SEVAL_NOOPTIMIZE|SEVAL_NOTIFY|SEVAL_NOERREXIT);
+ 
+   restore_parser_state (&ps);
+   bind_lastarg (last_lastarg);
+--- trap.c
++++ trap.c
+@@ -491,7 +491,7 @@
+ 		{
+ 		  int pflags;
+ 		  pflags = interactive_shell ? SEVAL_NOTIFY : 0;
+-		  pflags |= SEVAL_NONINT|SEVAL_NOHIST|SEVAL_RESETLINE|SEVAL_NOOPTIMIZE;
++		  pflags |= SEVAL_NONINT|SEVAL_NOHIST|SEVAL_RESETLINE|SEVAL_NOOPTIMIZE|SEVAL_NOERREXIT;
+ 		  /* XXX is x always last_command_exit_value? */
+ 		  x = parse_and_execute (trap_command, "trap", pflags);
+ 		}
+@@ -1191,7 +1191,7 @@
+ 
+       /* XXX - reconsider this for DEBUG_TRAP, RETURN_TRAP, ERROR_TRAP? */
+       flags = interactive_shell ? SEVAL_NOTIFY : 0;
+-      flags |= SEVAL_NONINT|SEVAL_NOHIST|SEVAL_NOOPTIMIZE;
++      flags |= SEVAL_NONINT|SEVAL_NOHIST|SEVAL_NOOPTIMIZE|SEVAL_NOERREXIT;
+       if (sig != DEBUG_TRAP && sig != RETURN_TRAP && sig != ERROR_TRAP)
+ 	flags |= SEVAL_RESETLINE;
+       if (function_code == 0)
+--- bashline.c
++++ bashline.c
+@@ -4685,6 +4685,7 @@
+   add_unwind_protect (uw_restore_parser_state, &ps);
+   add_unwind_protect (uw_rl_set_signals, 0);
+   pflags = interactive_shell ? (SEVAL_NOTIFY|SEVAL_NOHIST) : SEVAL_NOHIST;
++  pflags |= SEVAL_NOERREXIT;
+   r = parse_and_execute (savestring (cmd), "bash_execute_unix_command", pflags);
+   rl_set_signals ();
+   restore_parser_state (&ps);
+--- pcomplete.c
++++ pcomplete.c
+@@ -1095,7 +1095,10 @@
+       rl_clear_signals ();
+     }
+ 
++  begin_unwind_frame ("completion-errexit");
++  ignore_errexit_in_hook ();
+   fval = execute_shell_function (f, cmdlist);  
++  run_unwind_frame ("completion-errexit");
+ 
+   discard_unwind_frame ("gen-shell-function-matches");
+   restore_parser_state (pps);

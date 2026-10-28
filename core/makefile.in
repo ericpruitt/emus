@@ -69,6 +69,10 @@ FREEBSD_BUILD_DEPS = automake cmake git gnupg2 pkgconf wget
 MACOS_BUILD_DEPS = automake cmake gnupg libtool pkg-config wget xz
 OPENBSD_BUILD_DEPS = "automake->=1.15" cmake git "gnupg->=2.1" wget xz
 
+# Wrapper around cat that does not fail if a file does not exist. This is used
+# to make patching using globs for files that might not exist simpler.
+XCAT = $(PWD)/xcat
+
 # Build targets:
 LIBRARIES = \
 	$(GMP) \
@@ -471,7 +475,7 @@ $(MUSL)/.FOLDER: $(MUSL).tar.gz $(MUSL).tar.gz.asc $(PUBRING)
 	$(GPG) --verify $(MUSL).tar.gz.asc
 	tar -x -z -f $(MUSL).tar.gz
 	rm $(MUSL)/src/ctype/wcwidth.c
-	cat $(PWD)/patches/$(MUSL)-* | (cd $(MUSL) && patch -p1)
+	$(XCAT) $(PWD)/patches/$(MUSL)-* | (cd $(MUSL) && patch -p1)
 	touch $@
 
 $(MUSL)/config.mak: $(MUSL)/.FOLDER
@@ -622,7 +626,7 @@ $(APPLE_BASH).tar.gz:
 $(APPLE_BASH)/.FOLDER: $(APPLE_BASH).tar.gz
 	tar -x -z -f $?
 	mv bash-$(APPLE_BASH_RELEASE) $(@D)
-	cat $(PWD)/patches/$(APPLE_BASH)-* | (cd $(APPLE_BASH) && patch -p0)
+	$(XCAT) $(PWD)/patches/$(APPLE_BASH)-* | (cd $(APPLE_BASH) && patch -p0)
 	(cd $(@D) && ln -s bash-*/ src)
 	touch $@
 
@@ -816,7 +820,7 @@ $(FLOCK)/configure: $(FLOCK)/.git
 
 $(FLOCK)/Makefile: $(FLOCK)/configure
 	(cd $(@D); \
-	(git diff --quiet src && cat $(PWD)/patches/$(FLOCK)-*) \
+	(git diff --quiet src && $(XCAT) $(PWD)/patches/$(FLOCK)-*) \
 	| patch -p0; \
 	find . -name "*.orig" -delete; \
 	./configure \
@@ -1102,7 +1106,7 @@ $(UCONV)/.git:
 
 $(UCONV)/uconv: $(UCONV)/.git
 	(cd $(UCONV); \
-	(git diff --quiet && cat $(PWD)/patches/$(UCONV)-*) | patch -p0; \
+	(git diff --quiet && $(XCAT) $(PWD)/patches/$(UCONV)-*) | patch -p0; \
 	find . -name "*.orig" -delete; \
 	make \
 		CC="$(CC)" \
@@ -1147,7 +1151,7 @@ $(VIM)/.git:
 
 $(VIM)/src/auto/config.h: $(VIM)/.git $(COMMON)/$(NCURSES)
 	(cd $(VIM); \
-	(git diff --quiet && cat $(PWD)/patches/$(VIM)-*) | patch -p0; \
+	(git diff --quiet && $(XCAT) $(PWD)/patches/$(VIM)-*) | patch -p0; \
 	find . -name "*.orig" -delete; \
 	./configure \
 		CC="$(CC)" \

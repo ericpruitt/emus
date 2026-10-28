@@ -1,0 +1,20 @@
+#!/bin/sh
+# Usage: xcat PATH...
+#
+# Wrapper around cat that does not fail if a file does not exist.
+set -e -u
+
+for path in "$@"; do
+    if [ -e "$path" ]; then
+        cat -- "$path"
+    else
+        # We assume anything with a "?" or "*" in it is a glob pattern.
+        case "$path" in
+          *[?*]*)
+            test -t 2 && tput bold setaf 1 >&2
+            echo "${0##*/}: no matches for pattern: $path" >&2
+            test -t 2 && tput sgr0 >&2
+          ;;
+        esac
+    fi
+done

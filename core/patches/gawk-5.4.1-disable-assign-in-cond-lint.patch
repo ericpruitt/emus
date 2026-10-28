@@ -1,25 +1,25 @@
 Remove the lint heuristics for "regular expression on right of assignment" and
 "assignment used in conditional context."
 
---- awkgram.c	2020-04-14 04:44:20.000000000 -0700
-+++ awkgram.c	2020-05-14 13:12:24.028196440 -0700
-@@ -3745,9 +3745,6 @@
-   case 127:
- #line 1620 "awkgram.y"
+--- awkgram.c	2026-07-09 11:48:44.000000000 -0500
++++ awkgram.c	2026-10-28 13:57:15.015376322 -0500
+@@ -3724,9 +3724,6 @@
+   case 129: /* exp: variable assign_operator exp  */
+ #line 1631 "awkgram.y"
            {
 -		if (do_lint && yyvsp[0]->lasti->opcode == Op_match_rec)
 -			lintwarn_ln(yyvsp[-1]->source_line,
 -				_("regular expression on right of assignment"));
  		yyval = mk_assignment(yyvsp[-2], yyvsp[0], yyvsp[-1]);
  	  }
- #line 3754 "awkgram.c"
---- interpret.h	2016-08-24 12:31:55.000000000 -0700
-+++ interpret.h	2016-11-06 16:06:21.132700275 -0800
-@@ -373,7 +373,6 @@
+ #line 3733 "awkgram.c"
+--- interpret.h	2026-07-09 11:47:00.000000000 -0500
++++ interpret.h	2026-10-28 13:57:15.019376354 -0500
+@@ -499,7 +499,6 @@
  			if (do_lint) {
  				switch (pc->lint_type) {
  				case LINT_assign_in_cond:
 -					lintwarn(_("assignment used in conditional context"));
  					break;
  
- 				case LINT_no_effect:
+ 				default:

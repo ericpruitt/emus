@@ -1,0 +1,22 @@
+Remove the lint heuristics for "subscript of array ... is null string."
+
+--- interpret.h	2026-07-09 11:47:00.000000000 -0500
++++ interpret.h	2026-10-28 13:59:37.576554502 -0500
+@@ -303,8 +303,6 @@
+ 				} else if (do_lint) {
+ 					lintwarn(_("reference to uninitialized element `%s[\"%.*s\"]'"),
+ 						array_vname(t1), (int) t2->stlen, t2->stptr);
+-					if (t2->stlen == 0)
+-						lintwarn(_("subscript of array `%s' is null string"), array_vname(t1));
+ 				}
+ 			}
+ 
+@@ -420,8 +418,6 @@
+ 				if (pc->do_reference)
+ 					lintwarn(_("reference to uninitialized element `%s[\"%.*s\"]'"),
+ 						array_vname(t1), (int) t2->stlen, t2->stptr);
+-				if (t2->stlen == 0)
+-					lintwarn(_("subscript of array `%s' is null string"), array_vname(t1));
+ 			}
+ 
+ 			lhs = assoc_lookup(t1, t2);

@@ -5,9 +5,9 @@ and some non-standard features that were accepted when using one of those modes
 will now produce fatal errors. No changes to code only affecting "--lint-old"
 were made.
 
---- awkgram.c	2020-04-14 04:44:20.000000000 -0700
-+++ awkgram.c	2020-05-14 13:23:08.530532533 -0700
-@@ -4294,10 +4294,6 @@
+--- awkgram.c	2026-07-09 11:48:44.000000000 -0500
++++ awkgram.c	2026-10-28 13:57:15.007376255 -0500
+@@ -4273,10 +4273,6 @@
  
  		if (do_traditional || do_posix)
  			yyerror("%s", msg);
@@ -18,7 +18,7 @@ were made.
  
  		f = yyvsp[0]->lasti;
  		f->opcode = Op_indirect_func_call;
-@@ -6448,9 +6444,7 @@
+@@ -6370,9 +6366,7 @@
  		pushback();
  		if (c == '[') {
  			if (do_traditional)
@@ -29,7 +29,7 @@ were made.
  			yylval = GET_INSTRUCTION(Op_sub_array);
  			lasttok = ']';
  		} else {
-@@ -6474,8 +6468,6 @@
+@@ -6396,8 +6390,6 @@
  			if (nextc(true) == '=') {
  				if (! did_warn_assgn) {
  					did_warn_assgn = true;
@@ -38,7 +38,7 @@ were made.
  					if (do_lint_old)
  						lintwarn(_("operator `%s' is not supported in old awk"), "**=");
  				}
-@@ -6485,8 +6477,6 @@
+@@ -6407,8 +6399,6 @@
  				pushback();
  				if (! did_warn_op) {
  					did_warn_op = true;
@@ -47,7 +47,7 @@ were made.
  					if (do_lint_old)
  						lintwarn(_("operator `%s' is not supported in old awk"), "**");
  				}
-@@ -6971,18 +6961,6 @@
+@@ -6908,18 +6898,6 @@
  			}
  		}
  
@@ -66,7 +66,7 @@ were made.
  		if (do_lint_old && (tokentab[mid].flags & NOT_OLD) != 0
  				 && (warntab[mid] & NOT_OLD) == 0
  		) {
-@@ -7295,10 +7273,6 @@
+@@ -7246,10 +7224,6 @@
  		(void) mk_rexp(arg);
  
  		if (nexp == 3) {	/* 3rd argument there */
@@ -77,7 +77,7 @@ were made.
  			if (do_traditional) {
  				yyerror(_("match: third argument is a gawk extension"));
  				return NULL;
-@@ -7352,11 +7326,7 @@
+@@ -7303,11 +7277,7 @@
  	} else if (r->builtin == do_close) {
  		static bool warned = false;
  		if (nexp == 2) {
@@ -90,38 +90,38 @@ were made.
  				yyerror(_("close: second argument is a gawk extension"));
  				return NULL;
  			}
---- awk.h	2020-04-12 23:46:26.000000000 -0700
-+++ awk.h	2020-05-14 13:16:08.310062351 -0700
-@@ -1172,6 +1172,7 @@
- #define do_sandbox          (do_flags & DO_SANDBOX)
+--- awk.h	2026-07-09 11:47:00.000000000 -0500
++++ awk.h	2026-10-28 13:59:17.200385881 -0500
+@@ -1248,6 +1248,7 @@
  #define do_debug            (do_flags & DO_DEBUG)
  #define do_mpfr             (do_flags & DO_MPFR)
+ #define do_csv              (do_flags & DO_CSV)
 +#define no_gawk_extensions  (do_posix | do_traditional)
  
  extern bool do_optimize;
  extern int use_lc_numeric;
---- builtin.c	2020-03-10 00:58:14.000000000 -0700
-+++ builtin.c	2020-05-14 13:25:33.294420858 -0700
-@@ -528,12 +528,11 @@
- 		static bool warned = false;
+--- builtin.c	2026-07-09 11:47:00.000000000 -0500
++++ builtin.c	2026-10-28 13:59:17.200385881 -0500
+@@ -587,10 +587,15 @@
+ 
+ 	tmp = POP();
+ 
+-	// As of the 2024 POSIX standard, length(array) is standardized. Yay!
++	// Although the 2024 POSIX standard standardizes length(array),
++	// "The Awk Programming Language" by Kernighan et al (1988) only
++	// uses the length function with strings.
+ 	if (tmp->type == Node_var_array) {
  		unsigned long size;
  
--		if (do_posix)
-+		// XXX: In the original code, this was (do_posix), but "The Awk
-+		// Programming Language" by Kernigan et al (1988) only uses the length
-+		// function with strings.
-+		if (do_posix || do_traditional)
- 			fatal(_("length: received array argument"));
--   		if (do_lint_extensions && ! warned) {
--			warned = true;
--			lintwarn(_("`length(array)' is a gawk extension"));
--		}
- 
++		if (no_gawk_extensions)
++			fatal(_("length: received array argument"));
++
  		/*
  		 * Support for deferred loading of array elements requires that
---- eval.c	2020-02-06 12:52:56.000000000 -0800
-+++ eval.c	2020-05-14 13:26:33.716706007 -0700
-@@ -706,7 +706,7 @@
+ 		 * we use the array length interface even though it isn't
+--- eval.c	2026-07-09 11:47:00.000000000 -0500
++++ eval.c	2026-10-28 13:57:15.011376288 -0500
+@@ -721,7 +721,7 @@
  {
  	static bool warned = false;
  
@@ -130,7 +130,7 @@ were made.
  		warned = true;
  		lintwarn(_("`IGNORECASE' is a gawk extension"));
  	}
-@@ -727,7 +727,7 @@
+@@ -742,7 +742,7 @@
  	char *p;
  	NODE *v = fixtype(BINMODE_node->var_value);
  
@@ -139,12 +139,21 @@ were made.
  		warned = true;
  		lintwarn(_("`BINMODE' is a gawk extension"));
  	}
---- field.c	2020-04-10 05:25:02.000000000 -0700
-+++ field.c	2020-05-14 13:38:32.616356624 -0700
-@@ -980,10 +980,6 @@
- 		sep_arr = POP_PARAM();
- 		if (sep_arr->type != Node_var_array)
+--- field.c	2026-07-09 11:47:00.000000000 -0500
++++ field.c	2026-10-28 13:59:17.200385881 -0500
+@@ -1130,8 +1130,6 @@
+ 	check_args_min_max(nargs, "split", 3, 4);
+ 
+ 	if (nargs == 4) {
+-		static bool warned = false;
+-
+ 		if (do_traditional) {
+ 			fatal(_("split: fourth argument is a gawk extension"));
+ 		}
+@@ -1140,10 +1138,6 @@
  			fatal(_("split: fourth argument is not an array"));
+ 		check_symtab_functab(sep_arr, "split",
+ 				_("%s: cannot use %s as fourth argument"));
 -		if ((do_lint_extensions || do_lint_old) && ! warned) {
 -			warned = true;
 -			lintwarn(_("split: fourth argument is a gawk extension"));
@@ -152,7 +161,7 @@ were made.
  	}
  
  	sep = POP();
-@@ -1029,14 +1025,10 @@
+@@ -1216,14 +1210,10 @@
  		fs = sep->re_exp;
  
  		if (fs->stlen == 0) {
@@ -166,10 +175,10 @@ were made.
 -			}
 +			if (no_gawk_extensions)
 +				fatal(_("split: null string for third arg is a non-standard extension"));
- 		} else if (fs->stlen == 1 && (sep->re_flags & CONSTANT) == 0) {
- 			if (fs->stptr[0] == ' ') {
- 				parseit = def_parse_field;
-@@ -1146,11 +1138,11 @@
+ 		} else if ((sep->re_flags & CONSTANT) != 0 || fs->stlen > 1) {
+ 			// regex constant OR length > 1
+ 			parseit = re_parse_field;
+@@ -1390,11 +1380,11 @@
  	bool fatal_error = false;
  	NODE *tmp;
  
@@ -183,7 +192,7 @@ were made.
  		return;
  
  	/*
-@@ -1309,9 +1301,9 @@
+@@ -1554,9 +1544,9 @@
  
  		set_parser(null_parse_field);
  
@@ -195,18 +204,18 @@ were made.
  		}
  	} else if (fs->stlen > 1 || (fs->flags & REGEX) != 0) {
  		if (do_lint_old)
-@@ -1443,7 +1435,7 @@
+@@ -1688,7 +1678,7 @@
  		warned = true;
- 		lintwarn(_("`FPAT' is a gawk extension"));
+ 		lintwarn(_("FPAT is a gawk extension"));
  	}
 -	if (do_traditional)	/* quick and dirty, does the trick */
 +	if (no_gawk_extensions)	/* quick and dirty, does the trick */
  		return;
  
  	/*
---- io.c	2020-03-20 07:22:39.000000000 -0700
-+++ io.c	2020-05-14 13:39:05.091439561 -0700
-@@ -4054,6 +4054,9 @@
+--- io.c	2026-07-09 11:47:00.000000000 -0500
++++ io.c	2026-10-28 13:59:17.204385914 -0500
+@@ -4214,6 +4214,9 @@
  	save_rs = dupnode(RS_node->var_value);
  	RS_is_null = false;
  	RS = force_string(RS_node->var_value);
@@ -216,22 +225,31 @@ were made.
  	/*
  	 * used to be if (RS_regexp != NULL) { refree(..); refree(..); ...; }.
  	 * Please do not remerge the if condition; hinders memory deallocation
-@@ -4075,10 +4078,6 @@
+@@ -4236,19 +4239,12 @@
+ 		if (first_time || ! do_csv)
+ 			matchrec = rsnullscan;
+ 	} else if ((RS->stlen > 1 || (RS->flags & REGEX) != 0) && ! do_posix) {
+-		static bool warned = false;
+-
+ 		RS_re[0] = make_regexp(RS->stptr, RS->stlen, false, true, true);
+ 		RS_re[1] = make_regexp(RS->stptr, RS->stlen, true, true, true);
+ 		RS_regexp = RS_re[IGNORECASE];
  
- 		matchrec = rsrescan;
- 
+ 		if (first_time || ! do_csv)
+ 			matchrec = rsrescan;
+-
 -		if (do_lint_extensions && ! warned) {
--			lintwarn(_("multicharacter value of `RS' is a gawk extension"));
+-			lintwarn(_("multicharacter value of RS is a gawk extension"));
 -			warned = true;
 -		}
- 	} else
- 		matchrec = rs1scan;
- set_FS:
---- node.c	2020-02-06 12:52:57.000000000 -0800
-+++ node.c	2020-05-14 13:16:08.314062241 -0700
-@@ -598,7 +598,7 @@
- 		}
- 		return i;
+ 	} else {
+ 		if (first_time || ! do_csv)
+ 			matchrec = rs1scan;
+--- node.c	2026-07-09 11:47:00.000000000 -0500
++++ node.c	2026-10-28 13:57:15.011376288 -0500
+@@ -653,7 +653,7 @@
+ 		buf[0] = i;
+ 		break;
  	case 'x':
 -		if (do_lint) {
 +		if (do_lint && do_posix) {

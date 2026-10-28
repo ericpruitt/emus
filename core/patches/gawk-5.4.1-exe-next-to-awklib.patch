@@ -1,10 +1,10 @@
 Set the default value of "AWKPATH" and "AWKLIBPATH" to `.:$EXEDIR/awklib` where
 `$EXEDIR` is the directory in which the GAWK binary resides.
 
---- main.c	2018-07-19 12:37:36.000000000 -0700
-+++ main.c	2018-07-19 12:39:02.000000000 -0700
-@@ -43,6 +43,8 @@
- #define stackoverflow_install_handler(catchstackoverflow, extra_stack, STACK_SIZE) 0
+--- main.c	2026-07-09 11:47:00.000000000 -0500
++++ main.c	2026-10-28 13:59:37.576554502 -0500
+@@ -33,6 +33,8 @@
+ #include <mcheck.h>
  #endif
  
 +#include "../exepath.c"
@@ -12,8 +12,8 @@ Set the default value of "AWKPATH" and "AWKLIBPATH" to `.:$EXEDIR/awklib` where
  #define DEFAULT_PROFILE		"awkprof.out"	/* where to put profile */
  #define DEFAULT_VARFILE		"awkvars.out"	/* where to put vars */
  #define DEFAULT_PREC		53
-@@ -222,10 +224,14 @@
- 	int have_srcfile = 0;
+@@ -218,10 +220,14 @@
+ 	bool have_srcfile = false;
  	SRCFILE *s;
  	char *cp;
 +	static char path[PATH_MAX + 8] = ".:"; // 8 == strlen(".:awklib")
@@ -24,6 +24,6 @@ Set the default value of "AWKPATH" and "AWKLIBPATH" to `.:$EXEDIR/awklib` where
 +	if (executable_path(path + 2))
 +		defpath = deflibpath = path, strcpy(rindex(path, '/') + 1, "awklib");
 +
- 	/* do these checks early */
- 	if (getenv("TIDYMEM") != NULL)
- 		do_flags |= DO_TIDY_MEM;
+ 	myname = gawk_name(argv[0]);
+ 
+ 	using_persistent_malloc = enable_pma(argv);

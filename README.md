@@ -345,7 +345,7 @@ Explicitly cast arithmetic result to fix "error: format ‘%u’ expects argumen
 of type ‘unsigned int’, but argument 2 has type ‘__suseconds_t {aka long int}’
 [-Werror=format=]" when compiling with musl.
 
-#### gawk-5.1.0-changed-compatibility-handling.patch ####
+#### gawk-5.4.1-changed-compatibility-handling.patch ####
 
 Change the handling of various implementation compatibility options. Most
 notably, the "--lint" option will no longer warns about non-POSIX features and
@@ -354,21 +354,21 @@ and some non-standard features that were accepted when using one of those modes
 will now produce fatal errors. No changes to code only affecting "--lint-old"
 were made.
 
-#### gawk-5.1.0-disable-assign-in-cond-lint.patch ####
+#### gawk-5.4.1-disable-assign-in-cond-lint.patch ####
 
 Remove the lint heuristics for "regular expression on right of assignment" and
 "assignment used in conditional context."
 
-#### gawk-5.1.0-disable-null-string-array-subscript-lint.patch ####
+#### gawk-5.4.1-disable-null-string-array-subscript-lint.patch ####
 
 Remove the lint heuristics for "subscript of array ... is null string."
 
-#### gawk-5.1.0-exe-next-to-awklib.patch ####
+#### gawk-5.4.1-exe-next-to-awklib.patch ####
 
 Set the default value of "AWKPATH" and "AWKLIBPATH" to `.:$EXEDIR/awklib` where
 `$EXEDIR` is the directory in which the GAWK binary resides.
 
-#### gawk-5.1.0-quiter-substr-lint.patch ####
+#### gawk-5.4.1-quiter-substr-lint.patch ####
 
 Refine the heuristics for "substr: start index ... is past end of string" so
 the warning is only shown if the third argument is set or if the start index is

@@ -740,7 +740,7 @@ function -setup()
 
     # Disable flow control for terminals that appear to be virtual devices to
     # make ^Q and ^S usable.
-    if ! [[ "$(tty)" = */ttyUSB* ]]; then
+    if ! [[ "$(tty 2>/dev/null)" = */ttyUSB* ]]; then
         stty -ixon -ixoff
     fi
 

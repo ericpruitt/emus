@@ -23,7 +23,7 @@
 # Packages:
 BASH = bash-5.3
 CMARK = cmark-src
-COREUTILS = coreutils-9.5
+COREUTILS = coreutils-9.12
 FINDUTILS = findutils-4.9.0
 FLOCK = flock-src
 GAWK = gawk-5.1.0
@@ -478,8 +478,12 @@ $(MUSL)/.FOLDER: $(MUSL).tar.gz $(MUSL).tar.gz.asc $(PUBRING)
 	$(XCAT) $(PWD)/patches/$(MUSL)-* | (cd $(MUSL) && patch -p1)
 	touch $@
 
+# We make a dummy replacement for <linux/fs.h> to placate coreutils which uses
+# this header to look for kernel-specific features.
 $(MUSL)/config.mak: $(MUSL)/.FOLDER
 	(cd $(@D); \
+	mkdir include/linux/; \
+	touch include/linux/fs.h; \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -I$(PWD)/$(UTF8PROC)" \
@@ -737,12 +741,17 @@ $(BIN)/cmark: $(CMARK)/build/src/cmark
 	test -z "$(MAN)" || cp -f $(CMARK)/man/man1/cmark.1 $(MAN)/man1/
 	cp -f $? $@
 
+# There is no <linux/version.h> in musl which the GNU library header
+# references, so we disable support for copy_file_range(2) so we don't
+# introduce a dependency on the host kernel's source code that might not be
+# applicable to other machines.
 $(COREUTILS)/Makefile: $(COREUTILS)/.FOLDER $(GMP_DEPS)
 	(cd $(@D); \
 	./configure \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -std=c99" \
 		LDFLAGS="$(LDFLAGS)" \
+		ac_cv_func_copy_file_range="no" \
 		--disable-dependency-tracking \
 		--disable-nls \
 		--enable-no-install-program=stdbuf \

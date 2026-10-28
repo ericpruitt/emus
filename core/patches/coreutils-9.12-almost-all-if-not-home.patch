@@ -1,9 +1,9 @@
 Add support for a new option, "--almost-all-if-not-home", that implicitly shows
 dotfiles for every directory except `$HOME`.
 
---- src/ls.c	2024-03-26 13:57:27.000000000 -0500
-+++ src/ls.c	2025-06-05 01:28:37.980026746 -0500
-@@ -261,7 +261,7 @@
+--- src/ls.c	2026-09-13 21:05:25.000000000 -0500
++++ src/ls.c	2026-10-28 03:39:45.309602660 -0500
+@@ -266,7 +266,7 @@
                                int needs_general_quoting, size_t *width,
                                bool *pad);
  static int decode_switches (int argc, char **argv);
@@ -12,7 +12,7 @@ dotfiles for every directory except `$HOME`.
  static uintmax_t gobble_file (char const *name, enum filetype type,
                                ino_t inode, bool command_line_arg,
                                char const *dirname);
-@@ -382,6 +382,10 @@
+@@ -385,6 +385,10 @@
  
  static struct pending *pending_dirs;
  
@@ -23,7 +23,7 @@ dotfiles for every directory except `$HOME`.
  /* Current time in seconds and nanoseconds since 1970, updated as
     needed when deciding whether a file is recent.  */
  
-@@ -687,7 +691,11 @@
+@@ -708,7 +712,11 @@
    IGNORE_DOT_AND_DOTDOT,
  
    /* Ignore only files specified by --ignore.  */
@@ -36,7 +36,7 @@ dotfiles for every directory except `$HOME`.
  } ignore_mode;
  
  /* A linked list of shell-style globbing patterns.  If a non-argument
-@@ -843,6 +851,7 @@
+@@ -873,6 +881,7 @@
    TIME_OPTION,
    TIME_STYLE_OPTION,
    ZERO_OPTION,
@@ -44,16 +44,16 @@ dotfiles for every directory except `$HOME`.
  };
  
  static struct option const long_options[] =
-@@ -891,6 +900,7 @@
-   {"block-size", required_argument, nullptr, BLOCK_SIZE_OPTION},
-   {"context", no_argument, 0, 'Z'},
-   {"author", no_argument, nullptr, AUTHOR_OPTION},
+@@ -921,6 +930,7 @@
+   {"block-size", required_argument, NULL, BLOCK_SIZE_OPTION},
+   {"context", no_argument, NULL, 'Z'},
+   {"author", no_argument, NULL, AUTHOR_OPTION},
 +  {"almost-all-if-not-home", no_argument, NULL, ALMOST_ALL_IF_NOT_HOME},
    {GETOPT_HELP_OPTION_DECL},
    {GETOPT_VERSION_OPTION_DECL},
-   {nullptr, 0, nullptr, 0}
-@@ -1794,6 +1804,9 @@
-   else if (n_files <= 1 && pending_dirs && pending_dirs->next == 0)
+   {NULL, 0, NULL, 0}
+@@ -1789,6 +1799,9 @@
+   else if (n_files <= 1 && pending_dirs && !pending_dirs->next)
      print_dir_name = false;
  
 +  if (ignore_mode != IGNORE_ALMOST_ALL_IF_NOT_HOME || !getenv("HOME") || stat(getenv("HOME"), &homedir_stat) < 0)
@@ -62,7 +62,7 @@ dotfiles for every directory except `$HOME`.
    while (pending_dirs)
      {
        thispend = pending_dirs;
-@@ -2243,6 +2256,10 @@
+@@ -2240,6 +2253,10 @@
            quoting_style_opt = literal_quoting_style;
            break;
  
@@ -73,7 +73,7 @@ dotfiles for every directory except `$HOME`.
          case_GETOPT_HELP_CHAR;
  
          case_GETOPT_VERSION_CHAR (PROGRAM_NAME, AUTHORS);
-@@ -2997,22 +3014,25 @@
+@@ -2961,23 +2978,26 @@
        return;
      }
  
@@ -89,8 +89,9 @@ dotfiles for every directory except `$HOME`.
 -           ? fstat_for_ino (fd, &dir_stat)
 -           : stat_for_ino (name, &dir_stat)) < 0)
 -        {
--          file_failure (command_line_arg,
--                        _("cannot determine device and inode of %s"), name);
+-          if (! ignorable_traversal_errno (errno))
+-            file_failure (command_line_arg,
+-                          _("cannot determine device and inode of %s"), name);
 -          closedir (dirp);
 -          return;
 -        }
@@ -99,8 +100,9 @@ dotfiles for every directory except `$HOME`.
 +       ? fstat_for_ino (fd, &dir_stat)
 +       : stat_for_ino (name, &dir_stat)) < 0)
 +    {
-+      file_failure (command_line_arg,
-+                    _("cannot determine device and inode of %s"), name);
++      if (! ignorable_traversal_errno (errno))
++        file_failure (command_line_arg,
++                      _("cannot determine device and inode of %s"), name);
 +      closedir (dirp);
 +      return;
 +    }
@@ -113,16 +115,16 @@ dotfiles for every directory except `$HOME`.
        /* If we've already visited this dev/inode pair, warn that
           we've found a loop, and do not process this directory.  */
        if (visit_dir (dir_stat.st_dev, dir_stat.st_ino))
-@@ -3066,7 +3086,7 @@
-         errno = 0;
+@@ -3029,7 +3049,7 @@
+       next = readdir (dirp);
        if (next)
          {
 -          if (! file_ignored (next->d_name))
 +          if (! file_ignored (is_home, next->d_name))
              {
-               enum filetype type = unknown;
- 
-@@ -3182,12 +3202,17 @@
+               enum filetype type;
+ #if HAVE_STRUCT_DIRENT_D_TYPE
+@@ -3137,12 +3157,17 @@
  /* Return true if FILE should be ignored.  */
  
  static bool
@@ -144,3 +146,5 @@ dotfiles for every directory except `$HOME`.
                && patterns_match (hide_patterns, name))
            || patterns_match (ignore_patterns, name));
  }
+Only in /tmp/coreutils-9.12/src: ls.c.orig
+Only in /tmp/coreutils-9.12/src: ls.c.rej

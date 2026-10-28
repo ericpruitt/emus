@@ -54,5 +54,10 @@ replacement keys easier if they are moved.
 - oath-toolkit-simon-josefsson.asc
   - <https://blog.josefsson.org/2021/05/01/openpgp-smartcard-with-gnome-on-debian-11-bullseye/>
   - <https://josefsson.org/key-20190320.txt>
+- rsync-andrew-tridgell.asc
+  - <https://keys.openpgp.org/vks/v1/by-fingerprint/9FEF112DCE19A0DC7E882CB81BB24997A8535F6F>
+  - `gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 9FEF112DCE19A0DC7E882CB81BB24997A8535F6F`
+- rsync-zen-dodd.asc
+  - <https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x8EDF88F4731A1E8B45D67FBE6909546B2C52EC2D>
 
   [gpg]: https://www.gnupg.org/ "GNU Privacy Guard"

@@ -59,5 +59,7 @@ replacement keys easier if they are moved.
   - `gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 9FEF112DCE19A0DC7E882CB81BB24997A8535F6F`
 - rsync-zen-dodd.asc
   - <https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x8EDF88F4731A1E8B45D67FBE6909546B2C52EC2D>
+- pcre-nick-wilson.asc
+  - <https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xBACF71F10404D5761C09D392021DE40BFB63B406>
 
   [gpg]: https://www.gnupg.org/ "GNU Privacy Guard"

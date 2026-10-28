@@ -24,7 +24,7 @@
 BASH = bash-5.3
 CMARK = cmark-src
 COREUTILS = coreutils-9.12
-FINDUTILS = findutils-4.9.0
+FINDUTILS = findutils-4.11.0
 FLOCK = flock-src
 GAWK = gawk-5.4.1
 GMP = gmp-6.2.1

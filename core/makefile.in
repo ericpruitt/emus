@@ -30,7 +30,7 @@ GAWK = gawk-5.4.1
 GMP = gmp-6.2.1
 GREP = grep-3.11
 JQ = jq-src
-LESS = less-668
+LESS = less-710
 LIBEVENT = libevent-2.1.12-stable
 MPFR = mpfr-4.2.2
 MUSL = musl-1.2.6
@@ -99,7 +99,6 @@ BINARIES = \
 	$(JQ)/jq \
 	$(LESS)/less \
 	$(LESS)/lessecho \
-	$(LESS)/lesskey \
 	$(OATH_TOOLKIT)/oathtool/oathtool \
 	$(PCRE2)/pcre2grep \
 	$(RSYNC)/rsync \
@@ -951,20 +950,16 @@ $(LESS)/Makefile: $(LESS)/.FOLDER $(COMMON)/$(NCURSES)
 		LDFLAGS="$(LDFLAGS)" \
 	)
 
-$(LESS)/less $(LESS)/lessecho $(LESS)/lesskey: $(LESS)/Makefile
+$(LESS)/less $(LESS)/lessecho: $(LESS)/Makefile
 	(cd $(?D) && $(MAKE) -S $(@F))
 
-less: $(LESS)/less $(LESS)/lessecho $(LESS)/lesskey
+less: $(LESS)/less $(LESS)/lessecho
 
 $(BIN)/less: $(LESS)/less
 	test -z "$(MAN)" || cp -f $?.nro $(MAN)/man1/$(@F).1
 	cp -f $? $@
 
 $(BIN)/lessecho: $(LESS)/lessecho
-	test -z "$(MAN)" || cp -f $?.nro $(MAN)/man1/$(@F).1
-	cp -f $? $@
-
-$(BIN)/lesskey: $(LESS)/lesskey
 	test -z "$(MAN)" || cp -f $?.nro $(MAN)/man1/$(@F).1
 	cp -f $? $@
 

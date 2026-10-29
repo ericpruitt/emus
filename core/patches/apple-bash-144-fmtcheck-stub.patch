@@ -1,7 +1,7 @@
 Define a stub to replace _fmtcheck(3)_ on non-Apple systems.
 
---- bash-3.2/builtins/printf.def	2023-11-16 21:15:08.812914403 -0800
-+++ bash-3.2/builtins/printf.def	2023-11-16 21:15:06.936898662 -0800
+--- bash-3.2/builtins/printf.def	2026-04-16 19:41:40.000000000 -0500
++++ bash-3.2/builtins/printf.def	2026-10-28 19:34:04.026856623 -0500
 @@ -97,6 +97,10 @@
        putchar (c); \
    } while (0)
@@ -13,8 +13,8 @@ Define a stub to replace _fmtcheck(3)_ on non-Apple systems.
  #define PF(f, func, id) \
    do { \
      char *b = 0; \
---- bash-3.2/test.c	2023-09-22 13:00:20.000000000 -0700
-+++ bash-3.2/test.c	2023-11-16 21:18:20.646522988 -0800
+--- bash-3.2/test.c	2026-04-16 19:41:40.000000000 -0500
++++ bash-3.2/test.c	2026-10-28 19:34:04.026856623 -0500
 @@ -127,6 +127,10 @@
  static int arithcomp __P((char *, char *, int, int));
  static int patcomp __P((char *, char *, int));

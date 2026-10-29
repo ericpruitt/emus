@@ -214,11 +214,11 @@ make`. The following targets are supported:
 
 ### patches/ ###
 
-#### apple-bash-135-fmtcheck-stub.patch ####
+#### apple-bash-144-fmtcheck-stub.patch ####
 
 Define a stub to replace _fmtcheck(3)_ on non-Apple systems.
 
-#### apple-bash-135-xlocale-fix.patch ####
+#### apple-bash-144-xlocale-fix.patch ####
 
 Make use of the deprecated xlocale.h header dependent on whether Bash is being
 compiled on an Apple OS.

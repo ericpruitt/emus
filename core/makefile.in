@@ -46,7 +46,7 @@ UCONV = uconv-src
 UTF8PROC = utf8proc-src
 VIM = vim-src
 
-APPLE_BASH_RELEASE = bash-135
+APPLE_BASH_RELEASE = bash-144
 APPLE_BASH = apple-$(APPLE_BASH_RELEASE)
 
 # The release of Bash used on macOS contains outdated constructs that trigger

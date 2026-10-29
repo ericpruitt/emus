@@ -1,8 +1,8 @@
 Make use of the deprecated xlocale.h header dependent on whether Bash is being
 compiled on an Apple OS.
 
---- bash-3.2/lib/glob/smatch.c	2022-07-28 20:19:11.660189491 -0700
-+++ bash-3.2/lib/glob/smatch.c	2022-07-28 20:18:49.500065778 -0700
+--- bash-3.2/lib/glob/smatch.c	2026-04-16 19:41:40.000000000 -0500
++++ bash-3.2/lib/glob/smatch.c	2026-10-28 19:34:04.026856623 -0500
 @@ -30,7 +30,11 @@
  #include "shmbutil.h"
  #include "xmalloc.h"

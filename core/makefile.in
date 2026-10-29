@@ -638,10 +638,10 @@ $(COMMON)/$(READLINE): $(READLINE)/Makefile
 	(cd $(?D) && $(MAKE) -S install)
 	touch $@
 
-$(APPLE_BASH_RELEASE).tar.gz:
+$(APPLE_BASH).tar.gz:
 	$(WGET) -O $@ -nc https://github.com/apple-oss-distributions/bash/archive/$(APPLE_BASH_RELEASE).tar.gz
 
-$(APPLE_BASH)/.FOLDER: $(APPLE_BASH_RELEASE).tar.gz
+$(APPLE_BASH)/.FOLDER: $(APPLE_BASH).tar.gz
 	tar -x -z -f $?
 	mv bash-$(APPLE_BASH_RELEASE) $(@D)
 	$(XCAT) $(PWD)/patches/$(PATCH_PREFIX)-* | (cd $(APPLE_BASH) && patch -p0)

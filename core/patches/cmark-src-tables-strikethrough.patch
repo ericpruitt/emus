@@ -1,0 +1,1491 @@
+Add support for tilde strikethrough and GitHub Flavored Markdown tables. Unlike
+with cmark-gfm, these extensions are not toggleable.
+
+**AI Disclosure:**
+- **Authorship:** AI-assisted
+- **Models:** deepseek-v4.1-flash (DeepSeek)
+- **Scope:** Added support for strikethrough with tildes and tables.
+- References: https://github.com/github/cmark-gfm (27d942c)
+
+diff --git src/CMakeLists.txt src/CMakeLists.txt
+index 523b2cb..205b78a 100644
+--- src/CMakeLists.txt
++++ src/CMakeLists.txt
+@@ -24,6 +23,7 @@ add_library(cmark
+   render.c
+   scanners.c
+   scanners.re
++  table.c
+   utf8.c
+   xml.c)
+ cmark_add_compile_options(cmark)
+diff --git src/blocks.c src/blocks.c
+index 5413c80..58e4628 100644
+--- src/blocks.c
++++ src/blocks.c
+@@ -22,6 +22,7 @@
+ #include "houdini.h"
+ #include "buffer.h"
+ #include "chunk.h"
++#include "table.h"
+ 
+ #define CODE_INDENT 4
+ #define TAB_STOP 4
+@@ -162,10 +163,16 @@ static bool is_blank(cmark_strbuf *s, bufsize_t offset) {
+ 
+ static inline bool can_contain(cmark_node_type parent_type,
+                                cmark_node_type child_type) {
+-  return (parent_type == CMARK_NODE_DOCUMENT ||
+-          parent_type == CMARK_NODE_BLOCK_QUOTE ||
+-          parent_type == CMARK_NODE_ITEM ||
+-          (parent_type == CMARK_NODE_LIST && child_type == CMARK_NODE_ITEM));
++  return ((parent_type == CMARK_NODE_DOCUMENT ||
++           parent_type == CMARK_NODE_BLOCK_QUOTE ||
++           parent_type == CMARK_NODE_ITEM) &&
++          child_type != CMARK_NODE_TABLE_ROW &&
++          child_type != CMARK_NODE_TABLE_CELL) ||
++         (parent_type == CMARK_NODE_LIST && child_type == CMARK_NODE_ITEM) ||
++         (parent_type == CMARK_NODE_TABLE &&
++          child_type == CMARK_NODE_TABLE_ROW) ||
++         (parent_type == CMARK_NODE_TABLE_ROW &&
++          child_type == CMARK_NODE_TABLE_CELL);
+ }
+ 
+ static inline bool accepts_lines(cmark_node_type block_type) {
+@@ -176,7 +183,8 @@ static inline bool accepts_lines(cmark_node_type block_type) {
+ 
+ static inline bool contains_inlines(cmark_node_type block_type) {
+   return (block_type == CMARK_NODE_PARAGRAPH ||
+-          block_type == CMARK_NODE_HEADING);
++          block_type == CMARK_NODE_HEADING ||
++          block_type == CMARK_NODE_TABLE_CELL);
+ }
+ 
+ static void add_line(cmark_chunk *ch, cmark_parser *parser) {
+@@ -398,6 +406,11 @@ static cmark_node *add_child(cmark_parser *parser, cmark_node *parent,
+   return child;
+ }
+ 
++cmark_node *cmark_parser_add_child(cmark_parser *parser, cmark_node *parent,
++                                   cmark_node_type type, int start_column) {
++  return add_child(parser, parent, type, start_column);
++}
++
+ // Walk through node and all children, recursively, parsing
+ // string content into inline content where appropriate.
+ static void process_inlines(cmark_mem *mem, cmark_node *root,
+@@ -776,6 +789,11 @@ static void S_advance_offset(cmark_parser *parser, cmark_chunk *input,
+   }
+ }
+ 
++void cmark_parser_advance_offset(cmark_parser *parser, cmark_chunk *input,
++                                 bufsize_t count, bool columns) {
++  S_advance_offset(parser, input, count, columns);
++}
++
+ static bool S_last_child_is_open(cmark_node *container) {
+   return container->last_child &&
+          (container->last_child->flags & CMARK_NODE__OPEN);
+@@ -957,6 +975,14 @@ static cmark_node *check_open_blocks(cmark_parser *parser, cmark_chunk *input,
+       if (!parse_html_block_prefix(parser, container))
+         goto done;
+       break;
++    case CMARK_NODE_TABLE:
++      if (!cmark_table_row_matches(parser, container, input))
++        goto done;
++      break;
++    case CMARK_NODE_TABLE_ROW:
++    case CMARK_NODE_TABLE_CELL:
++      // table rows and cells contain no further block structure
++      goto done;
+     case CMARK_NODE_PARAGRAPH:
+       if (parser->blank)
+         goto done;
+@@ -1146,6 +1172,12 @@ static void open_new_blocks(cmark_parser *parser, cmark_node **container,
+       (*container)->as.code.fence_offset = 0;
+       (*container)->as.code.info = NULL;
+ 
++    } else if (!indented && cont_type == CMARK_NODE_PARAGRAPH &&
++               cmark_table_open_header(parser, container, input)) {
++      // the paragraph's last line became a table header
++    } else if (!indented && cont_type == CMARK_NODE_TABLE &&
++               cmark_table_open_row(parser, container, input)) {
++      // a table row was added
+     } else {
+       break;
+     }
+diff --git src/cmark.h src/cmark.h
+index 6626b06..7c5d99e 100644
+--- src/cmark.h
++++ src/cmark.h
+@@ -46,9 +46,12 @@ typedef enum {
+   CMARK_NODE_PARAGRAPH,
+   CMARK_NODE_HEADING,
+   CMARK_NODE_THEMATIC_BREAK,
++  CMARK_NODE_TABLE,
++  CMARK_NODE_TABLE_ROW,
++  CMARK_NODE_TABLE_CELL,
+ 
+   CMARK_NODE_FIRST_BLOCK = CMARK_NODE_DOCUMENT,
+-  CMARK_NODE_LAST_BLOCK = CMARK_NODE_THEMATIC_BREAK,
++  CMARK_NODE_LAST_BLOCK = CMARK_NODE_TABLE_CELL,
+ 
+   /* Inline */
+   CMARK_NODE_TEXT,
+@@ -61,9 +64,10 @@ typedef enum {
+   CMARK_NODE_STRONG,
+   CMARK_NODE_LINK,
+   CMARK_NODE_IMAGE,
++  CMARK_NODE_STRIKETHROUGH,
+ 
+   CMARK_NODE_FIRST_INLINE = CMARK_NODE_TEXT,
+-  CMARK_NODE_LAST_INLINE = CMARK_NODE_IMAGE
++  CMARK_NODE_LAST_INLINE = CMARK_NODE_STRIKETHROUGH
+ } cmark_node_type;
+ 
+ /* For backwards compatibility: */
+diff --git src/commonmark.c src/commonmark.c
+index 1b6268f..507bf6d 100644
+--- src/commonmark.c
++++ src/commonmark.c
+@@ -35,7 +35,7 @@ static inline void outc(cmark_renderer *renderer, cmark_escaping escape,
+       ((escape == NORMAL &&
+         (c < 0x20 ||
+          c == '*' || c == '_' || c == '[' || c == ']' || c == '#' || c == '<' ||
+-         c == '>' || c == '\\' || c == '`' ||
++         c == '>' || c == '\\' || c == '`' || c == '~' ||
+ 	 (c == '!' && (!nextc || nextc == '[')) ||
+          (c == '&' && cmark_isalpha(nextc)) || (c == '!' && nextc == '[') ||
+          ((CMARK_OPT_SMART & options) &&
+@@ -47,7 +47,8 @@ static inline void outc(cmark_renderer *renderer, cmark_escaping escape,
+           // at the beginning of line, so...
+           !follows_digit) ||
+          (renderer->begin_content && (c == '.' || c == ')') && follows_digit &&
+-          (nextc == 0 || cmark_isspace(nextc))))) ||
++          (nextc == 0 || cmark_isspace(nextc))) ||
++         (renderer->in_table_cell && c == '|'))) ||
+        (escape == URL &&
+         (c == '`' || c == '<' || c == '>' || cmark_isspace(c) || c == '\\' ||
+          c == ')' || c == '(')) ||
+@@ -325,6 +326,51 @@ static int S_render_node(cmark_renderer *renderer, cmark_node *node,
+     }
+     break;
+ 
++  case CMARK_NODE_TABLE:
++    BLANKLINE();
++    break;
++
++  case CMARK_NODE_TABLE_ROW:
++    if (entering) {
++      CR();
++      LIT("|");
++    }
++    break;
++
++  case CMARK_NODE_TABLE_CELL:
++    if (entering) {
++      LIT(" ");
++      renderer->in_table_cell = true;
++    } else {
++      renderer->in_table_cell = false;
++      LIT(" |");
++      if (node->parent->as.table_row.is_header && !node->next) {
++        cmark_node *table = node->parent->parent;
++        int i;
++
++        CR();
++        LIT("|");
++        for (i = 0; i < table->as.table.n_columns; i++) {
++          switch (table->as.table.alignments[i]) {
++          case 'l':
++            LIT(" :-- |");
++            break;
++          case 'c':
++            LIT(" :-: |");
++            break;
++          case 'r':
++            LIT(" --: |");
++            break;
++          default:
++            LIT(" --- |");
++            break;
++          }
++        }
++        CR();
++      }
++    }
++    break;
++
+   case CMARK_NODE_TEXT:
+     OUT(cmark_node_get_literal(node), allow_wrap, NORMAL);
+     break;
+@@ -399,6 +445,10 @@ static int S_render_node(cmark_renderer *renderer, cmark_node *node,
+     }
+     break;
+ 
++  case CMARK_NODE_STRIKETHROUGH:
++    LIT("~~");
++    break;
++
+   case CMARK_NODE_EMPH:
+     // If we have EMPH(EMPH(x)), we need to use *_x_*
+     // because **x** is STRONG(x):
+diff --git src/html.c src/html.c
+index 5c14fa6..a2c70f8 100644
+--- src/html.c
++++ src/html.c
+@@ -28,8 +28,27 @@ static inline void cr(cmark_strbuf *html) {
+ struct render_state {
+   cmark_strbuf *html;
+   cmark_node *plain;
++  bool need_closing_table_body;
++  bool in_table_header;
+ };
+ 
++static uint8_t S_cell_alignment(cmark_node *cell) {
++  cmark_node *row = cell->parent;
++  cmark_node *table = row ? row->parent : NULL;
++
++  if (table && table->type == CMARK_NODE_TABLE &&
++      cell->as.table_cell.cell_index < table->as.table.n_columns)
++    return table->as.table.alignments[cell->as.table_cell.cell_index];
++
++  return 0;
++}
++
++static void S_table_add_align(cmark_strbuf *html, const char *align) {
++  cmark_strbuf_puts(html, " align=\"");
++  cmark_strbuf_puts(html, align);
++  cmark_strbuf_puts(html, "\"");
++}
++
+ static void S_render_sourcepos(cmark_node *node, cmark_strbuf *html,
+                                int options) {
+   char buffer[BUFFER_SIZE];
+@@ -200,6 +219,74 @@ static int S_render_node(cmark_node *node, cmark_event_type ev_type,
+     cmark_strbuf_puts(html, " />\n");
+     break;
+ 
++  case CMARK_NODE_TABLE:
++    if (entering) {
++      cr(html);
++      cmark_strbuf_puts(html, "<table");
++      S_render_sourcepos(node, html, options);
++      cmark_strbuf_putc(html, '>');
++      state->need_closing_table_body = false;
++    } else {
++      if (state->need_closing_table_body) {
++        cr(html);
++        cmark_strbuf_puts(html, "</tbody>");
++      }
++      state->need_closing_table_body = false;
++      cr(html);
++      cmark_strbuf_puts(html, "</table>\n");
++    }
++    break;
++
++  case CMARK_NODE_TABLE_ROW:
++    if (entering) {
++      cr(html);
++      if (node->as.table_row.is_header) {
++        state->in_table_header = true;
++        cmark_strbuf_puts(html, "<thead>");
++        cr(html);
++      } else if (!state->need_closing_table_body) {
++        cmark_strbuf_puts(html, "<tbody>");
++        cr(html);
++        state->need_closing_table_body = true;
++      }
++      cmark_strbuf_puts(html, "<tr");
++      S_render_sourcepos(node, html, options);
++      cmark_strbuf_putc(html, '>');
++    } else {
++      cr(html);
++      cmark_strbuf_puts(html, "</tr>");
++      if (node->as.table_row.is_header) {
++        cr(html);
++        cmark_strbuf_puts(html, "</thead>");
++        state->in_table_header = false;
++      }
++    }
++    break;
++
++  case CMARK_NODE_TABLE_CELL:
++    if (entering) {
++      cr(html);
++      cmark_strbuf_puts(html, state->in_table_header ? "<th" : "<td");
++
++      switch (S_cell_alignment(node)) {
++      case 'l':
++        S_table_add_align(html, "left");
++        break;
++      case 'c':
++        S_table_add_align(html, "center");
++        break;
++      case 'r':
++        S_table_add_align(html, "right");
++        break;
++      }
++
++      S_render_sourcepos(node, html, options);
++      cmark_strbuf_putc(html, '>');
++    } else {
++      cmark_strbuf_puts(html, state->in_table_header ? "</th>" : "</td>");
++    }
++    break;
++
+   case CMARK_NODE_PARAGRAPH:
+     parent = cmark_node_parent(node);
+     grandparent = cmark_node_parent(parent);
+@@ -277,6 +364,14 @@ static int S_render_node(cmark_node *node, cmark_event_type ev_type,
+     }
+     break;
+ 
++  case CMARK_NODE_STRIKETHROUGH:
++    if (entering) {
++      cmark_strbuf_puts(html, "<del>");
++    } else {
++      cmark_strbuf_puts(html, "</del>");
++    }
++    break;
++
+   case CMARK_NODE_LINK:
+     if (entering) {
+       cmark_strbuf_puts(html, "<a href=\"");
+@@ -331,7 +426,7 @@ char *cmark_render_html(cmark_node *root, int options) {
+   cmark_strbuf html = CMARK_BUF_INIT(root->mem);
+   cmark_event_type ev_type;
+   cmark_node *cur;
+-  struct render_state state = {&html, NULL};
++  struct render_state state = {&html, NULL, false, false};
+   cmark_iter *iter = cmark_iter_new(root);
+ 
+   while ((ev_type = cmark_iter_next(iter)) != CMARK_EVENT_DONE) {
+diff --git src/inlines.c src/inlines.c
+index 8c9564d..4563c86 100644
+--- src/inlines.c
++++ src/inlines.c
+@@ -77,6 +77,9 @@ static inline bool S_is_line_end_char(char c) {
+ static delimiter *S_insert_emph(subject *subj, delimiter *opener,
+                                 delimiter *closer);
+ 
++static delimiter *S_insert_strikethrough(subject *subj, delimiter *opener,
++                                         delimiter *closer);
++
+ static int parse_inline(subject *subj, cmark_node *parent, int options);
+ 
+ static void subject_from_buf(cmark_mem *mem, int line_number, int block_offset, subject *e,
+@@ -582,7 +585,9 @@ static cmark_node *handle_delim(subject *subj, unsigned char c, bool smart) {
+ 
+   inl_text = make_str(subj, subj->pos - numdelims, subj->pos - 1, contents);
+ 
+-  if ((can_open || can_close) && (!(c == '\'' || c == '"') || smart)) {
++  // Strikethrough requires exactly two tildes.
++  if ((can_open || can_close) && (!(c == '\'' || c == '"') || smart) &&
++      !(c == '~' && numdelims != 2)) {
+     push_delimiter(subj, c, can_open, can_close, inl_text);
+   }
+ 
+@@ -686,6 +691,9 @@ static void process_emphasis(subject *subj, bufsize_t stack_bottom) {
+         openers_bottom_index = 8 +
+                 (closer->can_open ? 3 : 0) + (closer->length % 3);
+         break;
++      case '~':
++        openers_bottom_index = 14;
++        break;
+       default:
+         assert(false);
+       }
+@@ -695,7 +703,9 @@ static void process_emphasis(subject *subj, bufsize_t stack_bottom) {
+       opener_found = false;
+       while (opener != NULL &&
+              opener->position >= openers_bottom[openers_bottom_index]) {
+-        if (opener->can_open && opener->delim_char == closer->delim_char) {
++        if (opener->can_open && opener->delim_char == closer->delim_char &&
++            (closer->delim_char != '~' ||
++             opener->length == closer->length)) {
+           // interior closer of size 2 can't match opener of size 1
+           // or of size 1 can't match 2
+           if (!(closer->can_open || opener->can_close) ||
+@@ -714,6 +724,12 @@ static void process_emphasis(subject *subj, bufsize_t stack_bottom) {
+         } else {
+           closer = closer->next;
+         }
++      } else if (closer->delim_char == '~') {
++        if (opener_found) {
++          closer = S_insert_strikethrough(subj, opener, closer);
++        } else {
++          closer = closer->next;
++        }
+       } else if (closer->delim_char == '\'' || closer->delim_char == '"') {
+         if (closer->delim_char == '\'') {
+           cmark_node_set_literal(closer->inl_text, RIGHTSINGLEQUOTE);
+@@ -833,6 +849,63 @@ static delimiter *S_insert_emph(subject *subj, delimiter *opener,
+   return closer;
+ }
+ 
++static delimiter *S_insert_strikethrough(subject *subj, delimiter *opener,
++                                         delimiter *closer) {
++  delimiter *delim, *tmp_delim;
++  cmark_node *strikethrough = opener->inl_text;
++  cmark_node *closer_inl = closer->inl_text;
++  cmark_node *parent = strikethrough->parent;
++  cmark_node *after = closer_inl->next;
++  cmark_node *tmp, *tmpnext;
++  delimiter *res = closer->next;
++
++  strikethrough->end_column =
++      closer_inl->start_column + closer_inl->len - 1;
++  subj->mem->free(strikethrough->data);
++  strikethrough->data = NULL;
++  strikethrough->len = 0;
++  strikethrough->type = (uint16_t)CMARK_NODE_STRIKETHROUGH;
++
++  tmp = strikethrough->next;
++  if (tmp && tmp != closer_inl) {
++    strikethrough->first_child = tmp;
++    tmp->prev = NULL;
++
++    while (tmp && tmp != closer_inl) {
++      tmpnext = tmp->next;
++      tmp->parent = strikethrough;
++      if (tmpnext == closer_inl) {
++        strikethrough->last_child = tmp;
++        tmp->next = NULL;
++      }
++      tmp = tmpnext;
++    }
++  }
++
++  strikethrough->next = after;
++  if (after) {
++    after->prev = strikethrough;
++  } else if (parent) {
++    parent->last_child = strikethrough;
++  }
++
++  closer_inl->next = NULL;
++  closer_inl->prev = NULL;
++  closer_inl->parent = NULL;
++  cmark_node_free(closer_inl);
++
++  // free delimiters between opener and closer
++  delim = closer;
++  while (delim != NULL && delim != opener) {
++    tmp_delim = delim->previous;
++    remove_delimiter(subj, delim);
++    delim = tmp_delim;
++  }
++  remove_delimiter(subj, opener);
++
++  return res;
++}
++
+ // Parse backslash-escape or just a backslash, returning an inline.
+ static cmark_node *handle_backslash(subject *subj) {
+   advance(subj);
+@@ -1300,12 +1373,13 @@ static bufsize_t subject_find_special_char(subject *subj, int options) {
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1,
+       1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
++      0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
++      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
++  };
+ 
+   // " ' . -
+   static const char SMART_PUNCT_CHARS[] = {
+@@ -1365,6 +1439,7 @@ static int parse_inline(subject *subj, cmark_node *parent, int options) {
+     break;
+   case '*':
+   case '_':
++  case '~':
+   case '\'':
+   case '"':
+     new_inl = handle_delim(subj, c, (options & CMARK_OPT_SMART) != 0);
+@@ -1416,8 +1491,12 @@ static int parse_inline(subject *subj, cmark_node *parent, int options) {
+ // Parse inlines from parent's string_content, adding as children of parent.
+ void cmark_parse_inlines(cmark_mem *mem, cmark_node *parent,
+                          cmark_reference_map *refmap, int options) {
+-  int internal_offset = parent->type == CMARK_NODE_HEADING ?
+-    parent->as.heading.internal_offset : 0;
++  int internal_offset = 0;
++  if (parent->type == CMARK_NODE_HEADING) {
++    internal_offset = parent->as.heading.internal_offset;
++  } else if (parent->type == CMARK_NODE_TABLE_CELL) {
++    internal_offset = parent->as.table_cell.internal_offset;
++  }
+   subject subj;
+   cmark_chunk content = {parent->data, parent->len};
+   subject_from_buf(mem, parent->start_line, parent->start_column - 1 + internal_offset, &subj, &content, refmap);
+diff --git src/latex.c src/latex.c
+index 81a35d5..fa93af6 100644
+--- src/latex.c
++++ src/latex.c
+@@ -346,6 +346,54 @@ static int S_render_node(cmark_renderer *renderer, cmark_node *node,
+     }
+     break;
+ 
++  case CMARK_NODE_TABLE:
++    if (entering) {
++      int i;
++      cmark_node *table = node;
++
++      CR();
++      LIT("\\begin{table}");
++      CR();
++      LIT("\\begin{tabular}{");
++      for (i = 0; i < table->as.table.n_columns; i++) {
++        switch (table->as.table.alignments[i]) {
++        case 'c':
++          LIT("c");
++          break;
++        case 'r':
++          LIT("r");
++          break;
++        default:
++          LIT("l");
++          break;
++        }
++      }
++      LIT("}");
++      CR();
++    } else {
++      LIT("\\end{tabular}");
++      CR();
++      LIT("\\end{table}");
++      BLANKLINE();
++    }
++    break;
++
++  case CMARK_NODE_TABLE_ROW:
++    if (!entering) {
++      CR();
++    }
++    break;
++
++  case CMARK_NODE_TABLE_CELL:
++    if (!entering) {
++      if (node->next) {
++        LIT(" & ");
++      } else {
++        LIT(" \\\\");
++      }
++    }
++    break;
++
+   case CMARK_NODE_TEXT:
+     OUT(cmark_node_get_literal(node), allow_wrap, NORMAL);
+     break;
+@@ -396,6 +444,14 @@ static int S_render_node(cmark_renderer *renderer, cmark_node *node,
+     }
+     break;
+ 
++  case CMARK_NODE_STRIKETHROUGH:
++    if (entering) {
++      LIT("\\sout{");
++    } else {
++      LIT("}");
++    }
++    break;
++
+   case CMARK_NODE_LINK:
+     if (entering) {
+       const char *url = cmark_node_get_url(node);
+diff --git src/man.c src/man.c
+index 6445663..2aec6c0 100644
+--- src/man.c
++++ src/man.c
+@@ -186,6 +186,51 @@ static int S_render_node(cmark_renderer *renderer, cmark_node *node,
+     CR();
+     break;
+ 
++  case CMARK_NODE_TABLE:
++    if (entering) {
++      int i;
++      cmark_node *table = node;
++
++      CR();
++      LIT(".TS");
++      CR();
++      LIT("tab(@);");
++      CR();
++      for (i = 0; i < table->as.table.n_columns; i++) {
++        switch (table->as.table.alignments[i]) {
++        case 'l':
++          LIT("l");
++          break;
++        case 'r':
++          LIT("r");
++          break;
++        default:
++          LIT("c");
++          break;
++        }
++      }
++      if (table->as.table.n_columns) {
++        LIT(".");
++        CR();
++      }
++    } else {
++      LIT(".TE");
++      CR();
++    }
++    break;
++
++  case CMARK_NODE_TABLE_ROW:
++    if (!entering) {
++      CR();
++    }
++    break;
++
++  case CMARK_NODE_TABLE_CELL:
++    if (!entering && node->next) {
++      LIT("@");
++    }
++    break;
++
+   case CMARK_NODE_PARAGRAPH:
+     if (entering) {
+       // no blank line if first paragraph in list:
+@@ -252,6 +297,16 @@ static int S_render_node(cmark_renderer *renderer, cmark_node *node,
+     }
+     break;
+ 
++  case CMARK_NODE_STRIKETHROUGH:
++    if (entering) {
++      CR();
++      LIT(".ST \"");
++    } else {
++      LIT("\"");
++      CR();
++    }
++    break;
++
+   case CMARK_NODE_LINK:
+     if (!entering) {
+       LIT(" (");
+diff --git src/node.c src/node.c
+index c149254..90543d1 100644
+--- src/node.c
++++ src/node.c
+@@ -63,18 +63,28 @@ static bool S_can_contain(cmark_node *node, cmark_node *child) {
+   case CMARK_NODE_DOCUMENT:
+   case CMARK_NODE_BLOCK_QUOTE:
+   case CMARK_NODE_ITEM:
+-    return cmark_node_is_block(child) && child->type != CMARK_NODE_ITEM;
++    return cmark_node_is_block(child) && child->type != CMARK_NODE_ITEM &&
++           child->type != CMARK_NODE_TABLE_ROW &&
++           child->type != CMARK_NODE_TABLE_CELL;
+ 
+   case CMARK_NODE_LIST:
+     return child->type == CMARK_NODE_ITEM;
+ 
++  case CMARK_NODE_TABLE:
++    return child->type == CMARK_NODE_TABLE_ROW;
++
++  case CMARK_NODE_TABLE_ROW:
++    return child->type == CMARK_NODE_TABLE_CELL;
++
+   case CMARK_NODE_CUSTOM_BLOCK:
+     return true;
+ 
+   case CMARK_NODE_PARAGRAPH:
+   case CMARK_NODE_HEADING:
++  case CMARK_NODE_TABLE_CELL:
+   case CMARK_NODE_EMPH:
+   case CMARK_NODE_STRONG:
++  case CMARK_NODE_STRIKETHROUGH:
+   case CMARK_NODE_LINK:
+   case CMARK_NODE_IMAGE:
+   case CMARK_NODE_CUSTOM_INLINE:
+@@ -133,6 +143,9 @@ static void S_free_nodes(cmark_node *e) {
+     case CMARK_NODE_HTML_BLOCK:
+       mem->free(e->data);
+       break;
++    case CMARK_NODE_TABLE:
++      mem->free(e->as.table.alignments);
++      break;
+     case CMARK_NODE_LINK:
+     case CMARK_NODE_IMAGE:
+       mem->free(e->as.link.url);
+@@ -199,6 +212,12 @@ const char *cmark_node_get_type_string(cmark_node *node) {
+     return "heading";
+   case CMARK_NODE_THEMATIC_BREAK:
+     return "thematic_break";
++  case CMARK_NODE_TABLE:
++    return "table";
++  case CMARK_NODE_TABLE_ROW:
++    return node->as.table_row.is_header ? "table_header" : "table_row";
++  case CMARK_NODE_TABLE_CELL:
++    return "table_cell";
+   case CMARK_NODE_TEXT:
+     return "text";
+   case CMARK_NODE_SOFTBREAK:
+@@ -219,6 +238,8 @@ const char *cmark_node_get_type_string(cmark_node *node) {
+     return "link";
+   case CMARK_NODE_IMAGE:
+     return "image";
++  case CMARK_NODE_STRIKETHROUGH:
++    return "strikethrough";
+   }
+ 
+   return "<unknown>";
+diff --git src/node.h src/node.h
+index 3d9ddcf..b5b2641 100644
+--- src/node.h
++++ src/node.h
+@@ -46,11 +46,28 @@ typedef struct {
+   unsigned char *on_exit;
+ } cmark_custom;
+ 
++typedef struct {
++  uint16_t n_columns;
++  int n_rows;
++  int n_nonempty_cells;
++  uint8_t *alignments;
++} cmark_table;
++
++typedef struct {
++  bool is_header;
++} cmark_table_row;
++
++typedef struct {
++  int internal_offset;
++  uint16_t cell_index;
++} cmark_table_cell;
++
+ enum cmark_node__internal_flags {
+   CMARK_NODE__OPEN = (1 << 0),
+   CMARK_NODE__LAST_LINE_BLANK = (1 << 1),
+   CMARK_NODE__LAST_LINE_CHECKED = (1 << 2),
+   CMARK_NODE__LIST_LAST_LINE_BLANK = (1 << 3),
++  CMARK_NODE__TABLE_CHECKED = (1 << 4),
+ };
+ 
+ struct cmark_node {
+@@ -80,6 +97,9 @@ struct cmark_node {
+     cmark_heading heading;
+     cmark_link link;
+     cmark_custom custom;
++    cmark_table table;
++    cmark_table_row table_row;
++    cmark_table_cell table_cell;
+     int html_block_type;
+   } as;
+ };
+diff --git src/parser.h src/parser.h
+index f546ace..4793b3f 100644
+--- src/parser.h
++++ src/parser.h
+@@ -5,6 +5,7 @@
+ #include "references.h"
+ #include "node.h"
+ #include "buffer.h"
++#include "chunk.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+@@ -35,6 +36,12 @@ struct cmark_parser {
+   unsigned int total_size;
+ };
+ 
++cmark_node *cmark_parser_add_child(cmark_parser *parser, cmark_node *parent,
++                                   cmark_node_type type, int start_column);
++
++void cmark_parser_advance_offset(cmark_parser *parser, cmark_chunk *input,
++                                 bufsize_t count, bool columns);
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git src/render.c src/render.c
+index 0404deb..c7c8d3b 100644
+--- src/render.c
++++ src/render.c
+@@ -89,6 +89,10 @@ static void S_out(cmark_renderer *renderer, const char *source, bool wrap,
+         renderer->begin_content = true;
+         renderer->last_breakable = 0;
+       } else {
++        if (renderer->in_table_cell && c == '|') {
++          cmark_strbuf_putc(renderer->buffer, '\\');
++          renderer->column += 1;
++        }
+         cmark_render_code_point(renderer, c);
+         renderer->begin_line = false;
+         // we don't set 'begin_content' to false til we've
+@@ -165,7 +169,7 @@ char *cmark_render(cmark_node *root, int options, int width,
+   cmark_renderer renderer = {options,
+                              mem,    &buf,    &pref,      0,      width,
+                              0,      0,       true,       true,   false,
+-                             false,  NULL,
++                             false,  false,   NULL,
+                              outc,   S_cr,    S_blankline, S_out};
+ 
+   while ((ev_type = cmark_iter_next(iter)) != CMARK_EVENT_DONE) {
+diff --git src/render.h src/render.h
+index 6f71acb..1a6aabb 100644
+--- src/render.h
++++ src/render.h
+@@ -30,6 +30,7 @@ struct cmark_renderer {
+   bool begin_content;
+   bool no_linebreaks;
+   bool in_tight_list_item;
++  bool in_table_cell;
+   struct block_number *block_number_in_list_item;
+   void (*outc)(struct cmark_renderer *, cmark_escaping, int32_t, unsigned char);
+   void (*cr)(struct cmark_renderer *);
+diff --git src/table.c src/table.c
+new file mode 100644
+index 0000000..5e2418a
+--- /dev/null
++++ src/table.c
+@@ -0,0 +1,561 @@
++#include <stdbool.h>
++#include <stdint.h>
++#include <stdlib.h>
++#include <string.h>
++
++#include "cmark.h"
++#include "cmark_ctype.h"
++#include "chunk.h"
++#include "inlines.h"
++#include "node.h"
++#include "parser.h"
++#include "table.h"
++
++typedef struct {
++  cmark_strbuf *buf;
++  int start_offset, end_offset, internal_offset;
++} node_cell;
++
++typedef struct {
++  uint16_t n_columns;
++  int paragraph_offset;
++  node_cell *cells;
++} table_row;
++
++static bool S_is_spacechar(unsigned char c) {
++  return c == ' ' || c == '\t' || c == '\v' || c == '\f';
++}
++
++static bool S_is_escaped_char(unsigned char c) {
++  switch (c) {
++  case '|':
++  case '!':
++  case '"':
++  case '#':
++  case '$':
++  case '%':
++  case '&':
++  case '\'':
++  case '(':
++  case ')':
++  case '*':
++  case '+':
++  case ',':
++  case '.':
++  case '/':
++  case ':':
++  case ';':
++  case '<':
++  case '=':
++  case '>':
++  case '?':
++  case '@':
++  case '[':
++  case '\\':
++  case ']':
++  case '^':
++  case '_':
++  case '`':
++  case '{':
++  case '}':
++  case '~':
++  case '-':
++    return true;
++  default:
++    return false;
++  }
++}
++
++/* Scans a delimiter cell, returning the position after it or 0. */
++static bufsize_t S_scan_table_marker(const unsigned char *data, bufsize_t len,
++                                     bufsize_t pos) {
++  bufsize_t start = pos;
++
++  while (pos < len && S_is_spacechar(data[pos]))
++    pos++;
++  if (pos < len && data[pos] == ':')
++    pos++;
++  if (pos >= len || data[pos] != '-')
++    return 0;
++  while (pos < len && data[pos] == '-')
++    pos++;
++  if (pos < len && data[pos] == ':')
++    pos++;
++  while (pos < len && S_is_spacechar(data[pos]))
++    pos++;
++
++  return pos > start ? pos : 0;
++}
++
++/* Scans a table delimiter row, returning its length or 0. */
++static bufsize_t S_scan_table_start(cmark_chunk *input, bufsize_t offset) {
++  const unsigned char *data = input->data;
++  bufsize_t len = input->len;
++  bufsize_t pos = offset;
++
++  if (pos < len && data[pos] == '|')
++    pos++;
++
++  pos = S_scan_table_marker(data, len, pos);
++  if (pos == 0)
++    return 0;
++
++  for (;;) {
++    bufsize_t next;
++
++    if (pos >= len || data[pos] != '|')
++      break;
++    next = S_scan_table_marker(data, len, pos + 1);
++    if (next == 0)
++      break;
++    pos = next;
++  }
++
++  if (pos < len && data[pos] == '|')
++    pos++;
++
++  while (pos < len && S_is_spacechar(data[pos]))
++    pos++;
++
++  if (pos < len && data[pos] == '\r')
++    pos++;
++  if (pos < len && data[pos] == '\n')
++    return pos + 1 - offset;
++
++  return 0;
++}
++
++static bufsize_t S_scan_table_cell(const unsigned char *data, bufsize_t len,
++                                   bufsize_t pos) {
++  bufsize_t start = pos;
++
++  while (pos < len) {
++    unsigned char c = data[pos];
++
++    if (c == '\\' && pos + 1 < len && S_is_escaped_char(data[pos + 1])) {
++      pos += 2;
++    } else if (c != '|' && c != '\r' && c != '\n') {
++      pos++;
++    } else {
++      break;
++    }
++  }
++
++  return pos - start;
++}
++
++static bufsize_t S_scan_table_cell_end(const unsigned char *data,
++                                       bufsize_t len, bufsize_t pos) {
++  bufsize_t start = pos;
++
++  if (pos < len && data[pos] == '|') {
++    pos++;
++    while (pos < len && S_is_spacechar(data[pos]))
++      pos++;
++  }
++
++  return pos - start;
++}
++
++static bufsize_t S_scan_table_row_end(const unsigned char *data, bufsize_t len,
++                                      bufsize_t pos) {
++  bufsize_t start = pos;
++
++  while (pos < len && S_is_spacechar(data[pos]))
++    pos++;
++  if (pos < len && data[pos] == '\r')
++    pos++;
++  if (pos < len && data[pos] == '\n')
++    return pos + 1 - start;
++
++  return 0;
++}
++
++static cmark_strbuf *S_unescape_pipes(cmark_mem *mem,
++                                      const unsigned char *string,
++                                      bufsize_t len) {
++  cmark_strbuf *res = (cmark_strbuf *)mem->calloc(1, sizeof(cmark_strbuf));
++  bufsize_t r, w;
++
++  cmark_strbuf_init(mem, res, len + 1);
++  cmark_strbuf_put(res, string, len);
++  cmark_strbuf_putc(res, '\0');
++
++  for (r = 0, w = 0; r < len; ++r) {
++    if (res->ptr[r] == '\\' && r + 1 < len && res->ptr[r + 1] == '|')
++      r++;
++
++    res->ptr[w++] = res->ptr[r];
++  }
++
++  cmark_strbuf_truncate(res, w);
++
++  return res;
++}
++
++static void S_free_table_cell(cmark_mem *mem, node_cell *cell) {
++  cmark_strbuf_free(cell->buf);
++  mem->free(cell->buf);
++}
++
++static void S_free_row_cells(cmark_mem *mem, table_row *row) {
++  while (row->n_columns > 0) {
++    S_free_table_cell(mem, &row->cells[--row->n_columns]);
++  }
++  mem->free(row->cells);
++  row->cells = NULL;
++}
++
++static void S_free_table_row(cmark_mem *mem, table_row *row) {
++  if (!row)
++    return;
++
++  S_free_row_cells(mem, row);
++  mem->free(row);
++}
++
++static node_cell *S_append_row_cell(cmark_mem *mem, table_row *row) {
++  const uint32_t n_columns = row->n_columns + 1;
++
++  /* realloc when n_columns is a power of 2 */
++  if ((n_columns & (n_columns - 1)) == 0) {
++    /* make sure we never wrap row->n_columns */
++    if (n_columns > UINT16_MAX)
++      return NULL;
++    row->cells = (node_cell *)mem->realloc(
++        row->cells, (2 * n_columns - 1) * sizeof(node_cell));
++  }
++  row->n_columns = (uint16_t)n_columns;
++  return &row->cells[n_columns - 1];
++}
++
++/* Parses a single table row of the form
++ * `delim? table_cell (delim table_cell)* delim? newline`.
++ */
++static table_row *S_row_from_string(cmark_mem *mem,
++                                    const unsigned char *string, int len) {
++  table_row *row;
++  bufsize_t cell_matched = 1, pipe_matched = 1, offset;
++  int expect_more_cells = 1;
++  int row_end_offset = 0;
++  int int_overflow_abort = 0;
++
++  row = (table_row *)mem->calloc(1, sizeof(table_row));
++  row->n_columns = 0;
++  row->cells = NULL;
++
++  offset = S_scan_table_cell_end(string, len, 0);
++
++  while (offset < len && expect_more_cells) {
++    cell_matched = S_scan_table_cell(string, len, offset);
++    pipe_matched = S_scan_table_cell_end(string, len, offset + cell_matched);
++
++    if (cell_matched || pipe_matched) {
++      cmark_strbuf *cell_buf =
++          S_unescape_pipes(mem, string + offset, cell_matched);
++      node_cell *cell;
++
++      cmark_strbuf_trim(cell_buf);
++
++      cell = S_append_row_cell(mem, row);
++      if (!cell) {
++        int_overflow_abort = 1;
++        cmark_strbuf_free(cell_buf);
++        mem->free(cell_buf);
++        break;
++      }
++      cell->buf = cell_buf;
++      cell->start_offset = offset;
++      cell->end_offset = offset + cell_matched - 1;
++      cell->internal_offset = 0;
++
++      while (cell->start_offset > row->paragraph_offset &&
++             string[cell->start_offset - 1] != '|') {
++        --cell->start_offset;
++        ++cell->internal_offset;
++      }
++    }
++
++    offset += cell_matched + pipe_matched;
++
++    if (pipe_matched) {
++      expect_more_cells = 1;
++    } else {
++      row_end_offset = S_scan_table_row_end(string, len, offset);
++      offset += row_end_offset;
++
++      if (row_end_offset && offset != len) {
++        row->paragraph_offset = offset;
++
++        S_free_row_cells(mem, row);
++
++        offset += S_scan_table_cell_end(string, len, offset);
++
++        expect_more_cells = 1;
++      } else {
++        expect_more_cells = 0;
++      }
++    }
++  }
++
++  if (offset != len || row->n_columns == 0 || int_overflow_abort) {
++    S_free_table_row(mem, row);
++    row = NULL;
++  }
++
++  return row;
++}
++
++static int S_get_n_autocompleted_cells(cmark_node *table) {
++  const cmark_table *t = &table->as.table;
++
++  return ((int)t->n_columns * t->n_rows) - t->n_nonempty_cells;
++}
++
++static void S_set_content(cmark_node *node, cmark_strbuf *buf) {
++  node->len = buf->size;
++  node->data = cmark_strbuf_detach(buf);
++}
++
++static bool S_is_blank(const cmark_strbuf *s, bufsize_t offset) {
++  while (offset < s->size) {
++    switch (s->ptr[offset]) {
++    case '\r':
++    case '\n':
++      return true;
++    case ' ':
++    case '\t':
++      offset++;
++      break;
++    default:
++      return false;
++    }
++  }
++
++  return true;
++}
++
++static bool S_resolve_reference_definitions(cmark_parser *parser,
++                                            cmark_strbuf *content) {
++  cmark_chunk chunk = {content->ptr, content->size};
++  bufsize_t pos;
++
++  while (chunk.len && chunk.data[0] == '[' &&
++         (pos = cmark_parse_reference_inline(parser->mem, &chunk,
++                                             parser->refmap))) {
++    chunk.data += pos;
++    chunk.len -= pos;
++  }
++  cmark_strbuf_drop(content, content->size - chunk.len);
++  return !S_is_blank(content, 0);
++}
++
++static void S_insert_header_paragraph(cmark_parser *parser,
++                                      cmark_node *paragraph,
++                                      cmark_node *table,
++                                      const unsigned char *content,
++                                      int paragraph_offset) {
++  cmark_strbuf *prefix =
++      S_unescape_pipes(parser->mem, content, paragraph_offset);
++  cmark_node *new_paragraph;
++  bufsize_t pos;
++  int n_lines = 0;
++  bufsize_t last_line_len = 0;
++
++  if (!S_resolve_reference_definitions(parser, prefix)) {
++    cmark_strbuf_free(prefix);
++    parser->mem->free(prefix);
++    return;
++  }
++
++  cmark_strbuf_trim(prefix);
++
++  new_paragraph =
++      cmark_node_new_with_mem(CMARK_NODE_PARAGRAPH, parser->mem);
++  S_set_content(new_paragraph, prefix);
++  parser->mem->free(prefix);
++
++  for (pos = 0; pos < new_paragraph->len; pos++) {
++    if (new_paragraph->data[pos] == '\n') {
++      n_lines++;
++      last_line_len = 0;
++    } else if (new_paragraph->data[pos] != '\r') {
++      last_line_len++;
++    }
++  }
++
++  new_paragraph->start_line = paragraph->start_line;
++  new_paragraph->start_column = paragraph->start_column;
++  new_paragraph->end_line =
++      paragraph->start_line + n_lines - (last_line_len == 0 ? 1 : 0);
++  new_paragraph->end_column = last_line_len;
++
++  if (!cmark_node_insert_before(table, new_paragraph)) {
++    cmark_node_free(new_paragraph);
++  }
++}
++
++bool cmark_table_row_matches(cmark_parser *parser, cmark_node *table,
++                             cmark_chunk *input) {
++  table_row *row;
++  bool res;
++
++  (void)table;
++
++  row = S_row_from_string(parser->mem,
++                          input->data + parser->first_nonspace,
++                          (int)(input->len - parser->first_nonspace));
++  res = row != NULL && row->n_columns > 0;
++  S_free_table_row(parser->mem, row);
++
++  return res;
++}
++
++bool cmark_table_open_header(cmark_parser *parser, cmark_node **container,
++                             cmark_chunk *input) {
++  cmark_node *paragraph = *container;
++  table_row *header_row;
++  table_row *delimiter_row;
++  cmark_node *header;
++  uint8_t *alignments;
++  int i;
++
++  if (paragraph->flags & CMARK_NODE__TABLE_CHECKED)
++    return false;
++
++  if (!S_scan_table_start(input, parser->first_nonspace))
++    return false;
++
++  delimiter_row = S_row_from_string(
++      parser->mem, input->data + parser->first_nonspace,
++      (int)(input->len - parser->first_nonspace));
++  if (!delimiter_row)
++    return false;
++
++  header_row = S_row_from_string(parser->mem, parser->content.ptr,
++                                 (int)parser->content.size);
++  if (!header_row || header_row->n_columns != delimiter_row->n_columns) {
++    paragraph->flags |= CMARK_NODE__TABLE_CHECKED;
++    S_free_table_row(parser->mem, header_row);
++    S_free_table_row(parser->mem, delimiter_row);
++    return false;
++  }
++
++  if (header_row->paragraph_offset) {
++    S_insert_header_paragraph(parser, paragraph, paragraph, parser->content.ptr,
++                              header_row->paragraph_offset);
++  }
++
++  alignments = (uint8_t *)parser->mem->calloc(delimiter_row->n_columns,
++                                              sizeof(uint8_t));
++  for (i = 0; i < delimiter_row->n_columns; ++i) {
++    node_cell *cell = &delimiter_row->cells[i];
++    bool left = cell->buf->size > 0 && cell->buf->ptr[0] == ':';
++    bool right =
++        cell->buf->size > 0 && cell->buf->ptr[cell->buf->size - 1] == ':';
++
++    if (left && right)
++      alignments[i] = 'c';
++    else if (left)
++      alignments[i] = 'l';
++    else if (right)
++      alignments[i] = 'r';
++  }
++
++  paragraph->type = (uint16_t)CMARK_NODE_TABLE;
++  paragraph->as.table.n_columns = header_row->n_columns;
++  paragraph->as.table.n_rows = 0;
++  paragraph->as.table.n_nonempty_cells = 0;
++  paragraph->as.table.alignments = alignments;
++
++  header = cmark_parser_add_child(parser, paragraph, CMARK_NODE_TABLE_ROW,
++                                  paragraph->start_column);
++  header->as.table_row.is_header = true;
++  header->end_column =
++      paragraph->start_column + (int)parser->content.size - 2;
++  header->start_line = header->end_line = paragraph->start_line;
++
++  for (i = 0; i < header_row->n_columns; ++i) {
++    node_cell *cell = &header_row->cells[i];
++    cmark_node *cell_node = cmark_parser_add_child(
++        parser, header, CMARK_NODE_TABLE_CELL,
++        paragraph->start_column + cell->start_offset);
++
++    cell_node->start_line = cell_node->end_line = paragraph->start_line;
++    cell_node->as.table_cell.internal_offset = cell->internal_offset;
++    cell_node->as.table_cell.cell_index = (uint16_t)i;
++    cell_node->end_column = paragraph->start_column + cell->end_offset;
++    S_set_content(cell_node, cell->buf);
++  }
++
++  paragraph->as.table.n_rows = 1;
++  paragraph->as.table.n_nonempty_cells = i;
++
++  cmark_strbuf_clear(&parser->content);
++  cmark_parser_advance_offset(parser, input,
++                              input->len - 1 - parser->offset, false);
++
++  S_free_table_row(parser->mem, header_row);
++  S_free_table_row(parser->mem, delimiter_row);
++
++  *container = paragraph;
++  return true;
++}
++
++bool cmark_table_open_row(cmark_parser *parser, cmark_node **container,
++                          cmark_chunk *input) {
++  cmark_node *table = *container;
++  cmark_node *row;
++  table_row *parsed;
++  int n_columns = (int)table->as.table.n_columns;
++  int i;
++
++  if (parser->blank)
++    return false;
++
++  if (S_get_n_autocompleted_cells(table) >
++      CMARK_TABLE_MAX_AUTOCOMPLETED_CELLS)
++    return false;
++
++  parsed = S_row_from_string(parser->mem,
++                             input->data + parser->first_nonspace,
++                             (int)(input->len - parser->first_nonspace));
++  if (!parsed)
++    return false;
++
++  row = cmark_parser_add_child(parser, table, CMARK_NODE_TABLE_ROW,
++                               table->start_column);
++  row->end_column = table->end_column;
++
++  for (i = 0; i < parsed->n_columns && i < n_columns; ++i) {
++    node_cell *cell = &parsed->cells[i];
++    cmark_node *cell_node = cmark_parser_add_child(
++        parser, row, CMARK_NODE_TABLE_CELL,
++        table->start_column + cell->start_offset);
++
++    cell_node->start_line = cell_node->end_line = parser->line_number;
++    cell_node->as.table_cell.internal_offset = cell->internal_offset;
++    cell_node->as.table_cell.cell_index = (uint16_t)i;
++    cell_node->end_column = table->start_column + cell->end_offset;
++    S_set_content(cell_node, cell->buf);
++  }
++
++  table->as.table.n_rows++;
++  table->as.table.n_nonempty_cells += i;
++
++  for (; i < n_columns; ++i) {
++    cmark_node *cell_node =
++        cmark_parser_add_child(parser, row, CMARK_NODE_TABLE_CELL, 0);
++
++    cell_node->start_line = cell_node->end_line = parser->line_number;
++    cell_node->as.table_cell.cell_index = (uint16_t)i;
++  }
++
++  cmark_parser_advance_offset(parser, input,
++                              input->len - 1 - parser->offset, false);
++
++  S_free_table_row(parser->mem, parsed);
++
++  *container = row;
++  return true;
++}
+diff --git src/table.h src/table.h
+new file mode 100644
+index 0000000..7db5df7
+--- /dev/null
++++ src/table.h
+@@ -0,0 +1,31 @@
++#ifndef CMARK_TABLE_H
++#define CMARK_TABLE_H
++
++#include <stdbool.h>
++
++#include "cmark.h"
++#include "chunk.h"
++#include "parser.h"
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/* Limit the number of cells created by row autocompletion to avoid
++ * denial-of-service inputs. */
++#define CMARK_TABLE_MAX_AUTOCOMPLETED_CELLS 0x80000
++
++bool cmark_table_row_matches(cmark_parser *parser, cmark_node *table,
++                             cmark_chunk *input);
++
++bool cmark_table_open_header(cmark_parser *parser, cmark_node **container,
++                             cmark_chunk *input);
++
++bool cmark_table_open_row(cmark_parser *parser, cmark_node **container,
++                          cmark_chunk *input);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif
+diff --git src/xml.c src/xml.c
+index 2ca2de8..acf0979 100644
+--- src/xml.c
++++ src/xml.c
+@@ -82,6 +82,17 @@ struct render_state {
+   int indent;
+ };
+ 
++static uint8_t S_cell_alignment(cmark_node *cell) {
++  cmark_node *row = cell->parent;
++  cmark_node *table = row ? row->parent : NULL;
++
++  if (table && table->type == CMARK_NODE_TABLE &&
++      cell->as.table_cell.cell_index < table->as.table.n_columns)
++    return table->as.table.alignments[cell->as.table_cell.cell_index];
++
++  return 0;
++}
++
+ static inline void indent(struct render_state *state) {
+   int i;
+   for (i = 0; i < state->indent && i < MAX_INDENT; i++) {
+@@ -174,6 +185,22 @@ static int S_render_node(cmark_node *node, cmark_event_type ev_type,
+       escape_xml_str(xml, node->as.custom.on_exit);
+       cmark_strbuf_putc(xml, '"');
+       break;
++    case CMARK_NODE_TABLE_CELL:
++      if (node->parent && node->parent->type == CMARK_NODE_TABLE_ROW &&
++          node->parent->as.table_row.is_header) {
++        switch (S_cell_alignment(node)) {
++        case 'l':
++          cmark_strbuf_puts(xml, " align=\"left\"");
++          break;
++        case 'c':
++          cmark_strbuf_puts(xml, " align=\"center\"");
++          break;
++        case 'r':
++          cmark_strbuf_puts(xml, " align=\"right\"");
++          break;
++        }
++      }
++      break;
+     case CMARK_NODE_LINK:
+     case CMARK_NODE_IMAGE:
+       cmark_strbuf_puts(xml, " destination=\"");

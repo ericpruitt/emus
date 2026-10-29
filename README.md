@@ -295,6 +295,13 @@ environment variables "LOGNAME", "HOME" and "SHELL" if they are set.
 Disable _strtoimax(3)_ compatibility implementation when using C99 and up since
 it is part of the C99 standard.
 
+#### cmark-src-tables-strikethrough.patch ####
+
+Add support for tilde strikethrough and GitHub Flavored Markdown tables. Unlike
+with cmark-gfm, these extensions are not toggleable.
+
+**NOTE:** This patch was AI-assisted.
+
 #### coreutils-almost-all-if-not-home.patch ####
 
 Add support for a new option, "--almost-all-if-not-home", that implicitly shows

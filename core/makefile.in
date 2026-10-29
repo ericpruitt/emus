@@ -745,7 +745,10 @@ $(CMARK)/.git:
 
 $(CMARK)/build/src/cmark: $(CMARK)/.git
 	mkdir -p $(CMARK)/build
-	(cd $(CMARK)/build; \
+	(cd $(CMARK); \
+	(git diff --quiet src && $(XCAT) $(PWD)/patches/$(PATCH_PREFIX)-*) \
+	| patch -p0; \
+	cd build; \
 	CC="$(CC)" \
 	CFLAGS="$(CFLAGS)" \
 	LDFLAGS="$(LDFLAGS)" \

@@ -926,17 +926,17 @@ $(BIN)/grep: $(GREP)/src/grep
 	cp -f $(GREP)/src/fgrep $(BIN)
 	cp -f $? $@
 
-# .FOLDER is used for jq instead of .git because something keeps messing with
-# the timestamps of the .git directory causing unnecessary rebuilds.
-#
-# TODO: Get this sorted since the "clean-jq" target deletes the .FOLDEr file.
-$(JQ)/.FOLDER:
-	git clone https://github.com/jqlang/jq.git $(JQ)
+# JQ's build process interacts with Git in a way that locks the repository.
+# This results in the .git folder's timestamp changing even when the source
+# code has been modified, so we cannot use the folder directly as a build
+# dependency.
+$(JQ)/.git/.FOLDER:
+	test -d $(JQ)/.git || git clone https://github.com/jqlang/jq.git $(JQ)
 	(cd $(JQ) && git reset --hard $(JQ_COMMIT))
 	(cd $(JQ) && git submodule update --init)
 	touch $@
 
-$(JQ)/configure: $(JQ)/.FOLDER
+$(JQ)/configure: $(JQ)/.git/.FOLDER
 	(cd $(@D) && autoreconf -i)
 
 $(JQ)/Makefile: $(JQ)/configure

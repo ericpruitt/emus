@@ -185,6 +185,12 @@ PUBRING = $(GNUPGHOME)/pubring.kbx
 WGET = wget --no-use-server-timestamps -nv
 QUIETMAKE = MAKEFLAGS= $(MAKE) -s
 
+# Used to determine the prefix used for a particular target's patches.
+PATCH_PREFIX = $$( \
+	echo '$@' \
+	| sed -e 's:/.*::' -e 's/^\([a-z][a-z0-9-]\+\)\-[0-9].*/\1/' \
+)
+
 UTF8PROC_WCWIDTH = utf8proc-wcwidth
 UTF8PROC_WCWIDTH_SO = $(UTF8PROC_WCWIDTH)/utf8proc-wcwidth.so
 UTF8PROC_WCWIDTH_SRC = $(UTF8PROC_WCWIDTH_SO:.so=.c)
@@ -465,7 +471,7 @@ $(SIGNED_ARCHIVE_FOLDERS): $(PUBRING)
 		last_patch_regex='-0*$(READLINE_PATCH_LEVEL)$$'; \
 	  ;; \
 	esac; \
-	for path in patches/$(@D)-* $(@D)-patches/*; do \
+	for path in patches/$(PATCH_PREFIX)-* $(@D)-patches/*; do \
 		case "$$path" in *.sig|*[*]*) continue ;; esac; \
 		echo "- $$path"; \
 		(cd $(@D) && patch -p0) < "$$path"; \
@@ -483,7 +489,7 @@ $(MUSL)/.FOLDER: $(MUSL).tar.gz $(MUSL).tar.gz.asc $(PUBRING)
 	$(GPG) --verify $(MUSL).tar.gz.asc
 	tar -x -z -f $(MUSL).tar.gz
 	rm $(MUSL)/src/ctype/wcwidth.c
-	$(XCAT) $(PWD)/patches/$(MUSL)-* | (cd $(MUSL) && patch -p1)
+	$(XCAT) $(PWD)/patches/$(PATCH_PREFIX)-* | (cd $(MUSL) && patch -p1)
 	touch $@
 
 # We make a dummy replacement for <linux/fs.h> to placate coreutils which uses
@@ -638,7 +644,7 @@ $(APPLE_BASH_RELEASE).tar.gz:
 $(APPLE_BASH)/.FOLDER: $(APPLE_BASH_RELEASE).tar.gz
 	tar -x -z -f $?
 	mv bash-$(APPLE_BASH_RELEASE) $(@D)
-	$(XCAT) $(PWD)/patches/$(APPLE_BASH)-* | (cd $(APPLE_BASH) && patch -p0)
+	$(XCAT) $(PWD)/patches/$(PATCH_PREFIX)-* | (cd $(APPLE_BASH) && patch -p0)
 	(cd $(@D) && ln -s bash-*/ src)
 	touch $@
 
@@ -845,7 +851,7 @@ $(FLOCK)/configure: $(FLOCK)/.git
 
 $(FLOCK)/Makefile: $(FLOCK)/configure
 	(cd $(@D); \
-	(git diff --quiet src && $(XCAT) $(PWD)/patches/$(FLOCK)-*) \
+	(git diff --quiet src && $(XCAT) $(PWD)/patches/$(PATCH_PREFIX)-*) \
 	| patch -p0; \
 	find . -name "*.orig" -delete; \
 	./configure \
@@ -1132,7 +1138,7 @@ $(UCONV)/.git:
 
 $(UCONV)/uconv: $(UCONV)/.git
 	(cd $(UCONV); \
-	(git diff --quiet && $(XCAT) $(PWD)/patches/$(UCONV)-*) | patch -p0; \
+	(git diff --quiet && $(XCAT) $(PWD)/patches/$(PATCH_PREFIX)-*) | patch -p0; \
 	find . -name "*.orig" -delete; \
 	make \
 		CC="$(CC)" \
@@ -1177,7 +1183,7 @@ $(VIM)/.git:
 
 $(VIM)/src/auto/config.h: $(VIM)/.git $(COMMON)/$(NCURSES)
 	(cd $(VIM); \
-	(git diff --quiet && $(XCAT) $(PWD)/patches/$(VIM)-*) | patch -p0; \
+	(git diff --quiet && $(XCAT) $(PWD)/patches/$(PATCH_PREFIX)-*) | patch -p0; \
 	find . -name "*.orig" -delete; \
 	./configure \
 		CC="$(CC)" \

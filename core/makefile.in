@@ -469,7 +469,7 @@ $(SIGNED_ARCHIVE_FOLDERS): $(PUBRING)
 		case "$$path" in *.sig|*[*]*) continue ;; esac; \
 		echo "- $$path"; \
 		(cd $(@D) && patch -p0) < "$$path"; \
-		find . -name "*.orig" -delete; \
+		(cd $(@D) && find . -name "*.orig" -delete); \
 		if echo "$$path" | grep -qe "$${last_patch_regex:-^$$}"; then \
 			break; \
 		fi; \

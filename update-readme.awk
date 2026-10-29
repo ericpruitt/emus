@@ -72,6 +72,9 @@ $0 == "### patches/ ###" {
         skipping_header = 0
         header_buffered = 0
 
+        in_ai_disclosure = 0
+        ai_authorship = ""
+
         # Extract the description from the patch. If the first line starts with
         # "- ", that indicates that the first paragraph is general metadata
         # that shouldn't be included in the README.
@@ -87,6 +90,22 @@ $0 == "### patches/ ###" {
                 header_buffered = 1
             }
 
+            if (/AI Disclosure:/) {
+                in_ai_disclosure = 1
+            }
+
+            if (in_ai_disclosure) {
+                if (/Authorship:/) {
+                    ai_authorship = $NF
+                }
+
+                if (!NF) {
+                    in_ai_disclosure = 0
+                }
+
+                continue
+            }
+
             if (patch_line_number == 1 && $0 ~ /^- /) {
                 skipping_header = 1
             } else if (!skipping_header) {
@@ -95,6 +114,11 @@ $0 == "### patches/ ###" {
             } else if (!NF) {
                 skipping_header = 0
             }
+        }
+
+        if (ai_authorship) {
+            buffer("**NOTE:** This patch was " ai_authorship ".")
+            buffer("")
         }
 
         error = length(ERRNO) ? ERRNO : "I/O error reading file"

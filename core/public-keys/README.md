@@ -44,7 +44,7 @@ replacement keys easier if they are moved.
   - <http://www.citi.umich.edu/u/provos/pgp.key>
 - mpfr-vincent-lefevre.asc
   - <http://www.mpfr.org/mpfr-current/>
-  - `gpg --keyserver keys.gnupg.net --recv-keys 07F3DBBECC1A39605078094D980C197698C3739D`
+  - <https://www.vinc17.net/key.asc>
 - musl.asc
   - <https://www.musl-libc.org/download.html>
   - <https://www.musl-libc.org/musl.pub>

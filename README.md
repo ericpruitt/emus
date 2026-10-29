@@ -391,7 +391,7 @@ less than one screen of text has been shown, and both "--no-init" ("-X") and
 
 Adjust some preprocessor guards to resolve build failures on OpenBSD.
 
-#### pcre2-10.42-preserve-static-flag.diff ####
+#### pcre2-10.49-preserve-static-flag.diff ####
 
 Preserve "-static" flag in libtool to ensure generated binaries are statically
 linked. See also: <https://github.com/PCRE2Project/pcre2/issues/341>.

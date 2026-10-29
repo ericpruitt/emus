@@ -49,6 +49,14 @@ VIM = vim-src
 APPLE_BASH_RELEASE = bash-135
 APPLE_BASH = apple-$(APPLE_BASH_RELEASE)
 
+# The release of Bash used on macOS contains outdated constructs that trigger
+# errors by default on newer compilers.
+APPLE_BASH_CFLAGS = \
+	-Wno-error=implicit-int \
+	-Wno-error=implicit-function-declaration \
+	-Wno-error=incompatible-pointer-types \
+	-Wno-error=int-conversion \
+
 # Revision-controlled package versions:
 UTF8PROC_VERSION = 2.7.0
 VIM_VERSION = 9.1.1868
@@ -181,7 +189,8 @@ UTF8PROC_WCWIDTH = utf8proc-wcwidth
 UTF8PROC_WCWIDTH_SO = $(UTF8PROC_WCWIDTH)/utf8proc-wcwidth.so
 UTF8PROC_WCWIDTH_SRC = $(UTF8PROC_WCWIDTH_SO:.so=.c)
 
-FOLDERS = $$(echo $(BINARIES) $(LIBRARIES) | xargs -n1 | cut -d/ -f1 | sort -u)
+FOLDERS = $$(echo $(BINARIES) $(LIBRARIES) $(COMPAT) $(APPLE_BASH) \
+	| xargs -n1 | cut -d/ -f1 | sort -u)
 
 # These are targets listed in $(VIM)/Filelist that have their contents copied
 # into $(BIN)/vimruntime. Among many other things, list includes files needed
@@ -623,10 +632,10 @@ $(COMMON)/$(READLINE): $(READLINE)/Makefile
 	(cd $(?D) && $(MAKE) -S install)
 	touch $@
 
-$(APPLE_BASH).tar.gz:
+$(APPLE_BASH_RELEASE).tar.gz:
 	$(WGET) -O $@ -nc https://github.com/apple-oss-distributions/bash/archive/$(APPLE_BASH_RELEASE).tar.gz
 
-$(APPLE_BASH)/.FOLDER: $(APPLE_BASH).tar.gz
+$(APPLE_BASH)/.FOLDER: $(APPLE_BASH_RELEASE).tar.gz
 	tar -x -z -f $?
 	mv bash-$(APPLE_BASH_RELEASE) $(@D)
 	$(XCAT) $(PWD)/patches/$(APPLE_BASH)-* | (cd $(APPLE_BASH) && patch -p0)
@@ -644,7 +653,7 @@ $(APPLE_BASH)/src/Makefile: $(APPLE_BASH)/.FOLDER $(COMMON)/$(READLINE)
 	cp ../*.[ch] .; \
 	./configure \
 		CC="$(CC)" \
-		CFLAGS="$(CFLAGS) $$( \
+		CFLAGS="$(CFLAGS) $(APPLE_BASH_CFLAGS) $$( \
 			printf '#include <errno.h>\n EBADEXEC\n' \
 			| $(CC) -E - \
 			| grep -F -w -q EBADEXEC && echo -DEBADEXEC=ENOEXEC; \
@@ -664,10 +673,18 @@ $(APPLE_BASH)/src/Makefile: $(APPLE_BASH)/.FOLDER $(COMMON)/$(READLINE)
 # "-static" through when building mksyntax and mksignames. Since both programs
 # are only compile-time dependencies and these files use archaic C syntax,
 # there is probably no harm in using whatever compiler "cc" points to. Refer to
-# the comments above $(BASH)/bash to see why LOCAL_LDFLAGS is unset.
+# the comments above $(BASH)/bash to see why LOCAL_LDFLAGS is unset. The build
+# system that ships with Apple's Bash release is not written in a way that
+# support parallelism, we unset MAKEFLAGS to ensure the build is done serially
+# to avoid race conditions.
 $(APPLE_BASH)/src/apple-bash: $(APPLE_BASH)/src/Makefile
-	(cd $(?D) && $(MAKE) -S LOCAL_LDFLAGS= CC="cc" mksyntax mksignames)
-	(cd $(?D) && $(MAKE) -S LOCAL_LDFLAGS= Program="$(@F)")
+	(cd $(?D) && MAKEFLAGS= $(MAKE) -S LOCAL_LDFLAGS= CC="cc"\
+		CFLAGS_FOR_BUILD="$(APPLE_BASH_CFLAGS)" \
+		mksyntax mksignames)
+	(cd $(?D) && MAKEFLAGS= $(MAKE) -S LOCAL_LDFLAGS= \
+		CFLAGS_FOR_BUILD="$(APPLE_BASH_CFLAGS)" \
+		LIBS_FOR_BUILD="$(LDFLAGS)" \
+		Program="$(@F)")
 
 apple-bash: $(APPLE_BASH)/src/apple-bash
 

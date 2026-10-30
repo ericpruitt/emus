@@ -780,6 +780,7 @@ $(COREUTILS)/Makefile: $(COREUTILS)/.FOLDER $(GMP_DEPS)
 		--disable-dependency-tracking \
 		--disable-nls \
 		--enable-no-install-program=stdbuf \
+		--without-selinux \
 		--enable-single-binary=shebangs \
 	)
 

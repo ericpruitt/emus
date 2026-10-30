@@ -514,7 +514,8 @@ $(MUSL_CC): $(MUSL)/config.mak $(MUSL)/src/ctype/wcwidth.c $(UTF8PROC)/utf8proc.
 	(cd $(MUSL) && $(MAKE) -S install)
 	ln -s $(PWD)/$(MUSL)/bin/musl-* "$$(realpath $@)"
 
-musl: $(MUSL_CC)
+musl:
+	test -e "$(MUSL_CC)" || $(MAKE) $(MUSL_CC)
 
 musl-cc:
 	echo $(MUSL_CC)

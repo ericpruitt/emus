@@ -35,7 +35,7 @@ LIBEVENT = libevent-2.1.12-stable
 MPFR = mpfr-4.2.2
 MUSL = musl-1.2.6
 NCURSES = ncurses-6.4
-OATH_TOOLKIT = oath-toolkit-2.6.12
+OATH_TOOLKIT = oath-toolkit-2.6.15
 PCRE2 = pcre2-10.49
 READLINE = readline-8.3
 RSYNC = rsync-3.5.1
@@ -1013,6 +1013,7 @@ $(OATH_TOOLKIT)/Makefile: $(OATH_TOOLKIT)/.FOLDER
 # https://github.com/jhswartz/static-builds/commit/cb5aaa2 without digging into
 # why it's required.
 $(OATH_TOOLKIT)/oathtool/oathtool: $(OATH_TOOLKIT)/Makefile
+	(cd $(@D)/../gl && $(MAKE) -S)
 	(cd $(@D)/../liboath && $(MAKE) -S)
 	(cd $(@D) && $(MAKE) LDFLAGS="$(LDFLAGS) -all-static" -S)
 

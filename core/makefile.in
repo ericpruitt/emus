@@ -59,7 +59,7 @@ APPLE_BASH_CFLAGS = \
 
 # Revision-controlled package versions:
 UTF8PROC_VERSION = 2.7.0
-VIM_VERSION = 9.1.1868
+VIM_VERSION = 9.2.1252
 
 CMARK_COMMIT = ce6e7624d528146b20e9673cdb7b9970e8951c34
 FLOCK_COMMIT = b9f6170fff275e569ef6681ce05077ebef29cc2d
@@ -1188,6 +1188,10 @@ $(BIN)/utf8proc-wcwidth.so: $(UTF8PROC_WCWIDTH_SO)
 $(VIM)/.git:
 	git clone -b v$(VIM_VERSION) https://github.com/vim/vim.git $(VIM)
 
+# Vim 9.2's use of pkg-config probes the host for various libraries and passes
+# them in as linking flags to the build. Since I don't want the host's
+# configuration influencing the build and including, for example, graphical
+# features, PKG_CONFIG is set to false.
 $(VIM)/src/auto/config.h: $(VIM)/.git $(COMMON)/$(NCURSES)
 	(cd $(VIM); \
 	(git diff --quiet && $(XCAT) $(PWD)/patches/$(PATCH_PREFIX)-*) | patch -p0; \
@@ -1196,6 +1200,7 @@ $(VIM)/src/auto/config.h: $(VIM)/.git $(COMMON)/$(NCURSES)
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS) -DFEAT_CONCEAL -DFEAT_TERMGUICOLORS" \
 		LDFLAGS="$(LDFLAGS)" \
+		PKG_CONFIG="false" \
 		ac_cv_header_dlfcn_h="no" \
 		--disable-channel \
 		--disable-gpm \

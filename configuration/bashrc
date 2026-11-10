@@ -439,7 +439,8 @@ function spawn()
     fi
 
     # The eval command is used here because "$@" will not expand aliases.
-    eval "$(printf " %q" "$@") < /dev/null &> /dev/null & disown"
+    eval "$(printf " %q" "$@") < /dev/null &> /dev/null &"
+    disown "$!"
 }
 
 # Run a command in a verbose manner; before the command is executed, the

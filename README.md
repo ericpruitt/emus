@@ -372,6 +372,17 @@ Refine the heuristics for "substr: start index ... is past end of string" so
 the warning is only shown if the third argument is set or if the start index is
 more than 1 character beyond the end of a string.
 
+#### grep-no-xdev.patch ####
+
+Add support for a new option, "--no-xdev", that prevents recursive searches
+from descending into directories residing on a different device than the
+directory operand being searched.  Device identity is determined by comparing
+the st_dev member (i.e., the device major/minor pair) of each directory's inode
+with that of the operand.  The option has no effect unless a recursive search
+is requested.
+
+**NOTE:** This patch was AI-generated.
+
 #### less-disable-lessopen-warning.patch ####
 
 Disable the warning that appears when editing a file being viewed with

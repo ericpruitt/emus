@@ -1,0 +1,76 @@
+Add support for a new option, "--no-xdev", that prevents recursive searches
+from descending into directories residing on a different device than the
+directory operand being searched.  Device identity is determined by comparing
+the st_dev member (i.e., the device major/minor pair) of each directory's inode
+with that of the operand.  The option has no effect unless a recursive search
+is requested.
+
+**AI Disclosure:**
+- **Authorship:** AI-generated
+- **Models:** edge0-145b
+- **Scope:** Wrote the entire patch, including its synopsis header. Generated
+  the diff from the pristine tarball and verified it by rebuilding grep and
+  comparing recursive searches with and without the option across several
+  mount points. The user supplied the feature specification.
+
+--- src/grep.c	2025-04-08 11:32:24.000000000 -0500
++++ src/grep.c	2026-11-13 14:15:29.000000000 -0600
+@@ -499,7 +499,8 @@
+   INCLUDE_OPTION,
+   LINE_BUFFERED_OPTION,
+   LABEL_OPTION,
+-  NO_IGNORE_CASE_OPTION
++  NO_IGNORE_CASE_OPTION,
++  NO_XDEV_OPTION
+ };
+ 
+ /* Long options equivalences. */
+@@ -541,6 +542,7 @@
+   {"no-filename", no_argument, nullptr, 'h'},
+   {"no-group-separator", no_argument, nullptr, GROUP_SEPARATOR_OPTION},
+   {"no-messages", no_argument, nullptr, 's'},
++  {"no-xdev", no_argument, nullptr, NO_XDEV_OPTION},
+   {"null", no_argument, nullptr, 'Z'},
+   {"null-data", no_argument, nullptr, 'z'},
+   {"only-matching", no_argument, nullptr, 'o'},
+@@ -598,6 +600,10 @@
+ enum { basic_fts_options = FTS_CWDFD | FTS_NOSTAT | FTS_TIGHT_CYCLE_CHECK };
+ static int fts_options = basic_fts_options | FTS_COMFOLLOW | FTS_PHYSICAL;
+ 
++/* Whether recursive searches are forbidden from crossing onto a device
++   other than the one holding the directory operand.  */
++static bool no_xdev;
++
+ /* How to handle devices. */
+ static enum
+   {
+@@ -1861,6 +1867,10 @@
+       FTS *fts;
+       FTSENT *ent;
+       int opts = fts_options & ~(command_line ? 0 : FTS_COMFOLLOW);
++      /* FTS_XDEV skips directories whose st_dev (i.e., the device major/minor
++         pair) differs from that of the directory operand.  */
++      if (no_xdev)
++        opts |= FTS_XDEV;
+       char *fts_arg[2];
+ 
+       /* Close DESC now, to conserve file descriptors if the race
+@@ -2034,6 +2044,7 @@
+                             ACTION is 'read' or 'skip'\n\
+   -r, --recursive           like --directories=recurse\n\
+   -R, --dereference-recursive  likewise, but follow all symlinks\n\
++      --no-xdev             do not cross device boundaries when recursing\n\
+ "));
+       printf (_("\
+       --include=GLOB        search only files that match GLOB (a file pattern)"
+@@ -2815,6 +2826,10 @@
+         label = optarg;
+         break;
+ 
++      case NO_XDEV_OPTION:
++        no_xdev = true;
++        break;
++
+       case 0:
+         /* long options */
+         break;

@@ -1028,10 +1028,14 @@ $(BIN)/oathtool: $(OATH_TOOLKIT)/oathtool/oathtool
 $(RSYNC).tar.gz $(RSYNC).tar.gz.asc:
 	$(WGET) -nc https://download.samba.org/pub/rsync/src/$@
 
+# Newer versions of rsync use C++ for some SIMD code. Since musl doesn't
+# support C++ but we still want the performance optimizations on systems where
+# C++ is available, we emit CXX="false" conditionally.
 $(RSYNC)/Makefile: $(RSYNC)/.FOLDER
 	(cd $(@D); \
 	./configure \
 		CC="$(CC)" \
+		$$(case "$(CC)" in (*musl*) echo CXX="false" ;; esac) \
 		CFLAGS="$(CFLAGS) -I$(PWD)/$(COMMON)/include/ncurses" \
 		LDFLAGS="$(LDFLAGS)" \
 		--disable-openssl \
